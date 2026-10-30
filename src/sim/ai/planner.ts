@@ -1,11 +1,12 @@
 import { sum } from "../prelude";
 import type { Assignment, Candidate, ContentDef, GameState, Hero, Plan, Stance } from "../types";
 import { contentById } from "../content/content";
-import { MAX_PARTIES, ROSTER_CAP } from "../content/tuning";
+import { MAX_PARTIES } from "../content/tuning";
 import { bestPartyFor, levelOk, rankFor, sizeOk, unlockedContent } from "../plan";
 import { projectAssignment } from "../encounter";
 import { heroPower, isAvailable } from "../hero";
-import { wageBill, wageBudget } from "../economy";
+import { wageBill } from "../economy";
+import { rosterCapFor, wageBudgetFor, nextCost, buyFacility, FACILITIES, type FacilityId } from "../facilities";
 import type { Personality } from "./personalities";
 
 const KIND_BONUS: Record<string, number> = {
@@ -212,10 +213,10 @@ export const planDay = (
 
 /** Should the AI hire, and who? */
 export const hireDecision = (state: GameState, personality: Personality): Candidate | null => {
-  if (state.roster.length >= ROSTER_CAP) return null;
+  if (state.roster.length >= rosterCapFor(state.facilities)) return null;
 
   const bill = wageBill(state.roster);
-  const budget = wageBudget(state.renown);
+  const budget = wageBudgetFor(state.renown, state.facilities);
   const reserve = 80 + personality.thrift * 500;
 
   // Stop hiring when wages are already tight: the roster has to be affordable.
@@ -232,3 +233,31 @@ export const hireDecision = (state: GameState, personality: Personality): Candid
 };
 
 export const rosterStrength = (heroes: readonly Hero[]): number => sum(heroes.map(heroPower));
+
+/**
+ * Spend surplus gold on facilities. The AI prioritises the forge (gear compounds),
+ * then the infirmary (fewer lost days). It keeps a reserve so it can still hire.
+ */
+export const facilityDecision = (state: GameState, personality: Personality): FacilityId | null => {
+  const reserve = 1200 + personality.thrift * 2500;
+  if (state.gold < reserve) return null;
+
+  const order: Array<"forge" | "infirmary" | "tavern" | "hall"> = ["forge", "infirmary", "tavern", "hall"];
+  for (const id of order) {
+    const cost = nextCost(state.facilities, id);
+    if (cost !== null && state.gold - cost >= reserve * 0.5) return id;
+  }
+  return null;
+};
+
+export const applyFacilityDecision = (
+  state: GameState,
+  personality: Personality,
+): GameState => {
+  const id = facilityDecision(state, personality);
+  if (!id) return state;
+  const next = buyFacility(state, id);
+  return next ?? state;
+};
+
+export const facilityNames = FACILITIES.map((f) => f.name).join(", ");

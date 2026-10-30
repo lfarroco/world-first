@@ -2,11 +2,12 @@
 
 *A management game where you run a raiding guild: **Football Manager** for a WoW-style Race to World First.*
 
-**Status:** the simulation is playable end to end — a WoW-style progression ladder (3 heroes in a wood → 3 raids over 84 days), a personality-driven AI that plays it, and a CLI. No UI yet.
+**Status:** the simulation is playable end to end — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer, four upgradable facilities, a personality-driven AI that plays it, and a CLI. No UI yet.
 
 ```bash
 npm install
 npm run cli -- new --seed 1234
+npm run cli -- today         # the day screen
 npm run cli -- content       # the ladder and its locks
 npm run cli -- ai --days 30  # watch the AI play it
 npm run cli -- sim --runs 10 # balance sweep across personalities

@@ -1,6 +1,6 @@
 # ADR 0002 — UI framework (React vs Angular)
 
-**Status:** proposed — deliberately deferred until Phase 0 is done
+**Status:** **accepted** (2026-10-30) — React + Vite. The Angular plan is kept below as a contingency.
 **Date:** 2026-10-30
 **Depends on:** [ADR 0001](0001-functional-ts.md)
 
@@ -46,9 +46,11 @@ So: no technical blocker either way. The decision is about velocity and intent.
 
 ---
 
-## Decision (proposed)
+## Decision
 
-**Build the UI in React + Vite, and keep Angular as a documented contingency.**
+**React + Vite.** Chosen on 2026-10-30 for velocity and ecosystem; the two-day spike was not needed.
+
+Rationale as written when proposed:
 
 Rationale:
 

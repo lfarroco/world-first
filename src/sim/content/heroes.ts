@@ -127,10 +127,10 @@ export const randomClass = (rng: () => number): ClassId => {
  * Recruits are not level 1 forever: a guild of veterans attracts experienced
  * adventurers. This is what makes a 10-man raid reachable inside a run.
  */
-export const makeCandidate = (seed: number, day: number, index: number, guildLevel = 1) => {
+export const makeCandidate = (seed: number, day: number, index: number, guildLevel = 1, factor = 0.68) => {
   const rng = rngStream(seed, "tavern", day, index);
   const klass = randomClass(rng);
-  const level = clamp(Math.round(guildLevel * 0.68) + rollInt(rng, -3, 3), 1, LEVEL_CAP - 5);
+  const level = clamp(Math.round(guildLevel * factor) + rollInt(rng, -3, 3), 1, LEVEL_CAP - 5);
   const hero = makeHero(seed, 1000 + day * 10 + index, klass, level, day * 3 + index);
   return { hero, fee: feeForLevel(level) };
 };

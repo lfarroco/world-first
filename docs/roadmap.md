@@ -41,7 +41,7 @@ Everything else — rivals, UI, facilities — amplifies a loop that must first 
 
 ## 3. Phases
 
-### Phase 1 — Make the day worth playing *(highest risk reduction)*
+### Phase 1 — Make the day worth playing ✅ *shipped*
 
 **Goal:** on a random day, the player has one decision they could get wrong.
 
@@ -49,6 +49,10 @@ Everything else — rivals, UI, facilities — amplifies a loop that must first 
 - **Reduce dead days.** If nothing changes and nothing is due, the day should be skippable in one keystroke. Or: the run shortens to ~56 days with faster levelling (decide with a playtest, not by feel).
 - **Facilities.** Four upgrades (infirmary, forge, tavern, hall), three levels each, with real effects and real prices. This is the gold sink, and the reason to keep farming after you can clear content.
 - **Quick wins for playtesting:** `today` (one screen: state + plan + what needs you), `repeat` (reuse yesterday's plan), `advance --until event`.
+
+**Shipped:** 10 event cards as data, 4 facilities × 3 levels, `today` and `build` commands. End-of-run surplus dropped from 17–29k to ~10k with no change to difficulty.
+
+**Still open from this phase:** the AI picks the first option of every card, so events are shown but not played. Structured option costs are the fix.
 
 **Kill criterion:** if a 30-day human playtest produces no moment the player wants to retell, stop and rethink the loop before any UI work.
 

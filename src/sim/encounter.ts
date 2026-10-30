@@ -16,6 +16,7 @@ import { contentById } from "./content/content";
 import { checkContribution } from "./hero";
 import { rngStream } from "./rng";
 import { partyOf } from "./plan";
+import { lootBonusFor } from "./facilities";
 
 export type EncounterOutcome = {
   readonly content: ContentDef;
@@ -166,7 +167,9 @@ export const resolveAssignment = (state: GameState, assignment: Assignment): Enc
       if (!target) break;
       const slot = slots[Math.floor(lootRng() * 3.999)] ?? "weapon";
       const ilvl =
-        content.loot.ilvlMin + Math.floor(lootRng() * (content.loot.ilvlMax - content.loot.ilvlMin + 1));
+        content.loot.ilvlMin +
+        Math.floor(lootRng() * (content.loot.ilvlMax - content.loot.ilvlMin + 1)) +
+        lootBonusFor(state.facilities);
       loot.push({ heroId: target.id, name: target.name, slot, ilvl });
     }
   }

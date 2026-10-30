@@ -1,6 +1,8 @@
 import type { AttentionItem, EventKind, GameEvent, GameState, Hero, SquadStatus } from "./types";
 import { assignedIds } from "./plan";
-import { wageBill, wageBudget } from "./economy";
+import { wageBill } from "./economy";
+import { wageBudgetFor } from "./facilities";
+import { cardById } from "./content/events";
 import { CONTRACT } from "./content/tuning";
 
 /** Deterministic id: no global counters, or replays diverge. */
@@ -76,7 +78,7 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
   }
 
   const bill = wageBill(state.roster);
-  const budget = wageBudget(state.renown);
+  const budget = wageBudgetFor(state.renown, state.facilities);
   if (bill > budget) {
     items.push({
       id: itemId("wage-over-budget", undefined, today),
@@ -101,6 +103,30 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
         title: `${hero.name} is running on empty`,
         detail: `Fatigue ${Math.round(hero.fatigue)}% and still assigned to the raid.`,
         options: [{ key: "ack", label: "Noted", effect: { kind: "acknowledge" } }],
+      });
+    }
+  }
+
+  const pending = state.pendingEvent;
+  if (pending) {
+    const card = cardById(pending.cardId);
+    if (card) {
+      const target = pending.targetHeroId
+        ? state.roster.find((h) => h.id === pending.targetHeroId)
+        : undefined;
+      items.unshift({
+        id: `event:${card.id}:${pending.day}`,
+        kind: "event",
+        day: today,
+        blocking: true,
+        ...(target ? { heroId: target.id } : {}),
+        title: card.title,
+        detail: card.text.replace("{hero}", target?.name ?? "one of your heroes"),
+        options: card.options.map((o) => ({
+          key: o.key,
+          label: `${o.label} — ${o.hint}`,
+          effect: { kind: "event" as const, cardId: card.id, optionKey: o.key },
+        })),
       });
     }
   }
@@ -133,3 +159,10 @@ export const statusLabel = (status: SquadStatus): string => {
 };
 
 export const RAID_SIZE = 10;
+
+/**
+ * The real gate. A stale cached `attention` array must never let the day slip
+ * through, so a pending event blocks even if it has not been re-derived yet.
+ */
+export const hasBlocking = (state: GameState): boolean =>
+  state.pendingEvent !== null || state.attention.some((i) => i.blocking);

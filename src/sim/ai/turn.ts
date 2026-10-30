@@ -2,7 +2,7 @@ import type { GameState } from "../types";
 import { blockingAttention, deriveAttention } from "../events";
 import { hireCandidate, resolveAttention } from "../game";
 import { resolveDay } from "../day";
-import { hireDecision, planDay } from "./planner";
+import { applyFacilityDecision, hireDecision, planDay } from "./planner";
 import type { Personality } from "./personalities";
 
 export type AiTurn = {
@@ -25,6 +25,14 @@ export const aiTurn = (state: GameState, personality: Personality): AiTurn => {
     next = hireCandidate(next, hire);
     if (next.roster.length > before) {
       notes.push(`hired ${hire.hero.name} (lvl ${hire.hero.level}) for ${hire.fee}g`);
+    }
+  }
+
+  const beforeFacilities = next.facilities;
+  next = applyFacilityDecision(next, personality);
+  if (next.facilities !== beforeFacilities) {
+    for (const key of Object.keys(next.facilities) as (keyof typeof next.facilities)[]) {
+      if (next.facilities[key] > beforeFacilities[key]) notes.push(`built ${key} level ${next.facilities[key]}`);
     }
   }
 

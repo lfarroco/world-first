@@ -98,3 +98,16 @@ The "long-term vision" attachment was byte-different but content-identical to th
 ### L19. The plan document must be marked historical when it stops being true
 After the progression rework, six documents still described the previous design. Stale docs are worse than no docs, because they are trusted.
 **Changes:** `Historical` banner convention; `npm run docs:check` fails on stale vocabulary (the previous design's run length, boss count and old filenames).
+
+### L20. A cached list must never be the only gate
+`advanceDays` checked the cached `attention` array. A state with a pending event but a stale queue advanced straight through the card — found by a test that constructed exactly that state.
+**Changes:** `hasBlocking(state)` checks `pendingEvent` directly; events are also addressable by id (`event:<card>:<day>`) so resolution works even with a stale cache.
+
+### L21. A gold sink must be priced against the endgame surplus, not the early game
+Facilities at 600g were noise against a 29k purse. At 900–4800g across four branches, the AI maxed the tree by ~day 70 and ended with ~10k.
+**Evidence:** end-of-run gold before 17–29k, after ~10k; the balance sweep moved less than 0.2 raids.
+**Changes:** prices set from measured surplus, not from intuition.
+
+### L22. Events are data; *choices* are not yet
+Cards resolve through declarative effects, so content is cheap to add. But each option's cost lives in prose, so the AI always takes `options[0]`. The drama is presented, not played.
+**Changes (next):** give options machine-readable cost/benefit fields so the planner — and later the rivals — can weigh them.

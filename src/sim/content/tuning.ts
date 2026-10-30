@@ -82,6 +82,14 @@ export const RENOWN = {
   perWorldFirst: 4,
 } as const;
 
+export const EVENTS = {
+  /** Chance per day of a card, once the run has started. */
+  chance: 0.4,
+  minDay: 3,
+  /** Do not repeat a card seen in the last N draws. */
+  cooldown: 4,
+} as const;
+
 export const ROLE_FIT = {
   natural: 1.0,
   trained: 0.88,

@@ -28,7 +28,6 @@ import {
   resolveDay,
   squadRating,
   wageBill,
-  wageBudget,
   CONTENT,
   type GameState,
   type Hero,
@@ -36,6 +35,7 @@ import {
   type Stance,
 } from "../sim/index";
 import { unlockedContent } from "../sim/plan";
+import { FACILITIES, facilityById, facilitySummary, nextCost, buyFacility, rosterCapFor, wageBudgetFor } from "../sim/facilities";
 import { blockingAttention } from "../sim/events";
 import { heroPower } from "../sim/hero";
 import { planDay } from "../sim/ai/planner";
@@ -107,7 +107,7 @@ const cmdNew = (): void => {
 const cmdStatus = (): void => {
   const state = load();
   const bill = wageBill(state.roster);
-  const budget = wageBudget(state.renown);
+  const budget = wageBudgetFor(state.renown, state.facilities);
   const raids = state.progress.filter((p) => contentById(p.contentId)?.kind === "raid" && p.clears > 0).length;
   const dungeons = state.progress.filter((p) => contentById(p.contentId)?.kind === "dungeon" && p.clears > 0).length;
 
@@ -118,6 +118,11 @@ const cmdStatus = (): void => {
   console.log(
     `wages ${bill > budget ? color(`${bill}g vs ${budget}g`, "red") : `${bill}g vs ${budget}g`}   dungeons ${dungeons}   raids ${color(`${raids}/${RAIDS.length}`, raids > 0 ? "green" : "dim")}   best level ${bestLevel(state.roster)}`,
   );
+
+  if (state.pendingEvent) {
+    console.log(color(`\nEVENT: ${state.pendingEvent.cardId} — resolve it with: attention`, "magenta"));
+  }
+  console.log(color(`facilities  ${facilitySummary(state.facilities)}   roster ${state.roster.length}/${rosterCapFor(state.facilities)}`, "dim"));
 
   const blocked = blockingAttention(state);
   if (blocked.length > 0) console.log(color(`\n${blocked.length} item(s) need you — run: attention`, "magenta"));
@@ -150,6 +155,80 @@ const cmdStatus = (): void => {
     ],
   );
   console.log();
+};
+
+const cmdToday = (): void => {
+  const state = load();
+  const raids = state.progress.filter((p) => contentById(p.contentId)?.kind === "raid" && p.clears > 0).length;
+  console.log();
+  console.log(`${color(`Day ${state.day}`, "bold")}  ${Math.round(state.gold)}g  renown ${state.renown}  ${state.roster.length} heroes  best lvl ${bestLevel(state.roster)}  raids ${raids}/3`);
+  console.log();
+
+  if (blockingAttention(state).length > 0) {
+    console.log(color("NEEDS YOU", "magenta"));
+    for (const item of blockingAttention(state)) {
+      console.log(`  ${item.title} — ${color(item.id, "dim")}`);
+      for (const o of item.options) console.log(`     ${color(o.key, "cyan")}  ${o.label}`);
+    }
+    console.log();
+  }
+
+  if (state.plan.parties.length === 0) {
+    console.log(color("No parties assigned. Run: auto, or `party --content <id> --heroes 1,2,3`", "yellow"));
+  } else {
+    table(
+      ["#", "content", "heroes", "stance", "projected", "weakest check"],
+      state.plan.parties.map((p, i) => {
+        const projection = projectAssignment(state, p);
+        const weakest = projection
+          ? [...projection.phases].sort((a, b) => a.ratio - b.ratio)[0]
+          : undefined;
+        return [
+          String(i + 1),
+          contentById(p.contentId)?.name ?? p.contentId,
+          String(p.heroes.length),
+          p.stance,
+          projection ? `${Math.round(projection.estimatedBestPull * 100)}%` : "-",
+          weakest ? `${weakest.checkLabel} ${(weakest.value / weakest.requirement).toFixed(2)}` : "-",
+        ];
+      }),
+    );
+  }
+  console.log();
+};
+
+const cmdBuild = (): void => {
+  const state = load();
+  const id = args[1];
+  if (!id) {
+    table(
+      ["facility", "level", "next", "cost", "effect"],
+      FACILITIES.map((f) => {
+        const cost = nextCost(state.facilities, f.id);
+        return [
+          f.name,
+          String(state.facilities[f.id]),
+          cost === null ? "max" : String(state.facilities[f.id] + 1),
+          cost === null ? "-" : `${cost}g`,
+          f.levels[Math.min(state.facilities[f.id], 2)] ?? "-",
+        ];
+      }),
+    );
+    console.log(color(`\ngold ${Math.round(state.gold)}g · build <facility>`, "dim"));
+    return;
+  }
+  const def = facilityById(id);
+  if (!def) {
+    console.error(color(`Unknown facility: ${id}`, "red"));
+    process.exit(1);
+  }
+  const next = buyFacility(state, def.id);
+  if (!next) {
+    console.error(color("Cannot build: maxed or not enough gold.", "red"));
+    process.exit(1);
+  }
+  save(next);
+  console.log(color(`${def.name} is now level ${next.facilities[def.id]} (${Math.round(next.gold)}g left).`, "green"));
 };
 
 const cmdRoster = (): void => {
@@ -450,7 +529,9 @@ const cmdHelp = (): void => {
 ${color("world-first", "bold")} — progression harness
 
   ${color("new", "cyan")} [--seed N]
+  ${color("today", "cyan")}                       one screen: what needs you, what is planned
   ${color("status", "cyan")}                      guild, parties, rivals
+  ${color("build", "cyan")} [facility]             facilities and upgrades
   ${color("roster", "cyan")}                      levels, xp, gear
   ${color("content", "cyan")}                     the ladder and its locks
   ${color("tavern", "cyan")} · ${color("hire", "cyan")} <n>
@@ -467,6 +548,8 @@ ${color("world-first", "bold")} — progression harness
 switch (command) {
   case "new": cmdNew(); break;
   case "status": cmdStatus(); break;
+  case "today": cmdToday(); break;
+  case "build": cmdBuild(); break;
   case "roster": cmdRoster(); break;
   case "content": cmdContent(); break;
   case "tavern": cmdTavern(); break;

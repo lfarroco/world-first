@@ -4,10 +4,12 @@ import { CONTENT } from "./content/content";
 import { CONTRACT, ECONOMY, ROSTER_CAP, RUN_DAYS, TAVERN } from "./content/tuning";
 import { bestLevel, makeCandidate, startingRoster } from "./content/heroes";
 import { resolveDay } from "./day";
-import { blockingAttention, deriveAttention, event } from "./events";
+import { blockingAttention, deriveAttention, event, hasBlocking } from "./events";
 import { heroPower } from "./hero";
 import { partyOf } from "./plan";
 import { startingRivals } from "./rivals";
+import { emptyFacilities, rosterCapFor, wageBudgetFor } from "./facilities";
+import { resolveEvent } from "./world-events";
 import { computeScore } from "./score";
 
 export const newGame = (seed: number, guildName = "Ironbound Order"): GameState => {
@@ -46,6 +48,9 @@ export const newGame = (seed: number, guildName = "Ironbound Order"): GameState 
     scoreLines: null,
     band: null,
     lastEncounter: null,
+    facilities: emptyFacilities(),
+    pendingEvent: null,
+    eventLog: [],
   };
 };
 
@@ -61,7 +66,7 @@ export const assignParty = (state: GameState, assignment: Assignment): GameState
 export const clearPlan = (state: GameState): GameState => ({ ...state, plan: { parties: [] } });
 
 export const hireCandidate = (state: GameState, candidate: Candidate): GameState => {
-  if (state.roster.length >= ROSTER_CAP) return state;
+  if (state.roster.length >= rosterCapFor(state.facilities)) return state;
   if (state.gold < candidate.fee) return state;
   const hero: Hero = {
     ...candidate.hero,
@@ -101,6 +106,16 @@ export const resolveAttention = (
   itemId: string,
   optionKey: string,
 ): GameState => {
+  // Events are addressable even when the cached attention list is stale.
+  if (itemId.startsWith("event:")) {
+    const cardId = itemId.split(":")[1];
+    if (cardId && state.pendingEvent?.cardId === cardId) {
+      const resolved = resolveEvent(state, cardId, optionKey);
+      return { ...resolved, attention: deriveAttention(resolved) };
+    }
+    return state;
+  }
+
   const item = state.attention.find((i) => i.id === itemId);
   if (!item) return state;
   const option = item.options.find((o) => o.key === optionKey);
@@ -173,6 +188,10 @@ export const resolveAttention = (
       break;
     case "acknowledge":
       break;
+    case "event": {
+      next = resolveEvent(state, effect.cardId, effect.optionKey);
+      break;
+    }
   }
 
   return { ...next, attention: next.attention.filter((i) => i.id !== itemId) };
@@ -184,8 +203,8 @@ export const advanceDays = (state: GameState, days = 1): AdvanceResult => {
   let current = state;
   for (let i = 0; i < days; i += 1) {
     if (current.finished) return { state: current, stopped: "the run is over" };
-    const blocking = blockingAttention(current);
-    if (blocking.length > 0) {
+    if (hasBlocking(current)) {
+      const blocking = blockingAttention(current);
       const first = blocking[0];
       return {
         state: current,

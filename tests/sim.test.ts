@@ -14,6 +14,14 @@ import {
   personalityById,
   resolveDay,
   unlockedContent,
+  advanceDays,
+  resolveAttention,
+  buyFacility,
+  rosterCapFor,
+  lootBonusFor,
+  injuryDaysFor,
+  wageBudgetFor,
+  nextCost,
   type GameState,
 } from "../src/sim/index";
 import { heroPower, squadRating } from "../src/sim/hero";
@@ -182,5 +190,69 @@ describe("invariants", () => {
       }),
       { numRuns: 30 },
     );
+  });
+});
+
+describe("events", () => {
+  it("a pending event blocks the day and can be resolved", () => {
+    let s = newGame(31, "Events");
+    s = {
+      ...s,
+      pendingEvent: { cardId: "old-wound", day: s.day, targetHeroId: s.roster[0]!.id },
+      attention: [],
+    };
+    const blocked = advanceDays(s, 1);
+    expect(blocked.stopped).not.toBeNull();
+    expect(blocked.state.day).toBe(s.day);
+
+    const resolved = resolveAttention(s, `event:old-wound:${s.day}`, "rest");
+    expect(resolved.pendingEvent).toBeNull();
+    expect(resolved.roster[0]!.injuryDays).toBeGreaterThan(0);
+  });
+
+  it("events appear over a long run and never repeat immediately", () => {
+    const s = aiRun(newGame(55, "Events"), STEWARD, 400);
+    expect(s.eventLog.length).toBeGreaterThan(3);
+    for (let i = 1; i < s.eventLog.length; i += 1) {
+      expect(s.eventLog[i]).not.toBe(s.eventLog[i - 1]);
+    }
+  });
+
+  it("the same seed produces the same event sequence", () => {
+    expect(playAi(77).eventLog).toEqual(playAi(77).eventLog);
+  });
+});
+
+describe("facilities", () => {
+  it("buying a facility costs gold and raises its level", () => {
+    const s = newGame(9, "Build");
+    const withGold: GameState = { ...s, gold: 5000 };
+    const next = buyFacility(withGold, "forge");
+    expect(next).not.toBeNull();
+    expect(next!.facilities.forge).toBe(1);
+    expect(next!.gold).toBe(5000 - nextCost(withGold.facilities, "forge")!);
+  });
+
+  it("cannot buy without gold", () => {
+    const s: GameState = { ...newGame(9, "Build"), gold: 10 };
+    expect(buyFacility(s, "forge")).toBeNull();
+  });
+
+  it("facility effects change the derived numbers", () => {
+    const base = newGame(9, "Build");
+    const built: GameState = {
+      ...base,
+      facilities: { infirmary: 2, forge: 2, tavern: 2, hall: 2 },
+    };
+    expect(rosterCapFor(built.facilities)).toBeGreaterThan(rosterCapFor(base.facilities));
+    expect(lootBonusFor(built.facilities)).toBeGreaterThan(0);
+    expect(injuryDaysFor(4, built.facilities)).toBeLessThan(4);
+    expect(wageBudgetFor(10, built.facilities)).toBeGreaterThan(wageBudgetFor(10, base.facilities));
+  });
+
+  it("the AI spends surplus gold on facilities", () => {
+    const s = aiRun(newGame(3, "Build"), STEWARD, 400);
+    const total = Object.values(s.facilities).reduce((a, b) => a + b, 0);
+    expect(total).toBeGreaterThan(0);
   });
 });

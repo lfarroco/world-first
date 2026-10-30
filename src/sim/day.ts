@@ -18,6 +18,8 @@ import { tickRivals } from "./rivals";
 import { computeScore } from "./score";
 import { contentById } from "./content/content";
 import { rngStream } from "./rng";
+import { healthRecoveryFor, injuryDaysFor, recruitLevelFactor } from "./facilities";
+import { rollEvent } from "./world-events";
 
 const sharpnessFor = (kind: ContentKind): number => {
   switch (kind) {
@@ -112,7 +114,7 @@ export const resolveDay = (input: GameState): GameState => {
     for (const injury of result.injured) {
       const hero = heroById(state, injury.heroId);
       if (!hero) continue;
-      hero.injuryDays = Math.max(hero.injuryDays, injury.days);
+      hero.injuryDays = Math.max(hero.injuryDays, injuryDaysFor(injury.days, state.facilities));
       hero.health = clamp(hero.health - 45, 0, 100);
       hero.morale = clamp(hero.morale - 6, 1, 100);
       push(state, event(today, "injury", "bad", `${hero.name} injured — out ${injury.days} days.`, hero.id));
@@ -134,7 +136,7 @@ export const resolveDay = (input: GameState): GameState => {
             state.renown += 1;
             if (state.roster.length < 22) {
               const level = Math.max(1, Math.round(bestLevel(state.roster) * 0.55));
-              const free = makeCandidate(state.seed, today, 900 + state.roster.length, level).hero;
+              const free = makeCandidate(state.seed, today, 900 + state.roster.length, level, recruitLevelFactor(state.facilities)).hero;
               state.roster.push({ ...free, id: `f${today}-${state.roster.length}` });
               push(
                 state,
@@ -191,7 +193,7 @@ export const resolveDay = (input: GameState): GameState => {
     if (deployed.has(hero.id)) continue;
     hero.fatigue = clamp(hero.fatigue + FATIGUE.rest, 0, 100);
     hero.sharpness = clamp(hero.sharpness + SHARPNESS.rest, 0, 100);
-    hero.health = clamp(hero.health + HEALTH_RECOVERY_PER_DAY, 0, 100);
+    hero.health = clamp(hero.health + healthRecoveryFor(state.facilities), 0, 100);
     if (hero.injuryDays > 0) hero.injuryDays -= 1;
     hero.daysBenched += 1;
     if (hero.daysBenched >= 3) hero.morale = clamp(hero.morale - 4, 1, 100);
@@ -226,7 +228,7 @@ export const resolveDay = (input: GameState): GameState => {
     push(state, event(today, "economy", "info", `Wages paid: ${bill}g.`));
     const guildLevel = bestLevel(state.roster);
     state.tavern = Array.from({ length: TAVERN.size }, (_, i) =>
-      makeCandidate(state.seed, today, i, guildLevel),
+      makeCandidate(state.seed, today, i, guildLevel, recruitLevelFactor(state.facilities)),
     );
     push(state, event(today, "tavern", "info", "The tavern has new faces."));
   }
@@ -253,6 +255,7 @@ export const resolveDay = (input: GameState): GameState => {
     state.band = result.band;
     state.attention = [];
   } else {
+    state.pendingEvent = state.pendingEvent ?? rollEvent(state);
     state.attention = deriveAttention(state);
   }
 

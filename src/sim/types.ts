@@ -172,7 +172,8 @@ export type AttentionEffect =
   | { kind: "ignore" }
   | { kind: "renew"; heroId: string }
   | { kind: "release"; heroId: string }
-  | { kind: "acknowledge" };
+  | { kind: "acknowledge" }
+  | { kind: "event"; cardId: string; optionKey: string };
 
 export type AttentionOption = {
   key: string;
@@ -180,7 +181,12 @@ export type AttentionOption = {
   effect: AttentionEffect;
 };
 
-export type AttentionKind = "benched-unhappy" | "contract-expiring" | "wage-over-budget" | "fatigue-risk";
+export type AttentionKind =
+  | "benched-unhappy"
+  | "contract-expiring"
+  | "wage-over-budget"
+  | "fatigue-risk"
+  | "event";
 
 export type AttentionItem = {
   id: string;
@@ -233,6 +239,12 @@ export type ScoreLine = {
 
 export type Band = "S" | "A" | "B" | "C" | "D";
 
+export type PendingEvent = {
+  cardId: string;
+  day: number;
+  targetHeroId: string | null;
+};
+
 export type GameState = {
   seed: number;
   guildName: string;
@@ -253,6 +265,9 @@ export type GameState = {
   scoreLines: ScoreLine[] | null;
   band: Band | null;
   lastEncounter: EncounterLog | null;
+  facilities: Record<"infirmary" | "forge" | "tavern" | "hall", number>;
+  pendingEvent: PendingEvent | null;
+  eventLog: string[];
 };
 
 export type { Rng } from "./rng";
