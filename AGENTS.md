@@ -38,6 +38,7 @@ Run `npm run docs:check` before finishing. It fails on broken links and on stale
 | Scope, build order, tuning targets | `docs/mvp-scope.md` |
 | Engineering rules | `docs/tech-notes.md` |
 | **Lessons learned the hard way** | `docs/learnings.md` |
+| **What to build next, and what could kill it** | `docs/roadmap.md` |
 | Reference research (external sources) | `docs/research/` |
 
 ---
@@ -114,6 +115,8 @@ Never tune two dials at once. If you change a number, say what it was, what it i
 - Imperative mood, one line: `add raid prep to the AI planner`.
 - Body: why, and what it costs. Reference the doc you updated.
 - Docs and behaviour change in the same commit. A code change that invalidates a doc is a broken commit.
+- A pre-commit hook runs `typecheck`, `test` and `docs:check`. It lives in `.githooks/pre-commit`, is versioned, and is installed by `git config core.hooksPath .githooks` (an `npm install` does this via `prepare`).
+- Bypass with `git commit --no-verify` only when the hook itself is broken, and fix it in the same commit.
 - Never commit `.save.json`, `tmp/`, or `node_modules/`.
 
 ---

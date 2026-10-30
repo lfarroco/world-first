@@ -34,6 +34,7 @@ npm run check                # typecheck + tests + docs check
 | 11 | [**phase-0-report.md**](docs/phase-0-report.md) | The first playable: the day pipeline and the wipe report |
 | 12 | [**progression-report.md**](docs/progression-report.md) | **The ladder and the AI** — levels, dungeons, three raids, personalities, and the measured balance |
 | 13 | [**learnings.md**](docs/learnings.md) | **The log** — 19 things we got wrong, what proved it, and what changed |
+| 14 | [**roadmap.md**](docs/roadmap.md) | What could kill the project, and the order I'd build in |
 
 Raw sourced research behind the blueprint:
 
