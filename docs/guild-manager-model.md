@@ -407,6 +407,8 @@ A content is a record in `src/sim/content/content.ts`. The fields the player mee
 
 **Rewards are a choice, not a stack.** Each band carries more than one job. The XP run pays no loot, the gold run pays no XP, and the loot run pays neither. The shipped numbers and the measured effect are in [progression-report.md](progression-report.md) §1.1; the rule is that a new option must take something away, or it is free progression.
 
+**A mission pays its bounty on every clear.** A repeat-reward schedule was measured and rejected: 100% → 85% → 70% left the pick unchanged and cost the Steward 3.4% of score, and 100% → 60% → 30% made the Tyrant unreachable (0/20 World First) while the bot still ran the same mission. The spare party has no other three-hero job, and no purse rule invents one. Details in [progression-report.md](progression-report.md) §7 and [open-questions.md](open-questions.md) O7.
+
 **Named drops are one roll, not a table per item.** `rollNamedDrop` rolls once per clear against the content's `drops`, whose `chance` values sum to at most 1. At most one named item drops, and it replaces one of the guaranteed items, so the item count never changes. Its iLvl is fixed, then the forge and the Scavenger trait add to it like any other drop. That is why `inspect` can print "18% per clear" and mean it.
 
 **The bestiary is flavour with a hook.** Each `mobs` entry names the check it pressures; a data test asserts that check is one of the content's phases. It is not a second combat model. Farms have mobs but no checks: their bestiary is the thing you hunt, not a threat.
@@ -546,7 +548,7 @@ These are the items the build actually derives:
 | Promise due tomorrow | "Varis expects his spot" (FYI) | Noted | Names the starts so far and the last night that can keep it |
 | Wage bill > budget | "The coffers are thin" (FYI) | Noted | Defers the item for the day |
 | Fatigue ≥ 70 and assigned | "N heroes are running on empty" (FYI) | Noted | One line for the whole rotation, not one per body |
-| An event card is pending | The card | The card's affordable options | See §5.1 of the progression report |
+| An event card is pending | The card | The card's affordable options | The bot prices every option by its effects (`src/sim/ai/cards.ts`); the trace is in [progression-report.md](progression-report.md) §5.4 |
 
 **Design, not built:** the gear-drop "who gets the axe?" modal, the rival-kill "they pulled ahead" modal, and the morale-crack modal. They are in [screens.md](screens.md) and [vision.md](vision.md), not in `deriveAttention`.
 

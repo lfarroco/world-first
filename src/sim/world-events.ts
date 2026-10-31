@@ -21,7 +21,7 @@ const selectTarget = (state: GameState, target: EventTarget, rng: () => number):
       return byBest[byBest.length - 1] ?? null;
     case "highest-wage":
       return [...state.roster].sort((a, b) => b.contract.wage - a.contract.wage)[0] ?? null;
-    case "poorest":
+    case "random":
       return byBest[Math.floor(rng() * byBest.length)] ?? null;
     default:
       return byBest[0] ?? null;
@@ -105,7 +105,9 @@ const applyEffect = (state: GameState, effect: Effect, targetId: string | null):
     case "injury":
       if (hero) {
         hero.injuryDays = Math.max(hero.injuryDays, effect.days);
-        hero.health = clamp(hero.health - 30, 0, 100);
+        // A card that puts a hero out for rest is not also a wound. `healthHit`
+        // defaults to the old behaviour so the other cards keep their cost.
+        hero.health = clamp(hero.health - (effect.healthHit ?? 30), 0, 100);
       }
       return;
     case "wage":

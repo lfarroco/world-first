@@ -5,6 +5,7 @@ import { resolveDay } from "../day";
 import { renewalWage, wageBill } from "../economy";
 import { wageBudgetFor } from "../facilities";
 import { applyFacilityDecision, hireDecision, planDay, resetRoles, reviewRoles } from "./planner";
+import { chooseCardOption } from "./cards";
 import type { Personality } from "./personalities";
 
 export type AiTurn = {
@@ -78,6 +79,22 @@ export const aiTurn = (state: GameState, personality: Personality): AiTurn => {
   next = resolveDay(next);
 
   for (const item of blockingAttention(next)) {
+    if (item.kind === "event") {
+      // The card is a decision, not a queue entry: weigh every affordable
+      // option by its structured effects instead of taking the first.
+      const choice = chooseCardOption(next, personality);
+      if (!choice) continue;
+      const margin = choice.scored
+        .filter((s) => s.key !== choice.option.key)
+        .map((s) => `${s.key} ${s.value}g`)
+        .join(", ");
+      next = resolveAttention(next, item.id, choice.option.key);
+      notes.push(
+        `${choice.card.id} → ${choice.option.key} (${Math.round(choice.value)}g${margin ? `; ${margin}` : ""})`,
+      );
+      continue;
+    }
+
     const preferred =
       item.kind === "benched-unhappy"
         ? personality.ambition > 0.5

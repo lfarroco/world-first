@@ -37,6 +37,16 @@ export const INJURY = {
 } as const;
 
 export const HEALTH_RECOVERY_PER_DAY = 14;
+
+/**
+ * The line the planner uses to pull a hero out of the plan. It is also what an
+ * event card's fatigue cost means: a push that puts a hero over this line costs
+ * the night, not a percentage of his output.
+ */
+export const REST = {
+  exhausted: 84,
+} as const;
+
 export const STANCE = {
   cautious: { check: -0.1, injury: 0.4, fatigue: -4 },
   steady: { check: 0, injury: 1, fatigue: 0 },
@@ -125,6 +135,39 @@ export const RIVAL = {
   burnoutDay: 60,
   burnoutFactor: 0.35,
 } as const;
+
+/**
+ * Zero-sum payoff weights for an event card, in gold, and the one scale
+ * `src/sim/ai/cards.ts` uses to compare the options of a card. Hand-set; each
+ * line names the in-game number it came from, and the check is the per-card
+ * trace in progression-report.md §5.4, not the arithmetic.
+ */
+export const EVENT_VALUE = {
+  /**
+   * One XP. No shipped card pays XP; the number comes from the band trade: the
+   * Wolf Den pays 60 XP and 40g more than the Warrens, plus four item levels.
+   */
+  xp: 0.5,
+  /** One morale point. moraleMod spans 0.952–1.06, so 10 points is 1.2% of a
+   *  check — about three item levels on one hero. */
+  morale: 2,
+  /** One item level on a hero. Anchored on the merchant card's own price:
+   *  300g for a 40 iLvl chest. Permanent gear is worth more than a night. */
+  ilvl: 10,
+  /** One day a hero cannot deploy: the farm gold he would have earned, his
+   *  daily wage, and the substitute's lost output. A raid body costs more,
+   *  which the caller applies. */
+  injuryDay: 45,
+  /** One percentage point of a hero's output lost to fatigue. condMod moves
+   *  0.38 over 70 points, so a 20-point push is about a tenth of a hero. */
+  fatigue: 2,
+  /** One renown point when the wage bill is slack: half the weekly budget
+   *  (150g) and 250 final score (SCORE.renownPerTier). */
+  renown: 150,
+  /** One renown point when the bill is at the budget: the headroom is live. */
+  renownTight: 300,
+} as const;
+
 export const EVENTS = {
   /** Chance per day of a card, once the run has started. */
   chance: 0.4,

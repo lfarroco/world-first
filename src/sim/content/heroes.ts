@@ -30,7 +30,7 @@ export const xpToNext = (level: number): number => 40 + level * 16;
 
 export const wageForLevel = (level: number): number => Math.max(12, Math.round(8 + level * 2.6));
 
-const feeForLevel = (level: number): number => Math.round(40 + level * level * 0.35);
+export const feeForLevel = (level: number): number => Math.round(40 + level * level * 0.35);
 
 const zeroGear = (ilvl: number): Gear => ({
   weapon: ilvl,

@@ -1,13 +1,22 @@
 import type { GameState, GearSlot } from "../types";
+import { bestLevel } from "./heroes";
 
-/** How a card finds its subject. */
-export type EventTarget = "best" | "weakest" | "poorest" | "guild" | "highest-wage";
+/**
+ * How a card finds its subject.
+ *
+ * `random` is the only selector that spends an RNG draw; it is for a card
+ * whose cost can land on anyone ("someone gets hurt"). An effect whose target
+ * is a hero only resolves when the card has a hero target: `applyEffect` uses
+ * the card's subject, not the effect's field, so a hero effect on a `guild`
+ * card is a no-op and a data test rejects it.
+ */
+export type EventTarget = "best" | "weakest" | "random" | "guild" | "highest-wage";
 
 export type Effect =
   | { kind: "gold"; amount: number }
   | { kind: "morale"; target: EventTarget; amount: number }
   | { kind: "gear"; target: EventTarget; ilvl: number; slot: GearSlot }
-  | { kind: "injury"; target: EventTarget; days: number }
+  | { kind: "injury"; target: EventTarget; days: number; healthHit?: number }
   | { kind: "leave"; target: EventTarget }
   | { kind: "xp"; amount: number }
   | { kind: "renown"; amount: number }
@@ -37,6 +46,15 @@ export type EventCard = {
 };
 
 /**
+ * Nobody poaches a level-8 adventurer. The offer only makes sense once the
+ * hero is known and the guild can survive losing him: an agent at the door of
+ * a three-person guild on day 8 is not a decision, it is a coin flip that ends
+ * the run (measured: the Quartermaster lost its best hero five times on one
+ * seed and finished with an empty roster and a score of 501).
+ */
+const canBePoached = (s: GameState): boolean => s.roster.length >= 8 && bestLevel(s.roster) >= 18;
+
+/**
  * A gold cost is only legal if the purse can cover it. Otherwise "match the
  * offer (400g)" at 100g quietly moves the guild into arrears, and the AI —
  * which takes the first option — walks into a debt spiral. Every card has at
@@ -63,24 +81,18 @@ export const EVENT_CARDS: readonly EventCard[] = [
     text: "An agent for a rival guild offers {hero} double wages. He is listening.",
     weight: 3,
     target: "best",
-    when: anyHero,
+    when: (s) => anyHero(s) && canBePoached(s),
     options: [
       {
         key: "match",
-        label: "Match the offer",
-        hint: "Pay a signing bonus and raise his wage permanently.",
+        label: "Match the offer (400g)",
+        hint: "A signing bonus and a permanent 60% raise. He stays.",
         effects: [{ kind: "gold", amount: -400 }, { kind: "wage", target: "best", multiplier: 1.6 }],
       },
       {
         key: "refuse",
         label: "Refuse to be held to ransom",
-        hint: "−18 morale now. He might remember it later.",
-        effects: [{ kind: "morale", target: "best", amount: -18 }],
-      },
-      {
-        key: "let-go",
-        label: "Let him go",
-        hint: "Lose the hero. The guild survives; the roster gets thinner.",
+        hint: "He walks, and takes his gear. The purse is untouched.",
         effects: [{ kind: "leave", target: "best" }],
       },
     ],
@@ -116,7 +128,7 @@ export const EVENT_CARDS: readonly EventCard[] = [
     title: "Bandits hit the farm",
     text: "Raiders took the supply cart. They want payment to leave the wood.",
     weight: 3,
-    target: "guild",
+    target: "random",
     when: (s) => s.gold > 100,
     options: [
       {
@@ -128,8 +140,8 @@ export const EVENT_CARDS: readonly EventCard[] = [
       {
         key: "fight",
         label: "Send the party",
-        hint: "Free, but someone gets hurt.",
-        effects: [{ kind: "injury", target: "weakest", days: 3 }],
+        hint: "Free, but one of them is hurt for three days.",
+        effects: [{ kind: "injury", target: "random", days: 3 }],
       },
     ],
   },
@@ -161,7 +173,7 @@ export const EVENT_CARDS: readonly EventCard[] = [
     title: "Homesick",
     text: "{hero} has family in the south and cannot stop thinking about them.",
     weight: 2,
-    target: "weakest",
+    target: "best",
     when: anyHero,
     options: [
       {
@@ -169,17 +181,17 @@ export const EVENT_CARDS: readonly EventCard[] = [
         label: "Give him a week",
         hint: "Out of the rotation for three days. Morale recovers.",
         effects: [
-          { kind: "injury", target: "weakest", days: 3 },
-          { kind: "morale", target: "weakest", amount: 12 },
+          { kind: "injury", target: "best", days: 3 },
+          { kind: "morale", target: "best", amount: 12 },
         ],
       },
       {
         key: "stay",
         label: "The raid needs him",
-        hint: "Keep him working. Morale falls.",
+        hint: "Keep him working. Fatigue and a fall in morale.",
         effects: [
-          { kind: "fatigue", target: "weakest", amount: 15 },
-          { kind: "morale", target: "weakest", amount: -10 },
+          { kind: "fatigue", target: "best", amount: 15 },
+          { kind: "morale", target: "best", amount: -10 },
         ],
       },
     ],
@@ -196,7 +208,7 @@ export const EVENT_CARDS: readonly EventCard[] = [
       {
         key: "accept",
         label: "Take the coin (900g)",
-        hint: "Gold now; lose a tier of prestige.",
+        hint: "Gold now; −1 renown, which is 150g/week of wage budget and score.",
         effects: [{ kind: "gold", amount: 900 }, { kind: "renown", amount: -1 }],
       },
       {
@@ -217,9 +229,13 @@ export const EVENT_CARDS: readonly EventCard[] = [
     options: [
       {
         key: "answer",
-        label: "Answer in the square",
-        hint: "Renown up if the guild is confident; morale up either way.",
-        effects: [{ kind: "renown", amount: 1 }, { kind: "morale", target: "guild", amount: 6 }],
+        label: "Answer in the square (100g)",
+        hint: "Buy the square a round: renown +1 and the roster +6 morale, for 100g.",
+        effects: [
+          { kind: "gold", amount: -100 },
+          { kind: "renown", amount: 1 },
+          { kind: "morale", target: "guild", amount: 6 },
+        ],
       },
       {
         key: "ignore",
@@ -265,8 +281,8 @@ export const EVENT_CARDS: readonly EventCard[] = [
       {
         key: "rest",
         label: "Rest him properly",
-        hint: "Two days out, health restored.",
-        effects: [{ kind: "injury", target: "highest-wage", days: 2 }],
+        hint: "Two days out of the rotation; no health lost and it recovers.",
+        effects: [{ kind: "injury", target: "highest-wage", days: 2, healthHit: 0 }],
       },
       {
         key: "push",

@@ -61,13 +61,21 @@ import {
   type GameState,
 } from "../src/sim/index";
 import { makeCandidate, makeHero, wageForLevel } from "../src/sim/content/heroes";
-import { cardById } from "../src/sim/content/events";
+import { EVENT_CARDS, cardById, type Effect, type EventTarget } from "../src/sim/content/events";
 import { heroPower, squadRating } from "../src/sim/hero";
+import { chooseCardOption } from "../src/sim/ai/cards";
 
 const STEWARD = personalityById("steady");
 
 const playAi = (seed: number, personality = STEWARD): GameState =>
   aiRun(newGame(seed, "Test"), personality, 400);
+
+/** A state far enough into a run that every card's `when` can pass. */
+const midRun = (seed: number, days: number): GameState => {
+  let s = newGame(seed, "Mid");
+  for (let i = 0; i < days && !s.finished; i += 1) s = aiTurn(s, STEWARD).state;
+  return s;
+};
 
 const idle = (seed: number): GameState => {
   let s = newGame(seed, "Idle");
@@ -410,6 +418,123 @@ describe("events", () => {
     expect(playAi(77).eventLog).toEqual(playAi(77).eventLog);
   });
 
+  it("resolves every hero effect on the card's own subject", () => {
+    // `applyEffect` uses the card's subject for every hero effect, so an
+    // effect that names a different target is silently a no-op. The bandit
+    // card shipped that way: "send the party" hurt nobody.
+    const heroTarget = (e: Effect): EventTarget | null => {
+      switch (e.kind) {
+        case "morale":
+        case "gear":
+        case "injury":
+        case "leave":
+        case "fatigue":
+        case "wage":
+          return e.target;
+        default:
+          return null;
+      }
+    };
+    for (const card of EVENT_CARDS) {
+      for (const option of card.options) {
+        for (const effect of option.effects) {
+          const target = heroTarget(effect);
+          if (target === null || target === "guild") continue;
+          expect(
+            target,
+            `${card.id}.${option.key} targets ${target} on a ${card.target} card`,
+          ).toBe(card.target);
+        }
+      }
+    }
+  });
+
+  it("weighs a card instead of taking its first option", () => {
+    const base = newGame(9, "Weigh");
+    const hero = base.roster[0]!;
+    const withGear = (ilvl: number): GameState => ({
+      ...base,
+      gold: 1000,
+      roster: base.roster.map((h) => (h.id === hero.id ? { ...h, gear: { weapon: ilvl, chest: ilvl, helm: ilvl, trinket: ilvl } } : h)),
+      pendingEvent: { cardId: "cursed-blade", day: base.day, targetHeroId: hero.id },
+      attention: [],
+    });
+
+    // The blade is a 55 iLvl weapon: an upgrade for a starter, junk for a
+    // geared hero. Same card, same option order, opposite answers.
+    expect(chooseCardOption(withGear(5), STEWARD)!.option.key).toBe("buy");
+    expect(chooseCardOption(withGear(80), STEWARD)!.option.key).toBe("pass");
+  });
+
+  it("never chooses an option the purse cannot cover", () => {
+    const base = newGame(9, "Broke");
+    const state: GameState = {
+      ...base,
+      gold: 100,
+      pendingEvent: { cardId: "cursed-blade", day: base.day, targetHeroId: base.roster[0]!.id },
+      attention: [],
+    };
+    const choice = chooseCardOption(state, STEWARD)!;
+    expect(choice.option.key).not.toBe("buy");
+    expect(choice.scored.map((s) => s.key)).not.toContain("buy");
+  });
+
+  it("every card has a choice the AI can take and resolve", () => {
+    const mid = midRun(18, 30);
+    for (const card of EVENT_CARDS) {
+      const state: GameState = {
+        ...mid,
+        gold: 2000,
+        renown: 3,
+        pendingEvent: { cardId: card.id, day: mid.day, targetHeroId: mid.roster[0]!.id },
+        attention: [],
+      };
+      const choice = chooseCardOption(state, STEWARD);
+      expect(choice, card.id).not.toBeNull();
+      const after = resolveAttention(state, `event:${card.id}:${mid.day}`, choice!.option.key);
+      expect(after.pendingEvent, card.id).toBeNull();
+    }
+  });
+
+  it("a hurt-a-hero card actually hurts one", () => {
+    const base = newGame(5, "Bandit");
+    const state: GameState = {
+      ...base,
+      gold: 500,
+      pendingEvent: { cardId: "bandit-raid", day: base.day, targetHeroId: base.roster[1]!.id },
+      attention: [],
+    };
+    const after = resolveAttention(state, `event:bandit-raid:${base.day}`, "fight");
+    expect(after.roster.filter((h) => h.injuryDays > 0)).toHaveLength(1);
+    expect(after.gold).toBe(500);
+  });
+
+  it("resting on the old-wound card costs days, not health", () => {
+    const base = newGame(5, "Wound");
+    const hero = base.roster[0]!;
+    const state: GameState = {
+      ...base,
+      roster: base.roster.map((h) => (h.id === hero.id ? { ...h, health: 60 } : h)),
+      pendingEvent: { cardId: "old-wound", day: base.day, targetHeroId: hero.id },
+      attention: [],
+    };
+    const after = resolveAttention(state, `event:old-wound:${base.day}`, "rest");
+    expect(after.roster[0]!.health).toBe(60);
+    expect(after.roster[0]!.injuryDays).toBe(2);
+  });
+
+  it("answering the taunt has a price", () => {
+    const base = newGame(5, "Taunt");
+    const state: GameState = {
+      ...base,
+      gold: 500,
+      pendingEvent: { cardId: "taunt", day: base.day, targetHeroId: null },
+      attention: [],
+    };
+    const after = resolveAttention(state, `event:taunt:${base.day}`, "answer");
+    expect(after.gold).toBe(400);
+    expect(after.renown).toBe(base.renown + 1);
+  });
 });
 
 describe("facilities", () => {

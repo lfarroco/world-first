@@ -391,3 +391,28 @@ After L69 the sweep fell from 24,347 to about 21,400 and full clears from 14/20 
 **Evidence:** 20-seed Steward with the old stance gate: 21,384 / 2.55 raids / 11 full clears. With the rule changed and nothing else: 23,051 / 2.70 / 14. The intermediate runs show the Tyrant failing at 78–94% while the guild's gear was already ahead of the hand run's day-60 kit.
 **Changes:** the raid stance is no longer personality-gated; a marginal raid is fought on Push. This is also the honest measure of L65 — the bot that uses the stance wins the ladder, the one that does not loses it.
 
+## Events and card play (2026-10-31)
+
+### L72. A reward decay taxes the ladder and does not change the pick
+open-questions O7 recommended 100% → 60% → 30% on repeat missions. Built and swept: the Drowned Mill is cleared 26.4 times per run, and a decay did not reduce that number at all. At 85%/70% the Mill went to 28.5 clears per run; at 60%/30% it went to 27.6. The Steward lost 3.4% of score on the mild schedule and 23% on the harsh one, and on the harsh one the Tyrant became unreachable (0/20 World First).
+**Evidence:** 20 seeds per personality, base seed `1 + 17i`; per-content clears counted across 60 runs. Baseline 1,585 Mill clears (26.4/run); mild 569/20 for the Steward (28.5/run); harsh 552/20 (27.6/run).
+**Changes:** none shipped. `repeatScale` was written, measured and reverted; the code is not in the build.
+**Why:** at the harsh schedule the Mill still pays 78 XP for three heroes, and the best farm pays 66. The spare party has one three-hero job, so a purse rule cannot change the night. A farm-level floor is what makes the faucet load-bearing. The exit is a second three-hero activity, or a rotating contract board that changes the pick daily — [open-questions.md](open-questions.md) O7.
+
+### L73. A card effect that names a hero does nothing when the card does not
+"Bandits hit the farm — send the party" was free: the card targeted the guild, and `applyEffect` resolves every hero effect against the **card's subject**, so the injury had no hero and the option did nothing. The same pass found "Rest him properly — health restored" dealing the standard 30 health hit, and "Answer in the square" costing nothing at all.
+**Evidence:** reading `resolveEvent`: `targetId = pendingEvent.targetHeroId` is null for a guild card, and `case "injury"` is `if (hero)`. The trace showed `bandit-raid → fight` on 93 of 93 cards because fighting cost zero.
+**Changes:** the bandit card targets a random hero (`EventTarget "random"`, an rng draw); the injury effect takes an optional `healthHit` (rest sets 0); the taunt costs 100g. A data test asserts that every hero effect on a card names the card's own target, which is the invariant the engine silently relied on.
+**Verified:** the bandit card injures exactly one hero and leaves the purse untouched; the old-wound rest leaves health at 60 and sets two days out; answering the taunt costs 100g and nothing when the purse cannot cover it.
+
+### L74. The bot took the first option because the options had no price
+Every card option already carried declarative effects; nothing read them. `aiTurn` took `options[0]`, so the bot always paid the rival's ransom and always bought the cursed blade. A price is not the same thing as a decision: the blade is a real upgrade for a weak hero on day 10 and 250g of nothing on day 60.
+**Evidence:** 2,031 cards answered over 60 runs. Before: cursed-blade bought 100% of the time. After, with `EVENT_VALUE` weights and a state-aware valuation: buy 16–20 times, pass 59–64 — the same card, the same option order, opposite answers.
+**Changes:** `src/sim/ai/cards.ts` prices each affordable option in gold (morale through the clamp, gear only as an upgrade, a wage raise for every week left, an injury at 1.6× when the roster has no spare body) and takes the best. Three terms carry the personality: thrift on purchases, ambition on XP, caution on injuries. The weights are data in `EVENT_VALUE`, and each names the in-game number it came from.
+**Verified:** 20-seed sweep 23,051 / 21,661 / 24,441 → 23,515 / 20,664 / 24,293 (Steward / Gambler / Quartermaster), aggregate −1%, inside the per-personality noise band. The Gambler is the one mover (−4.6%): it keeps less than 400g in reserve and loses a hero to the ransom. Re-check that row before touching a weight.
+
+### L75. An event that can end a run must wait until the run can lose it
+Once refusal meant "he walks", "a rival comes calling" fired from day 3 on a three-hero guild. With the purse under 400g — most days, early — matching was filtered as unaffordable, so the only visible option was the one that lost the best hero. One Quartermaster seed lost its best hero five times and finished with an empty roster and a score of 501.
+**Evidence:** seed 1, Quartermaster: `rival-offer → refuse` on days 8, 29, 38, 51 and 71, every time with less than 400g; end roster 0, score 501. The same seed after the gate: roster 15, score 25,176.
+**Changes:** the card is gated on roster 8+ and best level 18+. Nobody poaches a level-8 adventurer, and an eight-body guild can survive the loss. A card whose only affordable option is the disaster is not a decision, it is a forced loss.
+**Verified:** the sweep's roster sizes never fall below 10 after the gate, and the 20-seed Quartermaster is at 24,293 with 15/20 full clears and 6/20 World First.

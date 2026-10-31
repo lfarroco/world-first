@@ -1,7 +1,7 @@
 import { sum } from "../prelude";
 import type { Assignment, Candidate, ContentDef, GameState, Hero, Plan, Stance } from "../types";
 import { contentById, FARMS } from "../content/content";
-import { MAX_PARTIES, RUN_DAYS } from "../content/tuning";
+import { MAX_PARTIES, REST, RUN_DAYS } from "../content/tuning";
 import { bestPartyFor, levelOk, sizeOk, availableContent, contentAvailability } from "../plan";
 import { projectAssignment, withCounters } from "../encounter";
 import { heroPower, isAvailable } from "../hero";
@@ -173,10 +173,11 @@ export const planDay = (
           for (const hero of party) resting.add(hero.id);
           notes.push(`holding the raid party back (avg fatigue ${Math.round(avg)}) for ${nextRaid.name}`);
         } else {
-          // Push at the margin regardless of temperament: the +12% is what moves a
-  // 0.90 check into a pass, and the injury multiplier only fires on a scrape
-  // (L65). A raid night that is lost on steady cannot be won by caution.
-  const stance: Stance = projection.minRatio < 1.05 ? "push" : "steady";
+          // Push at the margin regardless of temperament: the +12% is what
+          // moves a 0.90 check into a pass, and the injury multiplier only
+          // fires on a scrape (L65). A raid night lost on steady cannot be
+          // won by caution.
+          const stance: Stance = projection.minRatio < 1.05 ? "push" : "steady";
           parties.push({ contentId: nextRaid.id, heroes: party.map((h) => h.id), stance });
           usedContent.add(nextRaid.id);
           for (const hero of party) assigned.add(hero.id);
@@ -239,8 +240,8 @@ export const planDay = (
 
   // Tired heroes either farm light content or rest entirely.
   const stillTired = tired.filter((h) => !assigned.has(h.id));
-  const exhausted = stillTired.filter((h) => h.fatigue >= 84);
-  const light = stillTired.filter((h) => h.fatigue < 84);
+  const exhausted = stillTired.filter((h) => h.fatigue >= REST.exhausted);
+  const light = stillTired.filter((h) => h.fatigue < REST.exhausted);
   if (exhausted.length > 0) notes.push(`${exhausted.length} heroes resting`);
   const lightTired = light;
   if (lightTired.length > 0 && parties.length < MAX_PARTIES) {

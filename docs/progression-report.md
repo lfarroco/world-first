@@ -1,6 +1,6 @@
 # Progression & the AI — report
 
-**Status:** implemented and playable. `npm test` 73 green.
+**Status:** implemented and playable. `npm test` 80 green.
 
 Two things changed the game's shape:
 
@@ -102,21 +102,21 @@ Two behaviours are deliberately *not* hard-coded: which hero goes in which party
 
 ## 3. Measured balance (20 seeds per personality)
 
-Standard sweep: base seed 1, step 17, `npm run cli -- sim --runs 20`. Last measured 2026-10-30, after the wage, promise and content-band pass (§3.3).
+Standard sweep: base seed 1, step 17, `npm run cli -- sim --runs 20`. Last measured 2026-10-31, after the card-play pass (§5.4).
 
-| Personality | Avg score | Median | Raids cleared | Full clears | Dungeons (of 4) | World First |
-|---|---|---|---|---|---|---|
-| **The Steward** (balanced) | 23,051 | 25,115 | 2.70 / 3 | 14/20 | 4.00 | 4/20 |
-| **The Quartermaster** (cautious, thrifty) | 24,441 | 25,605 | 2.80 / 3 | 16/20 | 4.00 | 5/20 |
-| **The Gambler** (reckless) | 21,661 | 24,834 | 2.60 / 3 | 12/20 | 4.00 | 3/20 |
+| Personality | Avg score | Median | Raids cleared | Full clears | Dungeons (of 4) | World First | Arrears days |
+|---|---|---|---|---|---|---|---|
+| **The Steward** (balanced) | 23,515 | 25,384 | 2.75 / 3 | 15/20 | 4.00 | 3/20 | 18 |
+| **The Quartermaster** (cautious, thrifty) | 24,293 | 25,534 | 2.75 / 3 | 15/20 | 4.00 | 6/20 | 6 |
+| **The Gambler** (reckless) | 20,664 | 24,404 | 2.50 / 3 | 10/20 | 4.00 | 2/20 | 37 |
 
-**The caution split survives, and now has an economy to bite on.** The Gambler scores 2,780 below the Quartermaster and takes 3/20 World First against 5/20. It also runs 43 arrears-days across 20 seeds against 14 for the Quartermaster: a reckless planner renews and hires into a wage bill it cannot carry.
+**The caution split survives, and has widened.** The Gambler scores 3,629 below the Quartermaster and takes 2/20 World First against 6/20. It runs 37 arrears-days across 20 seeds against 6 for the Quartermaster: a reckless planner renews and hires into a wage bill it cannot carry, then cannot cover the 400g a rival's offer demands. Thrift now pays twice (§5.4).
 
-**The ladder still stalls at the Tyrant.** Across 20 Steward seeds, 14 clear all three raids, 6 clear two, and none stall at one or zero. That is the target in [mvp-scope.md](mvp-scope.md) §3, and it is the check to re-run after any content change.
+**The ladder still stalls at the Tyrant.** Across 20 Steward seeds, 15 clear all three raids, 5 clear two, and none stall at one or zero. That is the target in [mvp-scope.md](mvp-scope.md) §3, and it is the check to re-run after any content change.
 
 **A do-nothing guild** clears zero dungeons and scores ~0. **The ladder is beatable** by a mediocre bot in ~84 days, which is the right bar for a first playable version.
 
-**The top is in the target band.** The Steward clears 2.70 raids and takes World First 4/20; rivals finish the tier on days 74–79. The 2026-10-30 content pass raised the Tyrant from 650 / 538 / 725 to 750 / 620 / 835 (+15%) to absorb the new ceiling (§1.1). Do not raise it again without a fresh 20-seed sweep.
+**The top is in the target band.** The Steward clears 2.75 raids and the rival pace finishes the tier on days 74–79. The 2026-10-30 content pass raised the Tyrant from 650 / 538 / 725 to 750 / 620 / 835 (+15%) to absorb the new ceiling (§1.1). Do not raise it again without a fresh 20-seed sweep.
 
 ### 3.3 The economy-and-queue pass (2026-10-30)
 
@@ -188,18 +188,18 @@ Ten cards, drawn with 40% probability per day after day 3, with a four-card cool
 
 | Card | Trigger | The decision |
 |---|---|---|
-| A rival comes calling | any hero | match the wage · refuse · let him go |
+| A rival comes calling | roster 8+, best level 18+ | match the offer (400g + a permanent 60% raise) · refuse and lose him |
 | The cursed blade | any hero | buy cheap power at a morale cost · walk away |
-| Bandits hit the farm | gold > 100 | pay them off · send the party and take an injury |
+| Bandits hit the farm | gold > 100 | pay them off · send the party and take a three-day injury on a random hero |
 | An apprentice asks to join | roster < 20 | take a free recruit · send them home |
-| Homesick | any hero | give a week off · make him raid |
+| Homesick | any hero | give your best hero a week off · make him raid |
 | A patron with coin | gold ≥ 150, renown ≥ 1 | take 900g and lose renown · stay independent |
-| Public provocation | always | answer in the square · say nothing |
+| Public provocation | always | answer in the square for 100g · say nothing |
 | Poachers in the wood | any hero | send your best and lose days · ignore and lose gold |
-| An old wound | any hero | rest him · make him fight |
+| An old wound | any hero | rest him (two days, no health lost) · make him fight |
 | A merchant at the gate | gold ≥ 300 | buy the plate · save the coin |
 
-Cards are **data** (`src/sim/content/events.ts`): a weight, a `when` predicate, a target selector, and declarative effects that reuse existing systems (gold, morale, gear, injury, wage, recruit, leave). No new mechanics, ten new decisions.
+Cards are **data** (`src/sim/content/events.ts`): a weight, a `when` predicate, a target selector, and declarative effects that reuse existing systems (gold, morale, gear, injury, wage, recruit, leave). No new mechanics, ten new decisions. One invariant keeps them honest: **every hero effect on a card must name the card's own target**, because `applyEffect` resolves the card's subject, not the effect's `target` field. A test asserts it.
 
 A pending card is a **blocking** attention item, so the day cannot advance until answered.
 
@@ -220,7 +220,60 @@ Four upgrades, three levels, priced to absorb a run's surplus:
 
 Fixed: a random day now contains a decision you could get wrong, and the queue fires on something other than bookkeeping.
 
-Not fixed: **the AI answers every card with its first option**, because option consequences are prose, not structured data. So events are *presented* but not yet *played* by the bot. Give options machine-readable costs and the planner can choose — that is the next cheap improvement, and it is also what makes the cards meaningful for a rival guild.
+Not fixed, at the time: **the AI answered every card with its first option**, because nothing read the option effects. That is §5.4.
+
+### 5.4 The AI plays the cards (2026-10-31)
+
+The card was presented to the bot, not played by it: `aiTurn` took `options[0]`, so "a rival comes calling" always paid the ransom and "the cursed blade" was always bought. Every option already carried declarative effects; nothing read them. `src/sim/ai/cards.ts` now turns those effects into one number and takes the best **affordable** option.
+
+**The model.** Value is in gold, because every other lever the planner pulls is priced in it. The weights are data (`EVENT_VALUE` in `tuning.ts`) and each names the in-game number it came from:
+
+| Effect | Weight | Where the number comes from |
+|---|---|---|
+| gold | 1g | the unit. A purchase is weighted ×(1 + thrift × 0.6): the cautious bot sees the same 300g as 480g |
+| xp | 0.5g | the band trade: the Wolf Den pays 60 XP and 40g more than the Warrens |
+| morale | 2g | `moraleMod` spans 0.952–1.06, so 10 points is 1.2% of a check — about three item levels on one hero |
+| item level | 10g | the merchant card's own price: 300g for 40 iLvl, the only gear price in the game |
+| injury day | 45g | farm gold + daily wage + the substitute's lost output |
+| one percent of output lost to fatigue | 2g | `condMod` loses 0.38 over 70 points |
+| renown | 150g, 300g when the bill is at the budget | `ECONOMY.wageBudgetPerRenown` and `SCORE.renownPerTier` |
+
+Three terms are state-dependent rather than constant. Morale is valued through the clamp, so a +6 on a hero at 96 is worth four points. Gear is worth only the **upgrade**. An injury costs 1.6× when the roster is 11 or smaller, because there is no spare body and the night cannot be fielded. A wage raise is priced for the weeks left in the run (`ceil(daysLeft / 7)`), so the same raise is cheap on day 80 and expensive on day 20.
+
+**What the bot decides.** 2,031 cards answered over 60 runs (20 seeds × 3 personalities):
+
+| Card | Option | Steward | Gambler | Quartermaster |
+|---|---|---|---|---|
+| rival-offer | match / refuse | 60 / 17 | 58 / 20 | 56 / 20 |
+| bandit-raid | fight / pay | 93 / 0 | 93 / 0 | 68 / 22 |
+| cursed-blade | buy / pass | 19 / 61 | 20 / 59 | 16 / 64 |
+| old-wound | push / rest | 76 / 1 | 49 / 24 | 78 / 1 |
+| homesick | stay / leave | 75 / 2 | 71 / 6 | 78 / 3 |
+| poacher | hunt / ignore | 80 / 0 | 80 / 0 | 78 / 5 |
+| merchant | pass / buy | 81 / 0 | 80 / 0 | 79 / 0 |
+| taunt | answer / ignore | 71 / 1 | 71 / 6 | 70 / 0 |
+| apprentice | take | 20 | 20 | 20 |
+| sponsor | accept | 20 | 20 | 19 |
+
+The split that matters is cursed-blade: the bot buys the 55-iLvl blade **early**, when it is a real upgrade for its weakest hero, and walks away later when the same 250g buys nothing. Same card, same option order, opposite answers — a test pins both ends. Of the 231 rival offers (76–78 per personality), 15–18 per personality were refused *after weighing* matching and only 2–4 because the purse could not cover the 400g, so the hero loss is a decision and not a forced event.
+
+**What the trace exposed.** Four content bugs, all fixed in the same change:
+
+1. **"Send the party" hurt nobody.** The bandit card targeted the guild, and `applyEffect` resolves a hero effect against the card's subject, so the injury was a no-op and fighting was free. The card now targets a random hero, and a data test asserts that every hero effect names the card's target.
+2. **"Rest him properly — health restored" took 30 health.** The injury effect always dealt the wound. It now takes an optional `healthHit`; the rest option sets it to 0.
+3. **"Answer in the square" was strictly better than silence** (renown +1, morale +6, no cost). It now costs 100g, so a broke guild can only keep quiet.
+4. **The rival's offer was a coin flip on a young guild.** With refusal meaning "he walks", a three-hero guild under 400g lost its best hero on day 8 and finished the seed with an empty roster and a score of 501. The card now fires only at roster 8+ and best level 18+: nobody poaches a level-8 adventurer.
+
+**Measured.** Standard 20-seed sweep, before and after:
+
+| Build | Steward | Gambler | Quartermaster | Raids (S/G/Q) | Full clears (S/G/Q) | World First (S/G/Q) |
+|---|---|---|---|---|---|---|
+| Cards answered with `options[0]` | 23,051 | 21,661 | 24,441 | 2.70 / 2.60 / 2.80 | 14 / 12 / 16 | 4 / 3 / 5 |
+| Cards priced and chosen | 23,515 | 20,664 | 24,293 | 2.75 / 2.50 / 2.75 | 15 / 10 / 15 | 3 / 2 / 6 |
+
+The aggregate moves 69,153 → 68,472 (−1%), inside the ±1k-per-personality noise band this report uses. The one personality outside it is the Gambler (−4.6%), which is the drifty spender: it can cover the 400g ransom less often — 4 offers unaffordable against 2 for the other two — and pays with a hero. That is thrift paying a second time, not the model mispricing. Re-check this row before touching `EVENT_VALUE`: if the Gambler stays below 21k on a second sweep, the 400g reserve is the dial, not the wage weights.
+
+**What the card play still cannot do.** The rival guilds do not draw cards, so the drama is solo. A refusal that costs the hero is modelled; a refusal that leaves him unhappy and disloyal is not. And nothing in the model makes a card's *option* depend on the guild's state, so "match the offer" is either affordable or invisible.
 
 ## 6. Traits (2026-10-30)
 
@@ -334,7 +387,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 - **Rivals don't use the planner yet** — they walk a compressed ladder with one power number. The race is tunable but not yet *simulated to the same depth*.
 - **No loot choice** — drops are auto-assigned to the lowest-geared hero. A named drop is a name printed on a gear number, not an item entity; there is no "who gets the axe?" decision. In the AI trace this shows as a gear funnel that rotates with the party: seed 777 cleared Gatewarden 8 times, then stalled on the Tyrant at 30% with iLvl 148–183 against a 225 recommendation.
 - **The AI does not choose by need.** `xp + gold/8` means the gold farm and the gold mission are never picked once cleared, even when the purse is the constraint. The options are meaningful to a player and invisible to the bot.
-- **Repeatable missions are an XP faucet.** The Drowned Mill was cleared 249 times across 10 seeds (about 25 clears per run) because a 3-man XP mission with 0.86 difficulty is the best spare-party value. Raising it to 260xp (the band trade, §3.3) makes the faucet stronger, not weaker. A weekly lockout or diminishing repeat reward is the missing rule; it is not in v0.1.
+- **Repeatable missions are an XP faucet, and a reward decay is not the fix.** Measured 2026-10-31: 1,585 Drowned Mill clears over 60 runs (26.4 per run). A repeat reward of 100% → 85% → 70% left the pick unchanged (28.5 Mill clears per run) and cost the Steward 3.4% of score (23,051 → 22,271, raids 2.70 → 2.65). A harsh 100% → 60% → 30% also left the pick unchanged (27.6 per run) and took the Steward to 17,693, 2.20 raids, 7/20 full clears and 0/20 World First. The bot keeps choosing the Mill at its worst value (78 XP for three heroes) because the farm floor is lower (Whispering Glade: 66 XP for three) and the spare party has no other three-hero job. The fix is a substitute job, not a tax. See [open-questions.md](open-questions.md) O7.
 - **No stable raid roster** — the planner picks the best ten each day, so loot and mastery spread across 16 heroes instead of concentrating on the next wall.
 - **Role assignment is sim-only** — `role <hero> <role>` sets the role and the fit multiplier applies to every check. The planner re-specs on 3.5% of days for no measurable gain; the hero sheet has no chips yet.
 - **Promises are a debt now, with a hole at the end.** The ledger writes a due day, counts starts, and settles kept/broken (§7.1a). Two pieces are still missing: the planner never reads `contract.status`, so it cannot plan around a promise, and a broken promise has no transfer request behind it — only morale.
@@ -346,7 +399,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 ## 8. What to do next
 
 1. **Rivals on the planner.** Delete their compressed model and run three `aiTurn`s per day. The race becomes real, and it costs less code than it removes.
-2. **Reward-aware content choice.** Give the planner a purse and a gear target so it can pick the gold run and the loot run, not only the XP run. The options exist; the bot ignores them.
-3. **Structured event options** so the AI (and later a rival) weighs costs instead of taking `options[0]`.
+2. **A second three-hero job**, or a rotating contract board. The measured answer to the repeat faucet (§7): the spare party needs somewhere else to go, not a smaller purse.
+3. **Reward-aware content choice.** Give the planner a purse and a gear target so it can pick the gold run and the loot run, not only the XP run. The options exist; the bot ignores them.
 4. **Manual loot assignment**, then **teach the planner to reassign roles** — the two missing levers from Phase 0.
 5. Then the vertical-slice UI, unchanged: Roster → War Room → Report.

@@ -86,10 +86,22 @@ Recommendation: widen the signatures as a measured pass. Do not move the fit on 
 The cap is three; heroes roll two. The third slot is reserved. Options: a level milestone (40), the first clear of a raid, or a training slot that costs days. Earned traits would give the 84-day run a character arc and a reason to keep a veteran, and they need a rule that stops the pool becoming a checklist. Not blocking v0.1.
 
 ### O7. Should a cleared mission pay full XP on repeat?
-The content pass measured the Drowned Mill cleared **249 times across 10 seeds** — about 25 clears per run — because a 3-man XP mission at 0.86 difficulty is the best spare-party value. Farms are meant to be repeatable; missions are not obviously so. Three exits, none blocking v0.1:
 
-1. **Weekly lockout per mission.** One clear pays, repeats pay a token. Kills the faucet, but the player needs a reason to keep the party home.
-2. **Diminishing returns.** 100% → 60% → 30% on repeats within a run. The AI's `xp + gold/8` value would need to read the reduced number, or it keeps picking it.
-3. **Leave it.** Missions are the XP farm by design; the cost is that the mid-game is a loop of the same three-man run. The AI trace says this is what happens today.
+**Measured 2026-10-31; the decay was rejected.** The Drowned Mill is cleared 26.4 times per run (1,585 clears over 60 runs): a 3-man XP mission at 0.86 difficulty is the best spare-party value. Two repeat schedules were built and swept on the standard 20 seeds:
 
-Recommendation: measure (2) against the 20-seed Tyrant stall before choosing. The fix must not make the raids unreachable.
+| Repeat pay | Steward score | Raids | Full clears | Drowned Mill clears/run |
+|---|---|---|---|---|
+| Full (current) | 23,051 | 2.70 | 14/20 | 26.4 |
+| 100% → 85% → 70% | 22,271 | 2.65 | 13/20 | 28.5 |
+| 100% → 60% → 30% | 17,693 | 2.20 | 7/20 | 27.6 |
+
+Neither schedule changed the pick. At the harsh one the Mill still pays 78 XP for three heroes against 66 from the best farm, so the bot keeps going. The decay taxed the ladder — the Tyrant became unreachable, World First 0/20 — without producing a different night.
+
+**Why:** the spare party has exactly one three-hero job. Farms pay less, dungeons and raids need four to ten, and missions are the only middle. A reward rule cannot create a choice the content does not offer.
+
+**Two exits, in order of preference:**
+
+1. **A second three-hero activity with a different shape** — a check the missions do not use, a different reward column, or a rotating contract board where two missions are "posted" each day at full pay and the rest pay a token. That changes the pick every day, caps the faucet without starving the ladder, and gives the day a reason to read the board first.
+2. **Accept the faucet** and spend the effort on the mid-game elsewhere. It is not a correctness bug: the player can repeat the Mill 26 times too, and the run still ends with three raids and a score.
+
+Recommendation: build (1) with the rival/planner phase, measure it against the 20-seed Tyrant stall, then close this question. Do not ship a flat decay.

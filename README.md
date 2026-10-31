@@ -2,7 +2,7 @@
 
 *A management game where you run a raiding guild: **Football Manager** for a WoW-style Race to World First.*
 
-**Status:** the simulation is playable end to end — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer, a promises ledger, four upgradable facilities, level-priced wages, a personality-driven AI that plays it, and a CLI. No UI yet.
+**Status:** the simulation is playable end to end — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer the AI prices and answers, a promises ledger, four upgradable facilities, level-priced wages, a personality-driven AI that plays it, and a CLI. No UI yet.
 
 ```bash
 npm install
@@ -35,7 +35,7 @@ npm run check                # typecheck + tests + docs check
 | 10 | [**adr/0002-ui-framework.md**](docs/adr/0002-ui-framework.md) | UI framework: React (proposed), Angular contingency plan, and why the decision can wait |
 | 11 | [**phase-0-report.md**](docs/phase-0-report.md) | The first playable: the day pipeline and the wipe report |
 | 12 | [**progression-report.md**](docs/progression-report.md) | **The ladder and the AI** — levels, dungeons, three raids, personalities, and the measured balance |
-| 13 | [**learnings.md**](docs/learnings.md) | **The log** — 19 things we got wrong, what proved it, and what changed |
+| 13 | [**learnings.md**](docs/learnings.md) | **The log** — 75 things we got wrong, what proved it, and what changed |
 | 14 | [**roadmap.md**](docs/roadmap.md) | What could kill the project, and the order I'd build in |
 
 Raw sourced research behind the blueprint:
@@ -74,8 +74,8 @@ If you read nothing else, these are the differences between the current draft GD
 
 ## Where it stands
 
-The sim is deterministic, tested (73 tests) and playable from a terminal. A run is 84 days: three level-1 heroes, a farm, missions, four dungeons, three raids. Sixteen areas, each with a bestiary and a named drop table the player can inspect before committing a party. Twenty traits (counters, bonds, craft, flaws, specialists) give heroes a second layer, and two boss threats can be answered or eaten. An AI plays it end to end, and three personalities produce three different games — the cautious ones play the cleanest, the gambler scores highest but takes the fewest World Firsts.
+The sim is deterministic, tested (80 tests) and playable from a terminal. A run is 84 days: three level-1 heroes, a farm, missions, four dungeons, three raids. Sixteen areas, each with a bestiary and a named drop table the player can inspect before committing a party. Twenty traits (counters, bonds, craft, flaws, specialists) give heroes a second layer, and two boss threats can be answered or eaten. An AI plays it end to end — including the ten event cards, which it prices instead of taking the first option — and three personalities produce three different games: the cautious Quartermaster scores highest and takes the most World Firsts, while the Gambler spends into arrears and pays for it.
 
 See [progression-report.md](docs/progression-report.md) for the numbers and the lessons.
 
-**Next:** a lockout or diminishing reward on repeatable content (the Drowned Mill is still an XP faucet), structured event options (so the AI weighs cards instead of taking the first one), then put the rivals on the same planner (the race becomes simulated rather than paced), then manual loot assignment and a role-affinity pass (the alternate roles are dominated) before the vertical-slice UI.
+**Next:** put the rivals on the same planner (the race becomes simulated rather than paced), add a second three-hero job so the Drowned Mill stops being the only spare-party night (the measured answer to the repeat faucet, [open-questions.md](docs/open-questions.md) O7), then manual loot assignment and a role-affinity pass (the alternate roles are dominated) before the vertical-slice UI.

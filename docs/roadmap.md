@@ -10,14 +10,14 @@ Last updated: 2026-10-30. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 73 tests, `resolveDay` is pure |
+| Simulation core | Done — deterministic, 80 tests, `resolveDay` is pure |
 | Progression ladder | Done — 3 heroes → 3 farms, 6 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
 | Balance | Provisional — 10 seeds per personality; the Tyrant stalls 6/20 Steward seeds and World First is 3/10, 4/10 and 1/10 (see [progression-report.md](progression-report.md) §1.1) |
 | UI | **None** |
-| Drama / events | 10 cards, fired at 40%/day. Options are prose, so the AI takes the first one (see §2) |
+| Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
 | Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
 | Economy sinks | Four facilities, three levels each; the AI maxes the tree by ~day 70 and still ends with ~10k |
 
@@ -33,7 +33,7 @@ Three pieces of evidence:
 
 1. The AI clears the ladder in milliseconds. A human plays the same 84 days by hand.
 2. In the AI's own trace, the plan is stable for six to ten days at a time — same parties, same content, same stance. That is correct play, and it is also *no decisions*.
-3. The recurring attention triggers are administrative — a benched hero, an expiring contract, the wage bill, high fatigue. Event cards add surprise, but the AI always takes `options[0]`, so the surprise is not yet a decision.
+3. The recurring attention triggers are administrative — a benched hero, an expiring contract, the wage bill, high fatigue. Event cards add surprise, and the bot now weighs them instead of taking the first option, but the queue's own triggers are still bookkeeping.
 
 FM's loop works because the day is a queue of interruptions that each demand a decision with incomplete information. We built the queue and left it empty.
 
@@ -56,7 +56,9 @@ Everything else — rivals, UI, facilities — amplifies a loop that must first 
 
 **Shipped after the seed-5150 hand run:** nine legibility fixes ([learnings.md](learnings.md) L47–L56). The queue repairs an invalid plan instead of refusing; the report shows the killing pull; projections and best-pull bank the failed check's partial progress; form and sharpness are on screen; the tavern shows power, gear and traits; every attention option settles its item; `party` accepts and prints names; fatigue now feeds injury chance. The measured sweep is in [progression-report.md](progression-report.md) §3.1.
 
-**Still open from this phase:** the AI picks the first option of every card, so events are shown but not played. Structured option costs are the fix.
+**Still open from this phase:** the kill criterion. A 30-day human playtest is the only test that can pass or fail it, and it has not been run.
+
+**Shipped after the phase's own report:** the AI now prices every card option and picks, so events are played and not only presented ([progression-report.md](progression-report.md) §5.4). The same pass fixed four card bugs the trace exposed: a "hurt a hero" option that hurt nobody, a "rest him" option that wounded him, a strictly-dominant taunt, and a rival offer that ended a young guild's run.
 
 **Kill criterion:** if a 30-day human playtest produces no moment the player wants to retell, stop and rethink the loop before any UI work.
 
@@ -112,4 +114,4 @@ Each is in [vision.md](vision.md) §5 with a phase. None of them is load-bearing
 
 ## 6. If you only do one thing
 
-**Write three event cards and play them.** Twenty lines of data, existing consequence systems, no new architecture. If "the rival guild offers Elaria double her wage, and you cannot match it" is not interesting, nothing downstream will be.
+**Play thirty days by hand and write down what you wanted to do and could not.** The cards are priced, the queue is total, and the ladder is measured; the only claim left untested is the one no sweep can answer — that a player has a moment worth retelling. Every remaining feature is an amplification of that claim, and none of them fixes a day that reads as administration.
