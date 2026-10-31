@@ -1,12 +1,13 @@
 import { sum } from "../prelude";
 import type { Assignment, Candidate, ContentDef, GameState, Hero, Plan, Stance } from "../types";
-import { contentById } from "../content/content";
-import { MAX_PARTIES } from "../content/tuning";
-import { bestPartyFor, levelOk, rankFor, sizeOk, unlockedContent } from "../plan";
-import { projectAssignment } from "../encounter";
+import { contentById, FARMS } from "../content/content";
+import { MAX_PARTIES, RUN_DAYS } from "../content/tuning";
+import { bestPartyFor, levelOk, sizeOk, availableContent, contentAvailability } from "../plan";
+import { projectAssignment, withCounters } from "../encounter";
 import { heroPower, isAvailable } from "../hero";
 import { wageBill } from "../economy";
 import { rosterCapFor, wageBudgetFor, nextCost, buyFacility, FACILITIES, type FacilityId } from "../facilities";
+import { rolesForClass } from "../content/roles";
 import type { Personality } from "./personalities";
 
 const KIND_BONUS: Record<string, number> = {
@@ -43,10 +44,11 @@ const scoreContent = (
   personality: Personality,
 ): AiChoice | null => {
   if (pool.length < content.minHeroes) return null;
-  const eligible = pool.filter((h) => h.level >= content.minLevel);
-  if (eligible.length < content.minHeroes) return null;
 
-  const party = bestPartyFor(state, content, pool);
+  // The level gate is the party's average, the same rule the content list and
+  // `validatePlan` use. Filtering heroes one by one here made the planner
+  // refuse a party the player was allowed to send.
+  const party = withCounters(state, content, bestPartyFor(state, content, pool), pool);
   if (!sizeOk(content, party) || !levelOk(content, party)) return null;
 
   const attempt: Assignment = {
@@ -92,6 +94,38 @@ const scoreContent = (
 };
 
 /**
+ * The best open farm the remaining pool can field. The old code hardcoded
+ * Emberwood and The Old Quarry; the ladder now has three farms, and a hardcoded
+ * pair silently caps how many parties can farm on the same day.
+ */
+const fallbackFarm = (
+  state: GameState,
+  pool: readonly Hero[],
+  usedContent: ReadonlySet<string>,
+): AiChoice | null => {
+  let bestContent: ContentDef | null = null;
+  let bestParty: Hero[] = [];
+  let bestValue = -Infinity;
+  for (const content of FARMS) {
+    if (usedContent.has(content.id)) continue;
+    const availability = contentAvailability(state, content);
+    if (availability.status === "locked" || availability.status === "level" || availability.status === "roster") {
+      continue;
+    }
+    const party = bestPartyFor(state, content, pool);
+    if (party.length < content.minHeroes || !levelOk(content, party)) continue;
+    // Farm gold is per hero; value is per hero too, so the comparison is fair.
+    const value = content.xp + content.gold / 8;
+    if (value > bestValue) {
+      bestValue = value;
+      bestContent = content;
+      bestParty = party;
+    }
+  }
+  return bestContent ? { content: bestContent, party: bestParty, stance: "steady", ratio: 1, reason: "farm" } : null;
+};
+
+/**
  * The planner. Framework-free and personality-driven so the same code can drive
  * the player's bot, the balance sweep, and (later) the rival guilds.
  */
@@ -105,9 +139,11 @@ export const planDay = (
 
   const parties: Assignment[] = [];
   const assigned = new Set<string>();
+  const usedContent = new Set<string>();
   const choices: AiChoice[] = [];
-  const candidates = unlockedContent(state);
+  const candidates = availableContent(state);
   const resting = new Set<string>();
+  const daysLeft = RUN_DAYS - state.day;
 
   // ── Raid prep ─────────────────────────────────────────────────────────────
   // A raid needs ten specific people, fresh. The AI holds them back and rests
@@ -116,22 +152,33 @@ export const planDay = (
     (c) => c.kind === "raid" && (state.progress.find((p) => p.contentId === c.id)?.clears ?? 0) === 0,
   );
   if (nextRaid) {
-    const eligible = available.filter((h) => h.level >= nextRaid.minLevel);
-    if (eligible.length >= nextRaid.minHeroes) {
-      const party = bestPartyFor(state, nextRaid, eligible);
+    const party = withCounters(state, nextRaid, bestPartyFor(state, nextRaid, available), available);
+    if (party.length >= nextRaid.minHeroes && levelOk(nextRaid, party)) {
       const projection = projectAssignment(state, {
         contentId: nextRaid.id,
         heroes: party.map((h) => h.id),
         stance: "steady",
       });
-      if (projection && projection.minRatio >= 0.72) {
+      // In the last few days, hold the raid party even if it is currently
+      // tired and the projection is depressed by fatigue. Using those ten
+      // heroes for one more dungeon is how the run ends with no last attempt.
+      const endgame = daysLeft <= 4 && daysLeft >= 0;
+      const capable = projection
+        ? projection.minRatio >= (endgame ? 0.5 : 0.72)
+        : false;
+      if (projection && capable) {
         const avg = party.reduce((acc, h) => acc + h.fatigue, 0) / party.length;
-        if (avg > 42) {
+        const mustTry = daysLeft <= 0;
+        if (avg > 42 && !mustTry) {
           for (const hero of party) resting.add(hero.id);
           notes.push(`holding the raid party back (avg fatigue ${Math.round(avg)}) for ${nextRaid.name}`);
         } else {
-          const stance: Stance = projection.minRatio < 1.0 && personality.ambition > 0.6 ? "push" : "steady";
+          // Push at the margin regardless of temperament: the +12% is what moves a
+  // 0.90 check into a pass, and the injury multiplier only fires on a scrape
+  // (L65). A raid night that is lost on steady cannot be won by caution.
+  const stance: Stance = projection.minRatio < 1.05 ? "push" : "steady";
           parties.push({ contentId: nextRaid.id, heroes: party.map((h) => h.id), stance });
+          usedContent.add(nextRaid.id);
           for (const hero of party) assigned.add(hero.id);
           notes.push(`RAID — ${nextRaid.name} (${Math.round(projection.minRatio * 100)}% of requirement)`);
         }
@@ -150,17 +197,19 @@ export const planDay = (
 
     let best: AiChoice | null = null;
     for (const content of candidates) {
+      // One party per content per day. Two parties on the same dungeon
+      // double-dips loot, XP and mastery, and a human cannot do it.
+      if (usedContent.has(content.id)) continue;
       const pick = scoreContent(state, content, pool, personality);
       if (!pick) continue;
       if (!best || Number(pick.reason) > Number(best.reason)) best = pick;
     }
 
     if (!best) {
-      // Nothing viable: farm with whoever is left.
-      const farm = contentById("emberwood");
-      if (!farm || pool.length === 0) break;
-      const party = rankFor(pool, farm).slice(0, farm.maxHeroes);
-      best = { content: farm, party, stance: "steady", ratio: 1, reason: "farm" };
+      // Nothing viable: farm with whoever is left, in a zone nobody is using.
+      const farm = fallbackFarm(state, pool, usedContent);
+      if (!farm) break;
+      best = farm;
     }
 
     // Never send a party into something it cannot survive if a farm exists.
@@ -170,11 +219,9 @@ export const planDay = (
       stance: best.stance,
     });
     if (projection && projection.minRatio < 0.75 && best.content.kind !== "farm") {
-      const farm = contentById("emberwood");
-      if (farm) {
-        const party = rankFor(pool, farm).slice(0, farm.maxHeroes);
-        best = { content: farm, party, stance: "steady", ratio: 1, reason: "farm" };
-      }
+      const farm = fallbackFarm(state, pool, usedContent);
+      if (!farm) break;
+      best = farm;
     }
 
     parties.push({
@@ -182,10 +229,11 @@ export const planDay = (
       heroes: best.party.map((h) => h.id),
       stance: best.stance,
     });
+    usedContent.add(best.content.id);
     for (const hero of best.party) assigned.add(hero.id);
     choices.push(best);
     notes.push(
-      `${best.content.name} ← ${best.party.map((h) => h.name.split(" ")[0]).join(", ")} (${best.stance}, ${Math.round(best.ratio * 100)}%)`,
+      `${best.content.name} ← ${best.party.map((h) => h.name).join(", ")} (${best.stance}, ${Math.round(best.ratio * 100)}%)`,
     );
   }
 
@@ -196,15 +244,11 @@ export const planDay = (
   if (exhausted.length > 0) notes.push(`${exhausted.length} heroes resting`);
   const lightTired = light;
   if (lightTired.length > 0 && parties.length < MAX_PARTIES) {
-    const farm = contentById("old-quarry");
-    const fallback = contentById("emberwood");
-    const zone = farm && bestPartyFor(state, farm, lightTired).length >= farm.minHeroes ? farm : fallback;
-    if (zone) {
-      const party = rankFor(lightTired, zone).slice(0, zone.maxHeroes);
-      if (party.length >= zone.minHeroes) {
-        parties.push({ contentId: zone.id, heroes: party.map((h) => h.id), stance: "steady" });
-        notes.push(`${party.length} tired heroes sent to ${zone.name}`);
-      }
+    const zone = fallbackFarm(state, lightTired, usedContent);
+    if (zone && zone.party.length >= zone.content.minHeroes) {
+      parties.push({ contentId: zone.content.id, heroes: zone.party.map((h) => h.id), stance: "steady" });
+      usedContent.add(zone.content.id);
+      notes.push(`${zone.party.length} tired heroes sent to ${zone.content.name}`);
     }
   }
 
@@ -261,3 +305,67 @@ export const applyFacilityDecision = (
 };
 
 export const facilityNames = FACILITIES.map((f) => f.name).join(", ");
+
+/** Back to the creation role. The AI re-specs for each night, never carries a flip. */
+export const resetRoles = (roster: readonly Hero[]): Hero[] => {
+  let changed = false;
+  const next = roster.map((h) => {
+    const natural = h.naturalRole ?? h.role;
+    if (h.role === natural) return h;
+    changed = true;
+    return { ...h, role: natural };
+  });
+  return changed ? next : [...roster];
+};
+
+/**
+ * Give the planned parties their best roles before the night resolves.
+ *
+ * A role flip changes the hero's affinity for every check and costs 0.88 fit
+ * when it leaves the natural role. The pass accepts a flip only when the
+ * party's projected weakest check improves, so a warrior becomes a Vanguard on
+ * a DPS night and a Bulwark on a mitigation night. One or two passes; the
+ * decision is local and the fit cost is the brake.
+ */
+export const reviewRoles = (
+  state: GameState,
+  plan: Plan,
+): { state: GameState; notes: string[] } => {
+  let roster = state.roster;
+  const notes: string[] = [];
+  const changed = new Map<string, string>();
+
+  for (let pass = 0; pass < 2; pass += 1) {
+    let flipped = false;
+    for (const party of plan.parties) {
+      const content = contentById(party.contentId);
+      if (!content || content.phases.length === 0) continue;
+
+      let best = projectAssignment({ ...state, roster }, party)?.minRatio ?? 0;
+      // Only re-spec a party that is actually close. A comfortable clear does
+      // not need the fit cost, and flipping for a 0.01 gain adds variance.
+      if (best >= 1.1) continue;
+      for (const id of party.heroes) {
+        const hero = roster.find((h) => h.id === id);
+        if (!hero) continue;
+        for (const alt of rolesForClass(hero.klass)) {
+          if (alt.id === hero.role) continue;
+          const trial = roster.map((h) => (h.id === id ? { ...h, role: alt.id } : h));
+          const ratio = projectAssignment({ ...state, roster: trial }, party)?.minRatio ?? 0;
+          if (ratio <= best + 0.01) continue;
+          roster = trial;
+          best = ratio;
+          flipped = true;
+          if (!changed.has(hero.id)) changed.set(hero.id, `${hero.name} → ${alt.name}`);
+        }
+      }
+    }
+    if (!flipped) break;
+  }
+
+  if (changed.size === 0) return { state, notes };
+  return {
+    state: { ...state, roster },
+    notes: [`roles: ${[...changed.values()].join(", ")}`],
+  };
+};

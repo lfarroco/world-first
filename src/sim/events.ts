@@ -1,9 +1,18 @@
-import type { AttentionItem, EventKind, GameEvent, GameState, Hero, SquadStatus } from "./types";
-import { assignedIds } from "./plan";
-import { wageBill } from "./economy";
+import type {
+  AttentionItem,
+  AttentionKind,
+  EventKind,
+  GameEvent,
+  GameState,
+  Hero,
+  SquadStatus,
+} from "./types";
+import { assignedIds, availableContent } from "./plan";
+import { renewalWage, wageBill } from "./economy";
 import { wageBudgetFor } from "./facilities";
-import { cardById } from "./content/events";
-import { CONTRACT } from "./content/tuning";
+import { cardById, optionAffordable } from "./content/events";
+import { CONTENT, KIND_LABEL } from "./content/content";
+import { CONTRACT, PROMISE } from "./content/tuning";
 
 /** Deterministic id: no global counters, or replays diverge. */
 const hashText = (text: string): number => {
@@ -29,19 +38,61 @@ export const push = (state: GameState, e: GameEvent): void => {
   state.events.push({ ...e, id: `${e.id}-${state.events.length}` });
 };
 
+const partyLabel = (min: number, max: number): string =>
+  min === max ? `${min} ${min === 1 ? "hero" : "heroes"}` : `${min}-${max} heroes`;
+
+/**
+ * The content list hides what the guild cannot field, so this is the only
+ * place the player hears that a new area opened. One event per area, ever:
+ * a roster that shrinks and grows again must not re-announce the same place.
+ * A save written before `knownContent` existed starts silent — those areas
+ * are already visible in `content`, and a burst on load is noise.
+ */
+export const announceUnlocks = (state: GameState, day: number): void => {
+  const open = availableContent(state);
+  const known = new Set(state.knownContent ?? open.map((c) => c.id));
+
+  for (const content of open) {
+    if (known.has(content.id)) continue;
+    known.add(content.id);
+    push(
+      state,
+      event(
+        day,
+        "unlock",
+        "good",
+        `New area open: ${content.name} — ${KIND_LABEL[content.kind]}, average level ${content.minLevel}, ${partyLabel(content.minHeroes, content.maxHeroes)}.`,
+      ),
+    );
+  }
+
+  state.knownContent = CONTENT.filter((c) => known.has(c.id)).map((c) => c.id);
+};
+
 const itemId = (kind: string, heroId: string | undefined, day: number): string =>
   `${kind}:${heroId ?? "guild"}:${day}`;
+
+/** Stable identity of an item across days. Mutes are keyed by this, not the id. */
+export const attentionKey = (kind: AttentionKind, heroId: string | undefined): string =>
+  `${kind}:${heroId ?? "guild"}`;
 
 /**
  * Attention items are derived, never authored. At most three block the day;
  * everything else is an FYI line.
  */
 export const deriveAttention = (state: GameState): AttentionItem[] => {
+  // A finished run has no tomorrow to plan for. Without this guard the CLI
+  // re-derives contract and bench items for day 85 and shows "NEEDS YOU".
+  if (state.finished) return [];
+
   const items: AttentionItem[] = [];
   const today = state.day;
 
   for (const hero of state.roster) {
     if (hero.daysBenched >= 3 && hero.morale <= 58) {
+      // Rotating needs somewhere to rotate him into. Without a plan the
+      // option used to report success and change nothing, which is a trap.
+      const canRotate = state.plan.parties.length > 0;
       items.push({
         id: itemId("benched-unhappy", hero.id, today),
         kind: "benched-unhappy",
@@ -51,8 +102,14 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
         title: `${hero.name} wants words`,
         detail: `Benched ${hero.daysBenched} days, morale ${Math.round(hero.morale)}. He expects to be in the A-team.`,
         options: [
-          { key: "promise", label: "Promise him the A-team spot", effect: { kind: "promise", heroId: hero.id, status: "a-team" } },
-          { key: "rotate", label: "Rotate him into the raid tomorrow", effect: { kind: "rotate", heroId: hero.id } },
+          {
+            key: "promise",
+            label: `Promise him a spot (${PROMISE.startsRequired} starts in ${PROMISE.windowDays} days)`,
+            effect: { kind: "promise", heroId: hero.id, status: "a-team" },
+          },
+          ...(canRotate
+            ? [{ key: "rotate", label: "Rotate him into the raid tomorrow", effect: { kind: "rotate" as const, heroId: hero.id } }]
+            : []),
           { key: "ignore", label: "Ignore it for now", effect: { kind: "ignore" } },
         ],
       });
@@ -61,6 +118,10 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
 
   for (const hero of state.roster) {
     if (hero.contract.daysLeft <= 7) {
+      // Renewal re-prices to the hero's current level. Show the number: a
+      // level-60 wage can be ten times the level-1 one, and the player is
+      // choosing between that and losing the hero.
+      const market = renewalWage(hero);
       items.push({
         id: itemId("contract-expiring", hero.id, today),
         kind: "contract-expiring",
@@ -68,9 +129,13 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
         blocking: true,
         heroId: hero.id,
         title: `${hero.name}'s contract`,
-        detail: `${hero.contract.daysLeft} days left at ${hero.contract.wage}g/week.`,
+        detail: `${hero.contract.daysLeft} days left at ${hero.contract.wage}g/week. Market rate at level ${hero.level}: ${market}g.`,
         options: [
-          { key: "renew", label: `Renew (+20% wage, ${CONTRACT.daysMax} days)`, effect: { kind: "renew", heroId: hero.id } },
+          {
+            key: "renew",
+            label: `Renew at market (${hero.contract.wage}g → ${market}g/week, ${CONTRACT.daysMax} days)`,
+            effect: { kind: "renew", heroId: hero.id },
+          },
           { key: "release", label: "Let him walk", effect: { kind: "release", heroId: hero.id } },
         ],
       });
@@ -91,20 +156,46 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
     });
   }
 
+  // One line for the whole rotation, not one card per body. The roster's
+  // fatigue column already carries the number; the queue only needs to say
+  // that the night is being fought on empty.
   const assigned = assignedIds(state.plan);
-  for (const hero of state.roster) {
-    if (hero.fatigue >= 70 && assigned.has(hero.id)) {
-      items.push({
-        id: itemId("fatigue-risk", hero.id, today),
-        kind: "fatigue-risk",
-        day: today,
-        blocking: false,
-        heroId: hero.id,
-        title: `${hero.name} is running on empty`,
-        detail: `Fatigue ${Math.round(hero.fatigue)}% and still assigned to the raid.`,
-        options: [{ key: "ack", label: "Noted", effect: { kind: "acknowledge" } }],
-      });
-    }
+  const exhausted = state.roster.filter((h) => h.fatigue >= 70 && assigned.has(h.id));
+  if (exhausted.length > 0) {
+    items.push({
+      id: itemId("fatigue-risk", undefined, today),
+      kind: "fatigue-risk",
+      day: today,
+      blocking: false,
+      title:
+        exhausted.length === 1
+          ? `${exhausted[0]!.name} is running on empty`
+          : `${exhausted.length} heroes are running on empty`,
+      detail: exhausted
+        .slice()
+        .sort((a, b) => b.fatigue - a.fatigue)
+        .map((h) => `${h.name} ${Math.round(h.fatigue)}%`)
+        .join(" · "),
+      options: [{ key: "ack", label: "Noted", effect: { kind: "acknowledge" } }],
+    });
+  }
+
+  // A promise closes tomorrow: that is the last night that can keep it.
+  for (const promise of state.promises ?? []) {
+    if (promise.status !== "open") continue;
+    const hero = state.roster.find((h) => h.id === promise.heroId);
+    if (!hero) continue;
+    if (promise.dueOn - today > 1) continue;
+    items.push({
+      id: itemId("promise-due", hero.id, today),
+      kind: "promise-due",
+      day: today,
+      blocking: false,
+      heroId: hero.id,
+      title: `${hero.name} expects his spot`,
+      detail: `${promise.daysAssigned}/${PROMISE.startsRequired} starts, promise due ${promise.dueOn === today ? "tonight" : "tomorrow"}.`,
+      options: [{ key: "ack", label: "Noted", effect: { kind: "acknowledge" } }],
+    });
   }
 
   const pending = state.pendingEvent;
@@ -122,17 +213,25 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
         ...(target ? { heroId: target.id } : {}),
         title: card.title,
         detail: card.text.replace("{hero}", target?.name ?? "one of your heroes"),
-        options: card.options.map((o) => ({
-          key: o.key,
-          label: `${o.label} — ${o.hint}`,
-          effect: { kind: "event" as const, cardId: card.id, optionKey: o.key },
-        })),
+        options: card.options
+          .filter((o) => optionAffordable(state, o))
+          .map((o) => ({
+            key: o.key,
+            label: `${o.label} — ${o.hint}`,
+            effect: { kind: "event" as const, cardId: card.id, optionKey: o.key },
+          })),
       });
     }
   }
 
-  const blocking = items.filter((i) => i.blocking).slice(0, 3);
-  const fyi = items.filter((i) => !i.blocking);
+  // Acknowledged or ignored items are deferred, not deleted: the same item
+  // comes back tomorrow if nothing changed. The queue must always have an
+  // answer that moves it forward, even when the answer is "not today".
+  const mutes = state.attentionMutedUntil ?? {};
+  const live = items.filter((i) => (mutes[attentionKey(i.kind, i.heroId)] ?? -1) < today);
+
+  const blocking = live.filter((i) => i.blocking).slice(0, 3);
+  const fyi = live.filter((i) => !i.blocking);
   return [...blocking, ...fyi];
 };
 

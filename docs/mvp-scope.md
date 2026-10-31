@@ -28,16 +28,17 @@ If those three are fun with no art, the game is real. Everything else is amplifi
 |---|---|
 | Heroes | **8 attributes** · 8 roles · 4 classes · 5 hidden attributes · level 1–60 · XP curve · gear (4 slots, iLvl) |
 | Party | Up to **3 parties**, any mix of farm / mission / dungeon / raid · 3 stances |
-| Combat | 10 content entries (2 farms, 2 missions, 3 dungeons, 3 raids) · 1–3 phases each · 4 check types · mastery · consistency rolls · fatigue/sharpness/morale |
+| Combat | 16 content entries (3 farms, 6 missions, 4 dungeons, 3 raids) · 1–3 phases each · 4 check types · mastery · consistency rolls · fatigue/sharpness/morale · bestiary and named drops |
+| Content gate | **Only fieldable content is listed** — prerequisite clears, roster size and party average level · one `unlock` event per area · `inspect <id>` shows phases, mobs, drops and per-clear chances |
 | Day loop | 9-stage pipeline · digest · **attention queue (max 3 blocking)** · Advance Day |
-| Progression | level gates + prerequisite clears · free recruits on dungeon first-clears · recruit level ≈ 68% of your best |
+| Progression | level gates + prerequisite clears · locked content hidden · free recruits on the three ladder dungeons (55% of your best; side dungeon excluded) · tavern recruits ≈ 62–80% of your best |
 | Economy | gold in/out · weekly wages vs budget · **arrears instead of game over** |
 | Recruitment | Tavern: 3 candidates, refresh on day 7 · signing modal (wage / length / squad status) · potential fog |
 | Rivals | 3 NPC guilds, deterministic per seed, walking the same ladder with a compressed power model |
 | Run | **84-day deadline** · 3 raids · World First · **final score, band and rank** |
 | Retention | morale deltas · transfer requests · contract expiry · squad-status promises |
 | Persistence | localStorage save, versioned, deterministic from seed + action log |
-| Dev tooling | headless CLI: `new`, `content`, `party`, `advance`, `ai`, `sim --runs N`, `status` · **AI planner** (`src/sim/ai`) with personalities |
+| Dev tooling | headless CLI: `new`, `content`, `inspect <id>`, `party`, `advance`, `ai`, `sim --runs N`, `status` · **AI planner** (`src/sim/ai`) with personalities |
 
 ### Out (v0.1, explicitly)
 
@@ -51,16 +52,18 @@ These are **acceptance tests**, not aspirations. The sim should be able to prove
 
 | # | Target | Why |
 |---|---|---|
-| 1 | A new player loses on boss 1 no more than once | Onboarding must not punish |
-| 2 | A first-time player kills boss 1 by day 6–9 | An early win, before the wall |
-| 3 | Boss 3 stalls the average player for 4–7 days | The wall that teaches gearing |
+| 1 | A new player loses on the first raid night no more than once | Onboarding must not punish |
+| 2 | The AI clears Gatewarden by day 45–55 | An early win, before the wall |
+| 3 | The Tyrant stalls the average run: 6/20 Steward seeds stop at two raids, none lower | The wall that teaches gearing |
 | 4 | A good bot clears 2–3 of the 3 raids; a great run clears all three | The ladder must be winnable but tight |
-| 5 | A do-nothing bot never passes boss 2 | Actions must matter |
-| 6 | A first run clearing 3–4 bosses scores 10–15k; a full clear is ~20k; max is ~26k | The score must have headroom |
+| 5 | A do-nothing bot never clears a dungeon | Actions must matter |
+| 6 | A two-raid run scores ~16k; a full clear 23–30k; max ~31k | The score must have headroom |
 | 7 | ≤ 3 attention items block a typical day | The queue must not become a chore |
 | 8 | A day resolves (sim) in < 2 ms | 1000-run batch tests must be feasible |
-| 9 | The wage crunch is felt by day 14–18 | The economy must bite in the first run |
+| 9 | The wage crunch is felt by day 14–18 — **not met**; there is no early-game pressure yet | The economy must bite in the first run |
 | 10 | Two runs with the same seed and the same actions produce the same score | Determinism is the test harness |
+| 11 | No listed content is unenterable: its party meets the level and size gates | The list must not show a door the guild cannot open |
+| 12 | Every content prints a bestiary and truthful drop chances from `inspect` | Content data is a claim the screen repeats |
 
 Targets 4 and 5 tell you whether the race is tuned; 6 tells you whether the score is meaningful. If a random-clicking bot wins, the game is too easy; if the perfect bot can't finish, it's unwinnable; if every run lands within 2k of every other, the choices don't differentiate.
 
@@ -68,7 +71,7 @@ Targets 4 and 5 tell you whether the race is tuned; 6 tells you whether the scor
 
 **Phase 0 — headless core (no UI)** ✅ *done — see [phase-0-report.md](phase-0-report.md)*
 `types` → `rng` → `heroes` (attributes, roles, power) → `checks` (boss resolution) → `day` (pipeline) → `economy` → `rivals` → CLI.
-Shipped when: the CLI can play a full run in a terminal and print a readable wipe report. Measured (10 seeds/personality): Steward 2.90 raids, Quartermaster 2.90, Gambler 2.60; an idle guild clears nothing — see [progression-report.md](progression-report.md).
+Shipped when: the CLI can play a full run in a terminal and print a readable wipe report. Measured (20 seeds/personality, after the 2026-10-30 economy pass): 2.60–2.80 raids; on 20 Steward seeds, 14 clear all three and 6 stop at two; an idle guild clears nothing — see [progression-report.md](progression-report.md) §1.1 and §3.
 
 **Phase 1 — vertical slice UI**
 Roster table + hero sheet drawer → War Room (drag, projection strip) → Day report modal → Wipe report modal.

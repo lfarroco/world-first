@@ -29,6 +29,32 @@ export type Gear = Record<GearSlot, number>;
 
 export type CheckType = "dps" | "mitigation" | "mechanics" | "sustain";
 
+/** A named threat on a content phase. See content/traits.ts. */
+export type AbilityId = "ash-veil" | "dread-roar";
+
+/** One line of character with one rule attached. Cap: 3 per hero. */
+export type TraitId =
+  | "keen-eye"
+  | "steadfast"
+  | "pack-hunter"
+  | "kindred-spirits"
+  | "shield-wall"
+  | "field-medic"
+  | "mentor"
+  | "pathfinder"
+  | "quartermaster"
+  | "student"
+  | "ironhide"
+  | "night-owl"
+  | "scavenger"
+  | "hot-headed"
+  | "frail"
+  | "glory-hound"
+  | "slow-starter"
+  | "executioner"
+  | "stonewall"
+  | "ritualist";
+
 export type Stance = "cautious" | "steady" | "push";
 
 export type SquadStatus = "a-team" | "rotation" | "bench";
@@ -52,6 +78,8 @@ export type Hero = {
   name: string;
   klass: ClassId;
   role: RoleId;
+  /** The role the hero was made for. Fit never drifts with level growth. */
+  naturalRole: RoleId;
   level: number;
   xp: number;
   attrs: Attributes;
@@ -63,6 +91,7 @@ export type Hero = {
   morale: number;
   injuryDays: number;
   daysBenched: number;
+  traits: TraitId[];
   contract: Contract;
 };
 
@@ -79,6 +108,30 @@ export type ContentPhase = {
   check: CheckType;
   requirement: number;
   share: number;
+  /** A threat that makes this check harder unless a hero counters it. */
+  ability?: AbilityId;
+};
+
+/** One inhabitant of a content, shown by `inspect`. Flavour with a hook: the check it pressures. */
+export type ContentMob = {
+  name: string;
+  role: string;
+  note: string;
+  /** The phase check this mob is the reason for. Farms have no checks. */
+  check?: CheckType;
+};
+
+/**
+ * A named item the content can drop. At most one named item drops per clear,
+ * so `chance` is the exact per-clear probability and a content's chances sum
+ * to at most 1. On a hit it replaces one generic item; the clear still pays
+ * exactly `loot.count` items.
+ */
+export type ContentDrop = {
+  name: string;
+  slot: GearSlot;
+  ilvl: number;
+  chance: number;
 };
 
 export type ContentDef = {
@@ -86,7 +139,7 @@ export type ContentDef = {
   name: string;
   kind: ContentKind;
   tier: number;
-  /** Every hero in the party must be at least this level. */
+  /** The party's average level must reach this. */
   minLevel: number;
   minHeroes: number;
   maxHeroes: number;
@@ -98,6 +151,16 @@ export type ContentDef = {
   loot: { count: number; ilvlMin: number; ilvlMax: number };
   /** Content ids that must be cleared first. */
   requires: string[];
+  /**
+   * Dungeons hand over a free recruit on the first clear unless this is false.
+   * Side dungeons pay in gear, not in bodies: the three ladder dungeons are
+   * what fund a ten-man raid.
+   */
+  firstClearRecruit?: boolean;
+  /** The bestiary the inspect screen prints. */
+  mobs: ContentMob[];
+  /** Named loot the inspect screen prints. Empty when the content drops nothing. */
+  drops: ContentDrop[];
   blurb: string;
 };
 
@@ -126,7 +189,7 @@ export type Rival = {
   id: RivalId;
   name: string;
   power: number;
-  /** 0..3 raids cleared. */
+  /** Stages of `RIVAL_LADDER` cleared: 3 dungeons, then 3 raids (0..6). */
   raidsCleared: number;
   bestPull: number;
   pulls: number;
@@ -155,7 +218,8 @@ export type EventKind =
   | "rival"
   | "morale"
   | "run"
-  | "progress";
+  | "progress"
+  | "unlock";
 
 export type GameEvent = {
   id: string;
@@ -186,6 +250,7 @@ export type AttentionKind =
   | "contract-expiring"
   | "wage-over-budget"
   | "fatigue-risk"
+  | "promise-due"
   | "event";
 
 export type AttentionItem = {
@@ -199,6 +264,18 @@ export type AttentionItem = {
   options: AttentionOption[];
 };
 
+export type PhaseAbilityLog = {
+  id: AbilityId;
+  name: string;
+  countered: boolean;
+  /** 1 when countered, the ability's penalty when not. */
+  mult: number;
+  /** Name of the hero who answered it, if any. */
+  counterHero?: string;
+  /** False on the pull that discovered it. */
+  known: boolean;
+};
+
 export type RaidPhaseLog = {
   name: string;
   check: CheckType;
@@ -208,6 +285,9 @@ export type RaidPhaseLog = {
   ratio: number;
   outcome: "clean" | "pass" | "scrape" | "fail";
   offNights: string[];
+  /** Traits that moved this check, for the report. */
+  traits?: string[];
+  ability?: PhaseAbilityLog;
 };
 
 export type EncounterPullLog = {
@@ -245,6 +325,22 @@ export type PendingEvent = {
   targetHeroId: string | null;
 };
 
+/**
+ * A promise the player made to a hero. The queue creates the debt, the day
+ * pipeline collects it: starts are counted while the window is open, and the
+ * player is told a day before it closes. Every promise resolves to kept or
+ * broken — there is no silent third state.
+ */
+export type PromiseRecord = {
+  id: string;
+  heroId: string;
+  madeOn: number;
+  /** Last day that counts. The window is madeOn..dueOn inclusive. */
+  dueOn: number;
+  daysAssigned: number;
+  status: "open" | "kept" | "broken";
+};
+
 export type GameState = {
   seed: number;
   guildName: string;
@@ -268,6 +364,23 @@ export type GameState = {
   facilities: Record<"infirmary" | "forge" | "tavern" | "hall", number>;
   pendingEvent: PendingEvent | null;
   eventLog: string[];
+  /**
+   * `${kind}:${heroId ?? "guild"}` → last day the player answered that item.
+   * An acknowledgement defers the item for a day; it never blocks the queue.
+   * Optional so a save written before the field existed still loads.
+   */
+  attentionMutedUntil?: Record<string, number>;
+  /**
+   * Ids of content the guild has been told is open. Written by
+   * `announceUnlocks`; a save without it is initialised silently so an old
+   * save does not dump every open area into one day's digest.
+   */
+  knownContent?: string[];
+  /**
+   * Open and settled promises. Optional so a save written before the ledger
+   * existed still loads; a missing ledger is an empty one.
+   */
+  promises?: PromiseRecord[];
 };
 
 export type { Rng } from "./rng";

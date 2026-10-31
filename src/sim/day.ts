@@ -1,22 +1,22 @@
 import { clamp, sum } from "./prelude";
 import type { ContentKind, GameState, Hero, Stance } from "./types";
 import {
-  ECONOMY,
   FATIGUE,
   HEALTH_RECOVERY_PER_DAY,
+  PROMISE,
   RUN_DAYS,
   SHARPNESS,
   STANCE,
   TAVERN,
 } from "./content/tuning";
 import { encounterFatigue, resolveAssignment } from "./encounter";
-import { deriveAttention, event, push } from "./events";
+import { deriveAttention, announceUnlocks, event, push } from "./events";
 import { bestLevel, makeCandidate } from "./content/heroes";
-import { gainXp, isAvailable } from "./hero";
-import { assignedIds, partyOf } from "./plan";
+import { gainXp } from "./hero";
+import { assignedIds, partyOf, pruneUnavailable, sanitizePlan } from "./plan";
 import { tickRivals } from "./rivals";
 import { computeScore } from "./score";
-import { contentById } from "./content/content";
+import { CONTENT, contentById } from "./content/content";
 import { rngStream } from "./rng";
 import { healthRecoveryFor, injuryDaysFor, recruitLevelFactor } from "./facilities";
 import { rollEvent } from "./world-events";
@@ -48,15 +48,38 @@ export const resolveDay = (input: GameState): GameState => {
   const state = structuredClone(input);
   const today = state.day;
 
-  // Heroes who cannot fight fall out of their parties and rest.
-  const unavailable = new Set(state.roster.filter((h) => !isAvailable(h)).map((h) => h.id));
-  if (unavailable.size > 0) {
-    state.plan = {
-      parties: state.plan.parties.map((p) => ({
-        ...p,
-        heroes: p.heroes.filter((id) => !unavailable.has(id)),
-      })),
-    };
+  // A save written before an area existed has no progress row for it. Add the
+  // row here so an old save can still clear the new content; without this the
+  // payout block below finds no progress and silently keeps the clear count.
+  for (const content of CONTENT) {
+    if (!state.progress.some((p) => p.contentId === content.id)) {
+      state.progress.push({
+        contentId: content.id,
+        clears: 0,
+        clearedOnDay: null,
+        attempts: 0,
+        bestPull: 0,
+      });
+    }
+  }
+
+  // A plan is player input. Validate it before any gold or XP is paid out:
+  // locked content, duplicate heroes and bad stances are dropped, not trusted.
+  const sanitized = sanitizePlan(state);
+  state.plan = sanitized.plan;
+  if (sanitized.problems.length > 0) {
+    const first = sanitized.problems[0]!;
+    const rest = sanitized.problems.length > 1 ? ` (+${sanitized.problems.length - 1} more)` : "";
+    push(state, event(today, "run", "bad", `Plan ignored: ${first.message}${rest}.`));
+  }
+
+  // Heroes who cannot fight fall out of their parties and rest. Unless the day
+  // says who moved, the player discovers it as a party that quietly went out
+  // short — or as an advance that refuses on a plan the game invalidated.
+  const opening = pruneUnavailable(state);
+  if (opening.notes.length > 0) {
+    state.plan = opening.plan;
+    for (const note of opening.notes) push(state, event(today, "run", "bad", note));
   }
 
   // ── 1. PARTIES ─────────────────────────────────────────────────────────────
@@ -68,11 +91,14 @@ export const resolveDay = (input: GameState): GameState => {
     if (!result) continue;
 
     const stance: Stance = assignment.stance;
-    state.gold += result.gold;
+    const economy = result.economy;
+    state.gold += Math.round(result.gold * (1 + economy.goldPct));
+    const lowestId = [...party].sort((a, b) => a.level - b.level)[0]?.id;
 
     for (const hero of party) {
       const xpRng = rngStream(state.seed, "xp", today, hero.id);
-      const grown = gainXp(hero, result.xp, xpRng);
+      const xp = Math.round(result.xp * (1 + economy.xpPct + (hero.id === lowestId ? economy.mentorPct : 0)));
+      const grown = gainXp(hero, xp, xpRng);
       hero.level = grown.hero.level;
       hero.xp = grown.hero.xp;
       hero.attrs = grown.hero.attrs;
@@ -94,18 +120,22 @@ export const resolveDay = (input: GameState): GameState => {
           today,
           "loot",
           "good",
-          `${content.name}: ${result.loot.map((l) => `${l.name} — ${l.slot} ${l.ilvl}`).join(", ")}.`,
+          `${content.name}: ${result.loot
+            .map((l) => `${l.name} — ${l.item ? `${l.item} (${l.slot} ${l.ilvl})` : `${l.slot} ${l.ilvl}`}`)
+            .join(", ")}.`,
         ),
       );
     }
 
     for (const hero of party) {
       hero.fatigue = clamp(
-        hero.fatigue + fatigueGain(encounterFatigue(content), hero.attrs.endurance) + STANCE[stance].fatigue,
+        hero.fatigue +
+          fatigueGain(encounterFatigue(content) + economy.fatigue, hero.attrs.endurance) +
+          STANCE[stance].fatigue,
         0,
         100,
       );
-      hero.sharpness = clamp(hero.sharpness + sharpnessFor(content.kind), 0, 100);
+      hero.sharpness = clamp(hero.sharpness + sharpnessFor(content.kind) + economy.sharpness, 0, 100);
       hero.daysBenched = 0;
       if (result.cleared && content.kind !== "farm") hero.morale = clamp(hero.morale + 4, 1, 100);
       if (!result.cleared) hero.morale = clamp(hero.morale - 2, 1, 100);
@@ -122,8 +152,26 @@ export const resolveDay = (input: GameState): GameState => {
 
     const progress = state.progress.find((p) => p.contentId === content.id);
     if (progress) {
+      const firstAttempt = progress.attempts === 0;
       progress.attempts += result.pulls.length > 0 ? result.pulls.length : 1;
       progress.bestPull = Math.max(progress.bestPull, result.bestPull);
+
+      // The first pull discovers a threat. That is the scouting pull: the
+      // report names what the boss does, and the next plan can answer it.
+      if (firstAttempt) {
+        const seen = new Set<string>();
+        for (const pull of result.pulls) {
+          for (const phase of pull.phases) {
+            const ability = phase.ability;
+            if (!ability || ability.known || seen.has(ability.id)) continue;
+            seen.add(ability.id);
+            const effect = ability.countered
+              ? "the party answered it"
+              : `${phase.checkLabel.toLowerCase()} checks ${Math.round((1 - ability.mult) * 100)}% harder`;
+            push(state, event(today, "progress", "info", `New mechanic at ${content.name}: ${ability.name} — ${effect}.`));
+          }
+        }
+      }
 
       if (result.cleared) {
         const firstClear = progress.clears === 0;
@@ -134,9 +182,11 @@ export const resolveDay = (input: GameState): GameState => {
 
           if (content.kind === "dungeon") {
             state.renown += 1;
-            if (state.roster.length < 22) {
-              const level = Math.max(1, Math.round(bestLevel(state.roster) * 0.55));
-              const free = makeCandidate(state.seed, today, 900 + state.roster.length, level, recruitLevelFactor(state.facilities)).hero;
+            if (content.firstClearRecruit !== false && state.roster.length < 22) {
+              // `makeCandidate` already scales by a factor of the guild's best
+              // level. Pass the guild level and the 0.55 factor once; passing
+              // 0.55 × best as the guild level double-scaled it to ~34%.
+              const free = makeCandidate(state.seed, today, 900 + state.roster.length, bestLevel(state.roster), 0.55).hero;
               state.roster.push({ ...free, id: `f${today}-${state.roster.length}` });
               push(
                 state,
@@ -158,19 +208,23 @@ export const resolveDay = (input: GameState): GameState => {
           }
         }
       } else if (result.pulls.length > 0) {
+        const failed = result.pulls.at(-1)?.phases.find((p) => p.outcome === "fail");
+        const detail = failed ? ` — ${failed.checkLabel} ${failed.value}/${failed.requirement}` : "";
         push(
           state,
           event(
             today,
             "wipe",
             "bad",
-            `${content.name}: ${result.pulls.length} attempts, best ${Math.round(result.bestPull * 100)}%.`,
+            `${content.name}: ${result.pulls.length} attempts, best ${Math.round(result.bestPull * 100)}%${detail}.`,
           ),
         );
       }
     }
 
-    if (content.kind === "raid" && result.pulls.length > 0) {
+    // Every non-farm encounter leaves a report, not just raids. A dungeon wipe
+    // that only says "best 50%" is the slot machine the design forbids.
+    if (content.kind !== "farm" && result.pulls.length > 0) {
       state.lastEncounter = {
         day: today,
         contentId: content.id,
@@ -197,6 +251,47 @@ export const resolveDay = (input: GameState): GameState => {
     if (hero.injuryDays > 0) hero.injuryDays -= 1;
     hero.daysBenched += 1;
     if (hero.daysBenched >= 3) hero.morale = clamp(hero.morale - 4, 1, 100);
+  }
+
+  // A hero hurt during the day cannot deploy tomorrow. Prune the plan now and
+  // name who moved; the alternative is an advance that refuses on a plan the
+  // simulation itself invalidated.
+  const pruned = pruneUnavailable(state);
+  state.plan = pruned.plan;
+  for (const note of pruned.notes) push(state, event(today, "run", "info", note));
+
+  // ── 2b. PROMISES ───────────────────────────────────────────────────────────
+  // A promise is a debt with a date. Starts are counted while the window is
+  // open; on the last day it either stands or falls. Both outcomes are named,
+  // because a promise that quietly disappears teaches the player nothing.
+  if (state.promises) {
+    for (const promise of state.promises) {
+      if (promise.status !== "open") continue;
+      const hero = heroById(state, promise.heroId);
+      if (!hero) {
+        promise.status = "broken";
+        continue;
+      }
+      if (deployed.has(hero.id)) promise.daysAssigned += 1;
+      if (today < promise.dueOn) continue;
+
+      const kept = promise.daysAssigned >= PROMISE.startsRequired;
+      promise.status = kept ? "kept" : "broken";
+      hero.morale = clamp(hero.morale + (kept ? PROMISE.keptMorale : PROMISE.brokenMorale), 1, 100);
+      if (!kept) hero.contract = { ...hero.contract, status: "bench" };
+      push(
+        state,
+        event(
+          today,
+          "morale",
+          kept ? "good" : "bad",
+          kept
+            ? `${hero.name} got his starts — the promise is kept.`
+            : `${hero.name} was promised starts he did not get. The promise is broken.`,
+          hero.id,
+        ),
+      );
+    }
   }
 
   // ── 3. WORLD ───────────────────────────────────────────────────────────────
@@ -245,6 +340,11 @@ export const resolveDay = (input: GameState): GameState => {
   }
 
   // ── 5. NEXT DAY ────────────────────────────────────────────────────────────
+  // An area opens when the roster can field it: a level crossed tonight, a
+  // fourth hero, a prerequisite cleared. The content list hides closed areas,
+  // so this event is how the player learns about it.
+  announceUnlocks(state, today);
+
   state.day = today + 1;
 
   if (state.day > RUN_DAYS) {
@@ -261,8 +361,3 @@ export const resolveDay = (input: GameState): GameState => {
 
   return state;
 };
-
-export const wageSummary = (state: GameState) => ({
-  bill: sum(state.roster.map((h) => h.contract.wage)),
-  budget: ECONOMY.wageBudgetBase + state.renown * ECONOMY.wageBudgetPerRenown,
-});

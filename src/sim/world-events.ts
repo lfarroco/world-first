@@ -1,11 +1,11 @@
 import { clamp } from "./prelude";
 import type { EventTarget, Effect } from "./content/events";
-import { EVENT_CARDS, cardById } from "./content/events";
+import { EVENT_CARDS, cardById, optionAffordable } from "./content/events";
 import type { GameState, Hero, PendingEvent } from "./types";
 import { EVENTS } from "./content/tuning";
 import { bestLevel, makeHero } from "./content/heroes";
 import { recruitLevelFactor } from "./facilities";
-import { heroPower } from "./hero";
+import { gainXp, heroPower } from "./hero";
 import { rngStream } from "./rng";
 import { event, push } from "./events";
 
@@ -74,7 +74,15 @@ const applyEffect = (state: GameState, effect: Effect, targetId: string | null):
       return;
     case "xp": {
       const targets = hero ? [hero] : state.roster;
-      for (const h of targets) h.xp += effect.amount;
+      for (const h of targets) {
+        // Go through gainXp, not `xp +=`: a card can hand out enough XP to
+        // cross a level boundary and must level the hero on the same day.
+        const rng = rngStream(state.seed, "eventXp", state.day, h.id);
+        const grown = gainXp(h, effect.amount, rng);
+        h.level = grown.hero.level;
+        h.xp = grown.hero.xp;
+        h.attrs = grown.hero.attrs;
+      }
       return;
     }
     case "morale": {
@@ -135,6 +143,7 @@ export const resolveEvent = (state: GameState, cardId: string, optionKey: string
   if (!card) return state;
   const option = card.options.find((o) => o.key === optionKey);
   if (!option) return state;
+  if (!optionAffordable(state, option)) return state;
   if (state.pendingEvent?.cardId !== cardId) return state;
 
   const next: GameState = structuredClone(state);

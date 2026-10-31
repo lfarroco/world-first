@@ -1,7 +1,7 @@
 import { clamp } from "./prelude";
 import type { GameState, Rival, RivalDef } from "./types";
 import { RAIDS, contentById } from "./content/content";
-import { MASTERY } from "./content/tuning";
+import { MASTERY, RIVAL } from "./content/tuning";
 import { rngStream } from "./rng";
 
 export const RIVALS: readonly RivalDef[] = [
@@ -42,7 +42,9 @@ export const tickRivals = (state: GameState): void => {
     if (!def) continue;
 
     const rng = rngStream(state.seed, "rival", state.day, rival.id);
-    const burnOut = rival.id === "echoes" && state.day > 60 ? 0.35 : 1;
+    const burnOut =
+      rival.id === "echoes" && state.day > RIVAL.burnoutDay ? RIVAL.burnoutFactor : 1;
+    const growth = def.growth * RIVAL.pace * burnOut;
     const stageId = RIVAL_LADDER[rival.raidsCleared];
     const stage = stageId ? contentById(stageId) : undefined;
 
@@ -56,7 +58,7 @@ export const tickRivals = (state: GameState): void => {
     const mastery = clamp(rival.pulls * MASTERY.perPull, 0, MASTERY.cap);
 
     if (!wantsAttempt) {
-      rival.power *= 1 + def.growth * burnOut;
+      rival.power *= 1 + growth * RIVAL.farmGrowth;
       rival.activity = "farming";
       continue;
     }
@@ -69,14 +71,23 @@ export const tickRivals = (state: GameState): void => {
       rival.raidsCleared += 1;
       rival.bestPull = 0;
       rival.pulls = 0;
-      rival.power *= 1 + def.growth * burnOut * 0.6;
+      rival.power *= 1 + growth * RIVAL.clearGrowth;
       rival.activity = `cleared ${stage.name}`;
-      if (stage.kind === "raid" && rival.raidsCleared >= 3 && rival.worldFirstDay === null) {
+      // `raidsCleared` counts every stage of RIVAL_LADDER, including the three
+      // dungeons. World First is the *final* raid, so it only fires when the
+      // whole ladder is behind them. The old `>= 3` check fired on the first
+      // raid (after three dungeon clears) and handed rivals a World First they
+      // had not earned.
+      if (
+        stage.kind === "raid" &&
+        rival.raidsCleared === RIVAL_LADDER.length &&
+        rival.worldFirstDay === null
+      ) {
         rival.worldFirstDay = state.day;
       }
     } else {
       rival.bestPull = Math.max(rival.bestPull, clamp(value / requirement, 0, 0.99));
-      rival.power *= 1 + def.growth * burnOut * 0.5;
+      rival.power *= 1 + growth * RIVAL.attemptGrowth;
     }
   }
 };
@@ -87,5 +98,9 @@ export const rivalProgressLabel = (rival: Rival): string => {
   const def = contentById(stageId);
   return `${def?.name ?? stageId} — ${Math.round(rival.bestPull * 100)}%`;
 };
+
+/** Raids (not dungeon stages) cleared, for a label that compares with the player's 0/3. */
+export const rivalRaidsCleared = (rival: Rival): number =>
+  RIVAL_LADDER.slice(0, rival.raidsCleared).filter((id) => contentById(id)?.kind === "raid").length;
 
 export const raidCount = RAIDS.length;

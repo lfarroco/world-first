@@ -26,12 +26,14 @@ The run is **84 days**, then it ends and is scored (the EU4/HOI4/Civ "limit date
 *Consequences:* an entire subsystem (board objectives, confidence, reviews, firing) disappears. In its place: one number visible from day one, and a summary screen generated from the event log. The goal must be legible early or the deadline feels arbitrary — hence the score strip on the Guild Hall.
 
 *Score:* `4000/6000/8000 per raid + 200 per dungeon + 3000 World First + min(1500, gold/10) + 2 × squadPower + 250 × renownTier − 250 × daysInArrears`
-(max ≈ 25k; a competent first run lands 10–15k.)
+(measured max ≈ 31k; a two-raid run lands ~16k, a full clear 23–30k.)
+
+Score and band are built. **Rank among the four guilds is not**: rivals have no score of their own yet.
 
 ### D4. Scope: simple MVP, FM loop only
 Implement the loop — *assess → plan → advance → digest → react* — in our setting. No subsystem that doesn't serve it.
 
-Cut from v0.1 by this rule: split runs, doctrine toggles, doctrine familiarity, two-audience grades, board objectives, training sessions, youth, scouting network, staff, press, facility tree, poaching, loans, multi-tier seasons, 2D replay.
+Cut from v0.1 by this rule: split runs, doctrine toggles, doctrine familiarity, two-audience grades, board objectives, training sessions, youth, scouting network, staff, press, poaching, loans, multi-tier seasons, 2D replay. Four facilities (infirmary, forge, tavern, hall) shipped as the gold sink.
 
 ---
 
@@ -62,3 +64,32 @@ Dark slate / gold / parchment is a good direction. Type, colour and spacing shou
 
 ### O3. Session target
 Still unanswered: **5–10 minute daily check** vs **45–90 minute weekly binge**. Click-driven (D1) implies the latter for v0.1; it changes how much density the screens carry. Default: binge-first, compact mode later.
+
+### O4. Threats: multiplier, band rule, or time cost?
+The probe ships a check multiplier (×0.82/×0.85) and it is decorative: the bot's safety margin absorbs it ([progression-report.md](progression-report.md) §6). Three exits, none blocking v0.1:
+
+1. **Bigger multiplier (~0.70).** Changes the ladder, but a roster missing the specific counter loses a raid to a 30% roll. Needs a guaranteed acquisition path first.
+2. **Rule, not number.** An uncountered threat removes the scrape band, or ends the night's remaining pulls. One line in the report, no farming answer.
+3. **Time cost.** An uncountered scrape adds injuries or fatigue. Farming does not heal faster, so it compounds.
+
+Recommendation: try (2) and (3) on one boss each, measure with the same sweep, then choose. Do not tune the multiplier again without a fresh measurement.
+
+### O5. Role affinities are too flat for the fit cost
+A switch pays 0.88 fit, so it needs >13.6% affinity on the target check to gain anything. Only two directions in the current table clear +5%, and both cost ~20% elsewhere. That is why the planner re-specs on 3.5% of days and the ladder does not move ([progression-report.md](progression-report.md) §6.4).
+
+- **Widen the signatures** — each role ~1.3 on its check, off-checks ~0.85. A real specialisation, but it is a balance pass: content requirements were calibrated on the 1.15 spread and must be re-measured.
+- **Lower the trained fit** to ~0.95. Cheap, but then role choice is a nudge, not a decision, and the 0.88 tier disappears.
+
+Recommendation: widen the signatures as a measured pass. Do not move the fit on its own.
+
+### O6. How does a hero earn a third trait?
+The cap is three; heroes roll two. The third slot is reserved. Options: a level milestone (40), the first clear of a raid, or a training slot that costs days. Earned traits would give the 84-day run a character arc and a reason to keep a veteran, and they need a rule that stops the pool becoming a checklist. Not blocking v0.1.
+
+### O7. Should a cleared mission pay full XP on repeat?
+The content pass measured the Drowned Mill cleared **249 times across 10 seeds** — about 25 clears per run — because a 3-man XP mission at 0.86 difficulty is the best spare-party value. Farms are meant to be repeatable; missions are not obviously so. Three exits, none blocking v0.1:
+
+1. **Weekly lockout per mission.** One clear pays, repeats pay a token. Kills the faucet, but the player needs a reason to keep the party home.
+2. **Diminishing returns.** 100% → 60% → 30% on repeats within a run. The AI's `xp + gold/8` value would need to read the reduced number, or it keeps picking it.
+3. **Leave it.** Missions are the XP farm by design; the cost is that the mid-game is a loop of the same three-man run. The AI trace says this is what happens today.
+
+Recommendation: measure (2) against the 20-seed Tyrant stall before choosing. The fix must not make the raids unreachable.

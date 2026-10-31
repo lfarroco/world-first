@@ -36,8 +36,21 @@ export type EventCard = {
   options: EventOption[];
 };
 
+/**
+ * A gold cost is only legal if the purse can cover it. Otherwise "match the
+ * offer (400g)" at 100g quietly moves the guild into arrears, and the AI —
+ * which takes the first option — walks into a debt spiral. Every card has at
+ * least one zero-cost option, so filtering never leaves a card unanswerable.
+ */
+export const optionAffordable = (state: GameState, option: EventOption): boolean =>
+  option.effects.every(
+    (effect) => effect.kind !== "gold" || effect.amount >= 0 || state.gold + effect.amount >= 0,
+  );
+
 const anyHero = (s: GameState): boolean => s.roster.length > 0;
-const richEnough = (s: GameState) => s.gold >= 150;
+/** A sponsor only makes sense if there is prestige to spend. At renown 0 the
+ *  "cost" clamps to nothing, so the card is 900g for free — a dominant answer. */
+const canAffordSponsor = (s: GameState) => s.gold >= 150 && s.renown >= 1;
 
 /**
  * The drama layer. Every card is a decision with a cost on both sides, and
@@ -178,12 +191,12 @@ export const EVENT_CARDS: readonly EventCard[] = [
     weight: 2,
     once: true,
     target: "guild",
-    when: richEnough,
+    when: canAffordSponsor,
     options: [
       {
         key: "accept",
         label: "Take the coin (900g)",
-        hint: "Gold now, and the guild owes them a result.",
+        hint: "Gold now; lose a tier of prestige.",
         effects: [{ kind: "gold", amount: 900 }, { kind: "renown", amount: -1 }],
       },
       {

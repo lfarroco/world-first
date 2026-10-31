@@ -2,6 +2,7 @@ import { clamp } from "../prelude";
 import { rngStream, rollInt } from "../rng";
 import type { Attributes, AttrKey, ClassId, Gear, Hero, Hidden } from "../types";
 import { CLASS_IDS, rolesForClass } from "./roles";
+import { rollTraits } from "./traits";
 
 const FIRST_NAMES = [
   "Gareth", "Elaria", "Ignis", "Varis", "Thorne", "Lyra", "Ansel", "Bram",
@@ -29,7 +30,7 @@ export const xpToNext = (level: number): number => 40 + level * 16;
 
 export const wageForLevel = (level: number): number => Math.max(12, Math.round(8 + level * 2.6));
 
-export const feeForLevel = (level: number): number => Math.round(40 + level * level * 0.35);
+const feeForLevel = (level: number): number => Math.round(40 + level * level * 0.35);
 
 const zeroGear = (ilvl: number): Gear => ({
   weapon: ilvl,
@@ -88,11 +89,16 @@ export const makeHero = (
   const attrs = makeAttributes(rng, cappedLevel);
   const role = pickClassRole(attrs, klass);
 
+  // Traits use their own named stream: adding a roll here must not reshuffle
+  // the attributes, gear or hidden attributes of the same seed.
+  const traits = rollTraits(klass, rngStream(seed, "traits", index));
+
   return {
     id: `h${index}`,
     name: `${first} ${epithet}`,
     klass,
     role,
+    naturalRole: role,
     level: cappedLevel,
     xp: 0,
     attrs,
@@ -104,6 +110,7 @@ export const makeHero = (
     morale: 62 + rollInt(rng, -8, 8),
     injuryDays: 0,
     daysBenched: 0,
+    traits,
     contract: {
       wage: wageForLevel(cappedLevel),
       daysLeft: rollInt(rng, 14, 28),

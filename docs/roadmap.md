@@ -2,7 +2,7 @@
 
 Where the project is, what could kill it, and the order I'd build in.
 
-Last updated: 2026-11-30. Update this file when a phase ships or the order changes.
+Last updated: 2026-10-30. Update this file when a phase ships or the order changes.
 
 ---
 
@@ -10,14 +10,16 @@ Last updated: 2026-11-30. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 17 tests, `resolveDay` is pure |
-| Progression ladder | Done — 3 heroes → 2 farms, 2 missions, 3 dungeons, 3 raids over 84 days |
+| Simulation core | Done — deterministic, 73 tests, `resolveDay` is pure |
+| Progression ladder | Done — 3 heroes → 3 farms, 6 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
+| Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities |
-| CLI | Done — playable end to end |
-| Balance | Provisional — measured, tunable, not yet tightened |
+| CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
+| Balance | Provisional — 10 seeds per personality; the Tyrant stalls 6/20 Steward seeds and World First is 3/10, 4/10 and 1/10 (see [progression-report.md](progression-report.md) §1.1) |
 | UI | **None** |
-| Drama / events | **None** — the weakest point (see §2) |
-| Economy sinks | **None** — a good run ends with 17–29k gold it cannot spend |
+| Drama / events | 10 cards, fired at 40%/day. Options are prose, so the AI takes the first one (see §2) |
+| Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
+| Economy sinks | Four facilities, three levels each; the AI maxes the tree by ~day 70 and still ends with ~10k |
 
 One deliberate constraint holds it together: the simulation never imports the UI, and content is data. That is what makes every phase below cheap to add.
 
@@ -31,7 +33,7 @@ Three pieces of evidence:
 
 1. The AI clears the ladder in milliseconds. A human plays the same 84 days by hand.
 2. In the AI's own trace, the plan is stable for six to ten days at a time — same parties, same content, same stance. That is correct play, and it is also *no decisions*.
-3. The attention queue fires on four triggers, all administrative: a benched hero, an expiring contract, the wage bill, high fatigue. Nothing in the game ever *surprises* the player.
+3. The recurring attention triggers are administrative — a benched hero, an expiring contract, the wage bill, high fatigue. Event cards add surprise, but the AI always takes `options[0]`, so the surprise is not yet a decision.
 
 FM's loop works because the day is a queue of interruptions that each demand a decision with incomplete information. We built the queue and left it empty.
 
@@ -51,6 +53,8 @@ Everything else — rivals, UI, facilities — amplifies a loop that must first 
 - **Quick wins for playtesting:** `today` (one screen: state + plan + what needs you), `repeat` (reuse yesterday's plan), `advance --until event`.
 
 **Shipped:** 10 event cards as data, 4 facilities × 3 levels, `today` and `build` commands. End-of-run surplus dropped from 17–29k to ~10k with no change to difficulty.
+
+**Shipped after the seed-5150 hand run:** nine legibility fixes ([learnings.md](learnings.md) L47–L56). The queue repairs an invalid plan instead of refusing; the report shows the killing pull; projections and best-pull bank the failed check's partial progress; form and sharpness are on screen; the tavern shows power, gear and traits; every attention option settles its item; `party` accepts and prints names; fatigue now feeds injury chance. The measured sweep is in [progression-report.md](progression-report.md) §3.1.
 
 **Still open from this phase:** the AI picks the first option of every card, so events are shown but not played. Structured option costs are the fix.
 
@@ -78,8 +82,8 @@ Cheap because the planner only reads `GameState` and a `Personality`.
 ### Phase 4 — The missing levers
 
 - **Manual loot assignment** — the "who gets the axe?" decision, the best drama per line of code in the design.
-- **Role assignment** — heroes currently pick their class's best role at creation and never change it. This is the largest missing source of agency.
-- **Contracts and promises** — renewals with a counter-offer, and the promises ledger.
+- **Role assignment** — the sim and CLI can switch a hero's role at the fit cost, and the planner re-specs on 3.5% of days. The lever is small until the affinity spread widens (O5); the hero sheet has no chips yet.
+- **Contracts and promises** — the ledger ships (due day, kept/broken); what is missing is the counter-offer loop and a transfer request behind a broken promise.
 
 ### Phase 5 — Onboarding and length
 

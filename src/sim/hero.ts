@@ -4,6 +4,7 @@ import { LEVEL_CAP } from "./content/heroes";
 import { CHECK_POWER_WEIGHTS, CLASS_CHECK_WEIGHT } from "./content/classes";
 import { ROLES, roleById } from "./content/roles";
 import { ROLE_AFFINITY, ROLE_FIT } from "./content/tuning";
+import { traitSelfFactor, type TraitContext } from "./content/traits";
 
 /** Average equipped item level, rounded. The headline number players trade in. */
 export const itemLevel = (gear: Gear): number =>
@@ -49,15 +50,17 @@ const ADJACENT: Record<string, string[]> = {
   cleric: ["mage"],
 };
 
+/**
+ * Fit is fixed at creation, not derived from current attributes. Attributes grow
+ * by two points a level, so a score-based "best role" drifts and every veteran
+ * silently becomes off-role. `naturalRole` is the aptitude; the assigned `role`
+ * is the player's choice.
+ */
 export const fitFor = (hero: Hero, roleId: RoleId): { fit: keyof typeof ROLE_FIT; multiplier: number } => {
   const role = roleById(roleId);
   if (role.klass === hero.klass) {
-    const sameClass = ROLES.filter((r) => r.klass === hero.klass);
-    const scores = sameClass
-      .map((r) => ({ id: r.id, score: roleScore(hero.attrs, r.id) }))
-      .sort((a, b) => b.score - a.score);
-    const top = scores[0]?.id;
-    if (top === roleId) return { fit: "natural", multiplier: ROLE_FIT.natural };
+    const natural = hero.naturalRole ?? hero.role;
+    if (natural === roleId) return { fit: "natural", multiplier: ROLE_FIT.natural };
     return { fit: "trained", multiplier: ROLE_FIT.trained };
   }
   const adjacent = ADJACENT[hero.klass] ?? [];
@@ -69,8 +72,10 @@ export const fitFor = (hero: Hero, roleId: RoleId): { fit: keyof typeof ROLE_FIT
 export const condMod = (fatigue: number): number =>
   fatigue <= 30 ? 1 : 1 - ((fatigue - 30) / 70) * 0.38;
 
-/** Sharpness: decays when you rest, climbs when you raid. */
-export const sharpMod = (sharpness: number): number => 0.86 + (sharpness / 100) * 0.18;
+/** Sharpness: decays when you rest, climbs when you raid.
+ *  0.78 at 0, 1.04 at 100, 0.936 at the 60 start. The ceiling is unchanged,
+ *  so the wider 26% swing punishes rust rather than rewarding the top. */
+export const sharpMod = (sharpness: number): number => 0.78 + (sharpness / 100) * 0.26;
 
 export const moraleMod = (morale: number): number => 0.94 + (morale / 100) * 0.12;
 
@@ -99,15 +104,29 @@ export const checkAttributePower = (hero: Hero, check: CheckType): number => {
   return total;
 };
 
-/** Contribution to a boss check, including the class's suitability for that check. */
-export const checkContribution = (hero: Hero, check: CheckType, consistencyFactor = 1): number =>
-  checkAttributePower(hero, check) *
-  CLASS_CHECK_WEIGHT[hero.klass][check] *
-  roleAffinity(hero.role, check) *
-  gearFactor(hero) *
-  formMod(hero) *
-  consistencyFactor *
-  100;
+/**
+ * Contribution to a boss check, including the class's suitability for that check,
+ * the hero's fit for their assigned role, and their traits. The context is
+ * optional: without it the base contribution is returned, which is what the
+ * planner uses when it only needs a rough ranking.
+ */
+export const checkContribution = (
+  hero: Hero,
+  check: CheckType,
+  consistencyFactor = 1,
+  ctx?: TraitContext,
+): number => {
+  const base =
+    checkAttributePower(hero, check) *
+    CLASS_CHECK_WEIGHT[hero.klass][check] *
+    roleAffinity(hero.role, check) *
+    fitFor(hero, hero.role).multiplier *
+    gearFactor(hero) *
+    formMod(hero) *
+    consistencyFactor *
+    100;
+  return ctx ? base * traitSelfFactor(hero, check, ctx) : base;
+};
 
 /** Meta summary used in reports: how big is the squad, on average. */
 export const squadRating = (heroes: Hero[]): number => sum(heroes.map(heroPower));

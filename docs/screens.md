@@ -74,10 +74,11 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 | Hero | class icon + name + status chips (⚑ unhappy, ✚ injured, ⏳ expiring) |
 | Class / Role | "Mage · Evoker" with role-fit badge colour |
 | Lvl | number |
-| Power | number + trend arrow (Δ vs 7 days ago) |
+| Power | number + trend arrow (Δ vs 7 days ago); hover shows the form multiplier |
 | Potential | ★★★☆☆ — **hidden** (█ grey) until scouted/known |
 | iLvl | average gear level |
 | Fatigue | bar (green→amber→red) |
+| Sharpness | bar (rust→sharp); the second clock, and why a rested hero hits softer |
 | Morale | 5-level icon + % |
 | Wage | g/week, red if above budget share |
 | Contract | days left, red < 7 |
@@ -105,11 +106,11 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 
 **Blocks (top → bottom):**
 
-1. **Identity** — portrait, name, level, class, current role, **Power 127** (large), status chips.
+1. **Identity** — portrait, name, level, class, current role, **Power 127** (large), status chips, and up to three trait chips (`Keen Eye`, `Steadfast`).
 2. **Attributes** — 2 columns × 4 rows (**Body** | **Spirit**), colour-banded 1–20. No scrolling, no tabs. Every value has a tooltip; candidates show ranges (`12–16`) instead of numbers.
 3. **Role fit** — a row of 8 chips; each shows `Evoker 127` `Arcanist 118` `Bulwark 41`. The selected one is highlighted. Clicking *previews* the power change live before you commit.
 4. **Gear** — 4 slots with iLvl + rarity colour, and an "equip from bag" action that opens the Gear Assign modal with deltas.
-5. **Condition** — fatigue bar, health bar, morale icon, and a sentence: *"Output at 93%. Two more raid nights before fatigue bites."*
+5. **Condition** — fatigue bar, sharpness bar, health bar, morale icon, and a sentence: *"Output at 93%: condition and sharpness are both in the numbers. Two more raid nights before fatigue bites."*
 6. **Contract** — wage, days left, release clause, squad-status promise, market value. `Renew` / `Release` buttons.
 7. **History** — 10-day activity strip, bosses seen, kills, wipes, drops received.
 
@@ -194,7 +195,20 @@ This screen is the whole game, so its details matter:
 - **Split-run toggle** on the farm party with a "funnel gear to X" target.
 - **Flasks** as a small chip row: `2 flasks · +4% each · 120g` — one click to apply, with the gold cost shown, because "preparation is the game" needs at least one prep purchase.
 
-**Edge states:** fewer than 8 in raid party → warning chip `undersized: −8% checks`; no boss selected → disabled Advance with `select a target`; a hero with 0 health in a slot → red slot, `cannot deploy`.
+**Content picker (the target list).** The dropdown behind each party slot lists **only what the guild can field** — prerequisite cleared, enough heroes, average level met. Columns: `name · kind · level · party · gold · xp · loot · projected · status`. Status is `new` (never attempted), `open` (attempted, not cleared) or `cleared ×N`. Locked and not-yet-fieldable areas are hidden; a footer may say `4 areas not open yet`, never a name. Opening one fires a single digest line: `New area open: The Old Quarry — Farm, level 5, 1-5 heroes.` The list must never show a row the party command would refuse: the projected column is the best legal party's best pull, the same number the War Room strip shows.
+
+**Inspect (the area sheet).** Selecting an area opens a read-only sheet before the party is committed:
+
+- **Header** — name, kind, level, party size, recommended iLvl, status.
+- **Rewards** — gold, XP per hero, item count and iLvl band.
+- **Phases** — name, check, requirement, share, threat and its penalty.
+- **Bestiary** — mob, role, the check it pressures, one line of what it does.
+- **Drops** — named item, slot, iLvl, chance per clear. `chance` is exact: at most one named item drops per clear and it replaces one guaranteed item.
+- **Your party tonight** — the best legal party from the roster and the per-phase projection, or "not enough heroes ready: N fit, needs M".
+
+This is the screen that answers "what is in there, and is it worth tonight?" without a wiki.
+
+**Edge states:** fewer than 8 in raid party → warning chip `undersized: −8% checks`; no boss selected → disabled Advance with `select a target`; a hero with 0 health in a slot → red slot, `cannot deploy`; an injured hero drops out of the "your party" projection, because the game will not send him.
 
 **Mobile:** the slot layout becomes three horizontal scroll rows; projection strip stays pinned; Advance Day is a fixed bottom bar.
 

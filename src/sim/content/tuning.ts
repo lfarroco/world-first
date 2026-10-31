@@ -32,10 +32,11 @@ export const INJURY = {
   daysMin: 1,
   daysMax: 5,
   healthHit: 45,
+  /** Injury chance rises with the hero's fatigue: ×1.8 at 100, ×1.0 at 0. */
+  fatigueMultiplier: 0.8,
 } as const;
 
 export const HEALTH_RECOVERY_PER_DAY = 14;
-
 export const STANCE = {
   cautious: { check: -0.1, injury: 0.4, fatigue: -4 },
   steady: { check: 0, injury: 1, fatigue: 0 },
@@ -50,7 +51,7 @@ export const MASTERY = {
 export const ECONOMY = {
   startGold: 250,
   wageBudgetBase: 200,
-  wageBudgetPerRenown: 120,
+  wageBudgetPerRenown: 150,
   arrearsScorePenalty: 250,
   partialMultiplier: 0.4,
 } as const;
@@ -58,6 +59,24 @@ export const ECONOMY = {
 export const CONTRACT = {
   daysMin: 14,
   daysMax: 28,
+  /**
+   * Renewal re-prices the contract to the hero's current level plus this
+   * premium. Without it a starter who reaches level 60 still pays the level-1
+   * wage, and the wage budget — the design's "real constraint" — never binds.
+   * The premium replaces the old wage; it does not compound with it.
+   */
+  renewPremium: 1.0,
+} as const;
+
+/**
+ * A promise of playing time. The player has a week to give the hero
+ * `startsRequired` starts; anything less is a broken promise.
+ */
+export const PROMISE = {
+  windowDays: 7,
+  startsRequired: 3,
+  keptMorale: 5,
+  brokenMorale: -15,
 } as const;
 
 export const TAVERN = {
@@ -82,12 +101,44 @@ export const RENOWN = {
   perWorldFirst: 4,
 } as const;
 
+export const RIVAL = {
+  /**
+   * Growth on a day the rival attempts a boss, relative to the base growth.
+   * At 0.5 (the first pass) the grinder out-grew the raider, so every rival
+   * finished the tier after the player and World First was automatic. An
+   * attempt is practice plus gear, so it should be close to a farm day.
+   */
+  attemptGrowth: 0.9,
+  /** Growth on a farm day. */
+  farmGrowth: 0.9,
+  /** Growth on the day a rival clears a stage: consolidation, not a spike. */
+  clearGrowth: 0.6,
+  /**
+   * Global difficulty dial for the race. 1 = the pre-content-pass baseline.
+   * The 2026-10-30 content pass added side jobs and moved the Tyrant's
+   * requirement up 15%; at 1.0 the player's Tyrant kill landed after every
+   * rival, so World First was 0/10 on all three personalities. 0.85 puts the
+   * rivals back at days 74-79 and restores the split (3/10, 1/10, 4/10).
+   */
+  pace: 0.85,
+  /** Echoes burns out after this day. */
+  burnoutDay: 60,
+  burnoutFactor: 0.35,
+} as const;
 export const EVENTS = {
   /** Chance per day of a card, once the run has started. */
   chance: 0.4,
   minDay: 3,
   /** Do not repeat a card seen in the last N draws. */
   cooldown: 4,
+} as const;
+
+/** Trait rolls at hero creation. */
+export const TRAIT_ROLL = {
+  /** Chance of the class counter (Keen Eye / Steadfast). */
+  counter: 0.3,
+  /** Chance of one general trait (bond, craft or flaw). */
+  general: 0.4,
 } as const;
 
 export const ROLE_FIT = {

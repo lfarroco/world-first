@@ -1,18 +1,20 @@
 import { sum } from "./prelude";
 import type { Hero } from "./types";
-import { ECONOMY } from "./content/tuning";
+import { wageForLevel } from "./content/heroes";
+import { CONTRACT } from "./content/tuning";
 
 export const wageBill = (heroes: readonly Hero[]): number =>
   sum(heroes.map((h) => h.contract.wage));
 
-export const wageBudget = (renown: number): number =>
-  ECONOMY.wageBudgetBase + renown * ECONOMY.wageBudgetPerRenown;
+/**
+ * What a renewal would cost. Renegotiation re-prices to the hero's current
+ * level plus the contract premium, and never cuts a wage that is already
+ * higher (a rival-match raise stays a raise). One function so the queue, the
+ * resolution and the AI cannot disagree about the number on screen.
+ */
+export const renewalWage = (hero: Hero): number =>
+  Math.max(hero.contract.wage, Math.round(wageForLevel(hero.level) * CONTRACT.renewPremium));
 
-export const overBudgetBy = (heroes: readonly Hero[], renown: number): number =>
-  Math.max(0, wageBill(heroes) - wageBudget(renown));
-
-export const projectedWeekly = (
-  heroes: readonly Hero[],
-  renown: number,
-  dailyIncome: number,
-): number => dailyIncome * 7 - wageBill(heroes);
+// The wage budget depends on renown *and* the Great Hall, so it lives in
+// `facilities.ts` as `wageBudgetFor`. Do not add a renown-only copy here:
+// it will disagree with the attention queue and the status line.

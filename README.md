@@ -2,13 +2,14 @@
 
 *A management game where you run a raiding guild: **Football Manager** for a WoW-style Race to World First.*
 
-**Status:** the simulation is playable end to end — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer, four upgradable facilities, a personality-driven AI that plays it, and a CLI. No UI yet.
+**Status:** the simulation is playable end to end — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer, a promises ledger, four upgradable facilities, level-priced wages, a personality-driven AI that plays it, and a CLI. No UI yet.
 
 ```bash
 npm install
 npm run cli -- new --seed 1234
 npm run cli -- today         # the day screen
-npm run cli -- content       # the ladder and its locks
+npm run cli -- content       # what is open: rewards, projection, status
+npm run cli -- inspect warrens  # phases, mobs, drops and chances
 npm run cli -- ai --days 30  # watch the AI play it
 npm run cli -- sim --runs 10 # balance sweep across personalities
 npm run check                # typecheck + tests + docs check
@@ -29,7 +30,7 @@ npm run check                # typecheck + tests + docs check
 | 5 | [**screens.md**](docs/screens.md) | Screen-by-screen spec with layout, columns, modals, edge states |
 | 6 | [**mvp-scope.md**](docs/mvp-scope.md) | What ships in v0.1, tuning targets, build order, risks |
 | 7 | [**tech-notes.md**](docs/tech-notes.md) | The deterministic sim rule, stack, code shape, CLI, testing |
-| 8 | [**open-questions.md**](docs/open-questions.md) | **Decisions** (locked) + the three still open |
+| 8 | [**open-questions.md**](docs/open-questions.md) | **Decisions** (locked) + the open questions |
 | 9 | [**adr/0001-functional-ts.md**](docs/adr/0001-functional-ts.md) | Language/FP decision: TS strict, functional core, no fp-ts; why not PureScript; Vite over Next |
 | 10 | [**adr/0002-ui-framework.md**](docs/adr/0002-ui-framework.md) | UI framework: React (proposed), Angular contingency plan, and why the decision can wait |
 | 11 | [**phase-0-report.md**](docs/phase-0-report.md) | The first playable: the day pipeline and the wipe report |
@@ -73,8 +74,8 @@ If you read nothing else, these are the differences between the current draft GD
 
 ## Where it stands
 
-The sim is deterministic, tested (17 tests) and playable from a terminal. A run is 84 days: three level-1 heroes, a farm, missions, three dungeons, three raids. An AI plays it end to end, and three personalities produce three genuinely different games — the cautious one wins, which is the design working.
+The sim is deterministic, tested (73 tests) and playable from a terminal. A run is 84 days: three level-1 heroes, a farm, missions, four dungeons, three raids. Sixteen areas, each with a bestiary and a named drop table the player can inspect before committing a party. Twenty traits (counters, bonds, craft, flaws, specialists) give heroes a second layer, and two boss threats can be answered or eaten. An AI plays it end to end, and three personalities produce three different games — the cautious ones play the cleanest, the gambler scores highest but takes the fewest World Firsts.
 
 See [progression-report.md](docs/progression-report.md) for the numbers and the lessons.
 
-**Next:** put the rivals on the same planner (the race becomes simulated rather than paced), add facility upgrades as the gold sink, then role assignment and manual loot assignment — the two missing levers — before the vertical-slice UI.
+**Next:** a lockout or diminishing reward on repeatable content (the Drowned Mill is still an XP faucet), structured event options (so the AI weighs cards instead of taking the first one), then put the rivals on the same planner (the race becomes simulated rather than paced), then manual loot assignment and a role-affinity pass (the alternate roles are dominated) before the vertical-slice UI.

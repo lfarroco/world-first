@@ -1,14 +1,43 @@
 import type { GameState } from "../types";
-import { blockingAttention, deriveAttention } from "../events";
+import { RAID_SIZE, blockingAttention, deriveAttention } from "../events";
 import { hireCandidate, resolveAttention } from "../game";
 import { resolveDay } from "../day";
-import { applyFacilityDecision, hireDecision, planDay } from "./planner";
+import { renewalWage, wageBill } from "../economy";
+import { wageBudgetFor } from "../facilities";
+import { applyFacilityDecision, hireDecision, planDay, resetRoles, reviewRoles } from "./planner";
 import type { Personality } from "./personalities";
 
 export type AiTurn = {
   readonly state: GameState;
   readonly notes: readonly string[];
   readonly hired: string | null;
+};
+
+/**
+ * Renew or release, with the bill in hand. A renewal now re-prices to the
+ * hero's level, so "renew everyone" is how a guild goes broke: the raid team
+ * is kept at any price, and a bench body is kept only while the budget can
+ * carry it. Thrift decides how much overrun is tolerated.
+ */
+const contractChoice = (
+  state: GameState,
+  heroId: string,
+  personality: Personality,
+): "renew" | "release" => {
+  const hero = state.roster.find((h) => h.id === heroId);
+  if (!hero) return "release";
+  const rank = [...state.roster]
+    .sort((a, b) => b.level - a.level)
+    .findIndex((h) => h.id === heroId);
+  // A raid team plus spare bodies: a ten-hero roster cannot absorb one injury.
+  if (rank >= 0 && rank < RAID_SIZE + 3) return "renew";
+  // A bench is the rotation, not wasted payroll: it lets the raid team rest
+  // while someone else farms. Only a bill that is far past the budget, or a
+  // guild already in arrears, makes a spare body a luxury.
+  const projected = wageBill(state.roster) - hero.contract.wage + renewalWage(hero);
+  const budget = wageBudgetFor(state.renown, state.facilities);
+  const slack = 1.7 - personality.thrift * 0.3;
+  return projected > budget * slack || state.arrearsDays > 0 ? "release" : "renew";
 };
 
 /**
@@ -36,9 +65,15 @@ export const aiTurn = (state: GameState, personality: Personality): AiTurn => {
     }
   }
 
+  // A role is a choice for the night, not a permanent state. Reset to the
+  // creation role first so yesterday's flip cannot pick today's party.
+  next = { ...next, roster: resetRoles(next.roster) };
+
   const { plan, notes: planNotes } = planDay(next, personality);
   next = { ...next, plan };
-  notes.push(...planNotes);
+  const roles = reviewRoles(next, plan);
+  next = roles.state;
+  notes.push(...planNotes, ...roles.notes);
 
   next = resolveDay(next);
 
@@ -48,10 +83,8 @@ export const aiTurn = (state: GameState, personality: Personality): AiTurn => {
         ? personality.ambition > 0.5
           ? "promise"
           : "rotate"
-        : item.kind === "contract-expiring"
-          ? personality.thrift > 0.6
-            ? "release"
-            : "renew"
+        : item.kind === "contract-expiring" && item.heroId
+          ? contractChoice(next, item.heroId, personality)
           : item.options[0]?.key;
     if (preferred) {
       next = resolveAttention(next, item.id, preferred);
