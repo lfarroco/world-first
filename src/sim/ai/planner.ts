@@ -11,6 +11,7 @@ import { rolesForClass } from "../content/roles";
 import type { Personality } from "./personalities";
 import { effectiveReward, postedContractIds } from "../board";
 import { rewardContext, rewardValue, type RewardContext } from "./reward";
+import { stableRaidParty } from "../team";
 
 export type AiChoice = {
   readonly content: ContentDef;
@@ -169,7 +170,7 @@ export const planDay = (
     (c) => c.kind === "raid" && (state.progress.find((p) => p.contentId === c.id)?.clears ?? 0) === 0,
   );
   if (nextRaid) {
-    const party = withCounters(state, nextRaid, bestPartyFor(state, nextRaid, available), available);
+    const party = withCounters(state, nextRaid, stableRaidParty(state, nextRaid), available);
     if (party.length >= nextRaid.minHeroes && levelOk(nextRaid, party)) {
       const projection = projectAssignment(state, {
         contentId: nextRaid.id,

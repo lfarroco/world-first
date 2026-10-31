@@ -139,6 +139,15 @@ export const RENOWN = {
  * same rate the old score used; one hero-item-level converts at
  * `EVENT_VALUE.ilvl / 8` = 1.25, the card price for permanent gear.
  */
+/**
+ * Loot assignment. The default is the largest upgrade, with a small preference
+ * for a hero on the stable raid team; the player may overrule it once.
+ */
+export const LOOT = {
+  /** Extra item-level-equivalent priority for a hero on the raid team. */
+  teamBias: 4,
+} as const;
+
 export const PLANNER_VALUE = {
   /** Weeks of wages the planner wants in the purse before it stops chasing gold. */
   purseWeeks: 2,

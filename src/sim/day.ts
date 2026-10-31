@@ -1,5 +1,5 @@
 import { clamp, sum } from "./prelude";
-import type { ContentKind, GameState, Hero, Stance } from "./types";
+import type { ContentKind, GameState, Hero, LootItem, Stance } from "./types";
 import {
   FATIGUE,
   HEALTH_RECOVERY_PER_DAY,
@@ -18,6 +18,8 @@ import { computeScore } from "./score";
 import { CONTENT, contentById } from "./content/content";
 import { rngStream } from "./rng";
 import { payScaleFor } from "./board";
+import { autoAssignLoot, queueLoot } from "./loot";
+import { pruneRaidTeam } from "./team";
 import { healthRecoveryFor, injuryDaysFor, recruitLevelFactor } from "./facilities";
 import { rollEvent } from "./world-events";
 
@@ -49,8 +51,11 @@ export const resolveDay = (input: GameState): GameState => {
   // attach the rivals by reference: the day only reads their World First flag,
   // and `tickRivals` copies each rival before it touches one. Cloning three
   // growing 84-day states on every day of every sweep was 12 ms/day on its own.
-  const { rivals, ...guild } = input;
-  const state = structuredClone(guild) as GameState;
+  // A drop from yesterday is applied before today's plan is read. The player
+  // had the day to reassign it; an unresolved drop goes to its suggestion.
+  const carried = autoAssignLoot(input);
+  const { rivals, ...guild } = carried;
+  let state = structuredClone(guild) as GameState;
   state.rivals = rivals;
   const today = state.day;
 
@@ -122,24 +127,34 @@ export const resolveDay = (input: GameState): GameState => {
       }
     }
 
-    for (const drop of result.loot) {
-      const hero = heroById(state, drop.heroId);
-      if (!hero) continue;
-      const slot = drop.slot as keyof typeof hero.gear;
-      if (slot in hero.gear) hero.gear[slot] = Math.max(hero.gear[slot], drop.ilvl);
-    }
     if (result.loot.length > 0) {
-      push(
-        state,
-        event(
-          today,
-          "loot",
-          "good",
-          `${content.name}: ${result.loot
-            .map((l) => `${l.name} — ${l.item ? `${l.item} (${l.slot} ${l.ilvl})` : `${l.slot} ${l.ilvl}`}`)
-            .join(", ")}.`,
-        ),
-      );
+      const queued = queueLoot(state, content, party, result.loot, today);
+      const discarded = result.loot.length - queued.length;
+      if (queued.length > 0) {
+        state.pendingLoot = [...(state.pendingLoot ?? []), ...queued];
+        push(
+          state,
+          event(
+            today,
+            "loot",
+            "good",
+            `${content.name}: ${queued
+              .map((l) => (l.item ? `${l.item} (${l.slot} ${l.ilvl})` : `${l.slot} ${l.ilvl}`))
+              .join(", ")} — run loot to assign.`,
+          ),
+        );
+      }
+      if (discarded > 0) {
+        push(
+          state,
+          event(
+            today,
+            "loot",
+            "info",
+            `${content.name}: ${discarded} drop${discarded === 1 ? "" : "s"} had no upgrade for any hero.`,
+          ),
+        );
+      }
     }
 
     for (const hero of party) {
@@ -258,6 +273,7 @@ export const resolveDay = (input: GameState): GameState => {
         xp: Math.round(result.xp * pay),
         gold: Math.round(result.gold * pay),
         payScale: pay,
+        loot: result.loot as LootItem[],
       };
     }
   }
@@ -329,6 +345,7 @@ export const resolveDay = (input: GameState): GameState => {
     };
     push(state, event(today, "economy", "bad", `${hero.name} left the guild — contract expired.`, hero.id));
   }
+  state = pruneRaidTeam(state);
 
   if (today % 7 === 0) {
     const bill = sum(state.roster.map((h) => h.contract.wage));
@@ -361,6 +378,9 @@ export const resolveDay = (input: GameState): GameState => {
   state.day = today + 1;
 
   if (state.day > RUN_DAYS) {
+    // The last night's drops are part of the final strength score; apply them
+    // before `computeScore` reads the roster.
+    state = autoAssignLoot(state);
     const result = computeScore(state);
     state.finished = true;
     state.score = result.total;

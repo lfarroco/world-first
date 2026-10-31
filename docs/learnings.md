@@ -434,7 +434,7 @@ If `resolveDay` ticks the rivals, a rival's own `resolveDay` ticks a world it do
 Putting three rival guilds on the planner made every `aiRun` an 84-day world run: 0.84 s against 0.10 s for the player's guild. The test suite went from 6.8 s (80 tests, before the rivals) to 395 s, and two tests hit their 5 s timeout. The suite is the pre-commit gate, so this was not a number to hide.
 **Evidence:** `vitest run` 395 s with world `aiRun`; 10.7 s after the split. A 20-seed sweep is ~50 s.
 **Changes:** `aiRun` stays player-only and is the unit harness; `runWorld` is the product run used by `sim`; `playTurn` is one world day. Three world tests cover determinism, World First and standings. The world tests carry 30 s timeouts. A rival's event log is trimmed to the last 120 entries and the player's `resolveDay` no longer clones three growing rival states, which took ~12 ms/day off the tick.
-**Verified:** 102 tests. The world tests are one full race (5.2 s on a loaded host), a 10-day determinism run, and a hand-built World First case; the earlier world-heavy suite timed out at 30 s.
+**Verified:** 114 tests. The world tests are one full race (5.2 s on a loaded host), a 10-day determinism run, and a hand-built World First case; the earlier world-heavy suite timed out at 30 s.
 
 ### L79. A rest day is not a handicap
 The first attempt at a rival handicap gave each rival a recovery day every seventh day (`RIVAL.pace = 0.85` as a rest cadence). Rivals got *stronger*: a full rest heals fatigue and health, and a skipped day also skips the event card, the hire and the wage decision. The sweep's rival average rose to 27.5k and the player's World First fell to 0/10 and 1/10 on two personalities.
@@ -464,3 +464,27 @@ The first reward-aware arm changed farm scoring, the XP weight and the loot weig
 **Evidence:** four 20-seed builds in progression-report §3.5: board only 22,938/23,658/20,686 and 12/13/9; first reward arm 22,812/24,921/20,663 and 13/16/9; calibrated weights 23,869/23,989/21,304 and 15/14/10; shipped 23,087/24,520/21,549 and 13/15/12. The Quartermaster's +3 full clears in arm one became +2 in the shipped build; the Steward lost two against the calibrated arm.
 **Changes:** the report prints all three arms and says the attribution is not isolated. The shipped arm fixes the per-hero cap (`gainXp` discards XP at 60) and the purse's weeks-left target; it is the arm that moved the Steward's full clears from 15 to 13 and the Gambler's from 10 to 12.
 **Verified:** total full clears 40/60, the same as the pre-board build, but the distribution moved from the Steward to the Gambler. The Tyrant stall is 7/20 against 6/20. The next pass isolates the cap (or the stable-roster lever) before touching the reward weights again.
+
+## Loot assignment and the raid ten (2026-10-31)
+
+### L83. A stored suggestion is stale by the second drop
+The first queue stored `suggestedHeroId` on each drop and the auto path reused it when the hero still existed. Two weapon drops in one clear both pointed at the same hero: the first was applied, the second overwrote it, and the first item was lost. The suggestion is derived data, and it goes stale the moment another drop in the same clear is applied.
+**Evidence:** the frozen-suggestion unit case: two weapon drops of the same item level to two needy heroes produced one upgraded hero, not two. The apply-time recompute produced two, with the second choosing the next-best slot.
+**Changes:** `PendingLoot` no longer stores the target. `suggestLootTarget` ranks the whole roster by `gain + 4 if on the raid ten`, filters `gain > 0` first, and is called again for every drop inside `autoAssignLoot`. A drop with no positive gain is discarded at queue time. The assignment event dates `state.day`, not `drop.day`, so the next digest sees it.
+**Verified:** 114 tests, including two same-slot drops, a 0-gain team hero vs a +10 bench hero, assignment purity, and a day resolved with a pending queue. The queue is bounded by the day's clears and cleared on the next advance.
+
+### L84. A better AI can erase the wall, so the AI's loot pick stays the floor
+The feature has two levers: the standing ten and the assignment target. I measured four arms at 10 seeds (1+17i), against the 20-seed 59be992 baseline. The baseline auto-assigned to the lowest-geared party member: 229 items/run, 28.2% wasted, 65% landing on the next-raid ten, the ten changing 0.7 bodies/day, day-40 ten iLvl 47 against Gatewarden's 150.
+
+| Arm | Full clears | Day-40 ten | Day-60 ten | Waste |
+|---|---:|---:|---:|---:|
+| 59be992 baseline, 20 seeds | 40/60 | 50/48/52 | not measured | 28.2% |
+| Conservative AI (old lowest-party pick) + team at the wall | 42/60 | 46/46/51 | 92/107/92 | 24% |
+| Need pick + team at the wall (all guilds) | 52/60 | 55/50/55 | 115/113/99 | 0% |
+| Need pick + starters grown from day 1 | 44/60 | 52/50/55 | 106/109/97 | 0% |
+
+The need pick is the better heuristic and the player's default. Shipping it as the **AI's** default made the Quartermaster clear 20/20 and the total 52/60, above the 36–46 target: the wall stopped teaching gearing. The AI keeps the old lowest-party pick as its floor (42/60), and the player can take the need suggestion. The decision is the feature; the AI is the harness.
+
+The standing ten also has a cost: built at the first open raid, it is 1–4 iLvl behind the nightly best ten it replaced at day 40, and the team ends 153–200 against a bench median of 138–201. It concentrates items (62–69%) without starving the bench, but it does not close the gear gap: day-40 ten 46–55 against the 65 target. The next levers are the loot rate and a measured wall-change re-pick, not a larger team bias.
+
+**Verified:** the conservative AI 42/60, the need pick 52/60, the starters 44/60; the Steward stall is 4/20 against the 6/20 target 3, so the wall is softer and is the next balance item. The Gambler's conservative 21.5k is below the 23k floor; the need pick is 23.0k.

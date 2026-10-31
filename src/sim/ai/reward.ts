@@ -7,6 +7,7 @@ import { itemLevel, isAvailable } from "../hero";
 import { wageBill } from "../economy";
 import { lootBonusFor } from "../facilities";
 import { bestPartyFor } from "../plan";
+import { stableRaidParty } from "../team";
 
 /**
  * What the planner wants from tonight, beyond XP. The old score was
@@ -70,7 +71,13 @@ export const rewardContext = (state: GameState): RewardContext => {
 
   const wall = nextWall(state);
   const available = state.roster.filter(isAvailable);
-  const party = wall ? bestPartyFor(state, wall, available) : [];
+  // The gear target must be the ten the planner would actually send, not a
+  // daily re-ranking of the roster.
+  const party = wall
+    ? wall.kind === "raid"
+      ? stableRaidParty(state, wall)
+      : bestPartyFor(state, wall, available)
+    : [];
   const raidIlvl = average(party.map((h) => itemLevel(h.gear)));
   const raidLevel = party.length > 0 ? average(party.map((h) => h.level)) : bestLevel(state.roster);
   const levelGap = wall ? Math.max(0, wall.minLevel - raidLevel) : 0;

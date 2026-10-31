@@ -130,6 +130,8 @@ type Save = {
 - Migrations are `migrate(save): Save` functions chained by version. Start at 1 and never mutate in place.
 - Keep the log small: actions only (assign, stance, sign, advance), never derived data.
 
+`pendingLoot` and `raidTeam` are optional fields on `GameState`; a save without them loads with an empty queue and no team, and behaves exactly as the previous build until its first new drop. No `version` bump and no migration function: the fields are additive and read with `?? []`. The queue's ids (`loot-<day>-<contentId>-<i>`) are content-derived; the assignment uses no RNG, so replaying the day gives the same items and the same suggestions. When the action log becomes the source of truth, `loot <n> <hero>`, `loot auto` and `raidteam` must be actions, not direct state writes.
+
 ---
 
 ## 6. CLI (build this before the UI)

@@ -7,6 +7,8 @@ export * from "./encounter";
 export * from "./economy";
 export * from "./rivals";
 export * from "./board";
+export * from "./loot";
+export * from "./team";
 export * from "./score";
 export * from "./events";
 export * from "./day";

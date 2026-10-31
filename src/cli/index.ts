@@ -33,6 +33,16 @@ import {
   playerRank,
   standings,
   assignParty,
+  assignLoot,
+  autoAssignLoot,
+  autoRaidTeam,
+  bestRaidTeam,
+  ensureRaidTeam,
+  lootTargets,
+  lootUpgrade,
+  suggestLootTarget,
+  nextRaidContent,
+  raidTeamHeroes,
   attemptsFor,
   bestLevel,
   clearPlan,
@@ -296,6 +306,13 @@ const cmdStatus = (): void => {
     boardWarnings(state);
   }
 
+  const pending = state.pendingLoot ?? [];
+  if (pending.length > 0) {
+    console.log(color(`${pending.length} drop${pending.length === 1 ? "" : "s"} waiting — run loot`, "yellow"));
+  }
+  const team = raidTeamHeroes(state);
+  if (team.length > 0) console.log(color(`raid team ${team.length} heroes`, "dim"));
+
   console.log(color("\nRace", "dim"));
   const board = standings(state);
   const activity = new Map(state.rivals.map((r) => [r.name, r.activity]));
@@ -394,6 +411,20 @@ const cmdToday = (): void => {
     boardWarnings(state);
     threatWarnings(state);
   }
+  const team = raidTeamHeroes(state);
+  if (team.length > 0) {
+    console.log(color(`Raid team (${team.length}): ${team.map((h) => h.name).join(", ")}`, "dim"));
+  }
+  const pending = state.pendingLoot ?? [];
+  if (pending.length > 0) {
+    console.log(color(`\n${pending.length} drop${pending.length === 1 ? "" : "s"} waiting — run loot`, "yellow"));
+    for (const drop of pending) {
+      const hero = state.roster.find((h) => h.id === suggestLootTarget(state, drop));
+      console.log(
+        `  ${drop.item ?? `${drop.slot} ${drop.ilvl}`} from ${drop.contentName} → ${hero?.name ?? "?"} (suggested)`,
+      );
+    }
+  }
   console.log();
 };
 
@@ -433,11 +464,12 @@ const cmdBuild = (): void => {
 
 const cmdRoster = (): void => {
   const state = load();
+  const team = new Set(state.raidTeam ?? []);
   table(
     ["#", "hero", "class", "role", "lvl", "xp", "iLvl", "pow·form", "fat", "shp", "mor", "wage", "ctr", "trait"],
     state.roster.map((h, i) => [
       String(i + 1),
-      h.name,
+      team.has(h.id) ? `★ ${h.name}` : h.name,
       CLASS_LABEL[h.klass],
       fitFor(h, h.role).fit === "natural" ? h.role : `${h.role}*`,
       String(h.level),
@@ -455,7 +487,7 @@ const cmdRoster = (): void => {
   );
   console.log(
     color(
-      `\nsquad rating ${Math.round(squadRating(state.roster))} · pow is tonight's power; form is condition × sharpness × morale × health`,
+      `\nsquad rating ${Math.round(squadRating(state.roster))} · ★ is the raid team · pow is tonight's power; form is condition × sharpness × morale × health`,
       "dim",
     ),
   );
@@ -926,6 +958,10 @@ const cmdAdvance = (): void => {
       }
       save(state);
     }
+    const pending = state.pendingLoot ?? [];
+    if (pending.length > 0) {
+      console.log(color(`${pending.length} drop${pending.length === 1 ? "" : "s"} will auto-assign if you advance — run loot to choose.`, "dim"));
+    }
     const before = state.day;
     const next = advanceDay(state);
     printDigest(next, before);
@@ -994,6 +1030,14 @@ const cmdReport = (): void => {
   const pay = log.payScale ?? 1;
   if (log.contentKind === "mission" && pay < 1) {
     console.log(color(`Contract   not posted — paid ${Math.round(pay * 100)}% of its gold and XP`, "yellow"));
+  }
+  if (log.loot && log.loot.length > 0) {
+    console.log(
+      color(
+        `Drops      ${log.loot.map((l) => (l.item ? `${l.item} (${l.slot} ${l.ilvl})` : `${l.slot} ${l.ilvl}`)).join(", ")}`,
+        "dim",
+      ),
+    );
   }
   // A clear must show the pull that killed the boss. Showing the last failed
   // pull under a CLEARED banner teaches the wrong lesson about a fight that is
@@ -1203,6 +1247,115 @@ const cmdSim = (): void => {
   console.log();
 };
 
+const cmdLoot = (): void => {
+  const state = load();
+  const pending = state.pendingLoot ?? [];
+  const sub = args[1];
+
+  if (!sub) {
+    if (pending.length === 0) {
+      console.log(color("No drops waiting.", "dim"));
+      return;
+    }
+    console.log(color("\nDrops waiting — loot <n> <hero>, or loot auto", "bold"));
+    table(
+      ["#", "item", "slot", "ilvl", "from", "suggested", "options"],
+      pending.map((drop, i) => {
+        const suggested = state.roster.find((h) => h.id === suggestLootTarget(state, drop));
+        const options = lootTargets(state, drop, 2)
+          .map((t) => `${t.hero.name.split(" ")[0]} +${t.gain}`)
+          .join(", ");
+        return [
+          String(i + 1),
+          drop.item ?? "—",
+          drop.slot,
+          String(drop.ilvl),
+          drop.contentName,
+          suggested ? `${suggested.name.split(" ")[0]} +${lootUpgrade(suggested, drop)}` : "—",
+          options,
+        ];
+      }),
+    );
+    console.log(color("loot auto gives every drop to the best current upgrade.", "dim"));
+    return;
+  }
+
+  if (sub === "auto") {
+    const before = pending.length;
+    const next = autoAssignLoot(state);
+    save({ ...next, attention: deriveAttention(next) });
+    console.log(color(`assigned ${before - (next.pendingLoot?.length ?? 0)} drop(s)`, "green"));
+    return;
+  }
+
+  const index = Number(sub);
+  const drop = pending[index - 1];
+  const token = args[2];
+  if (!drop || !token) {
+    console.error(color("Usage: loot <n> <hero>, or loot auto", "red"));
+    process.exit(1);
+  }
+  const hero = heroByToken(state, token);
+  const next = assignLoot(state, drop.id, hero.id);
+  if (next === state) {
+    console.error(color("That drop is already gone. Run loot.", "red"));
+    process.exit(1);
+  }
+  save({ ...next, attention: deriveAttention(next) });
+  console.log(color(`${hero.name} takes ${drop.item ?? `${drop.slot} ${drop.ilvl}`} from ${drop.contentName}`, "green"));
+};
+
+const cmdRaidTeam = (): void => {
+  const state = load();
+  const raid = nextRaidContent(state);
+  const sub = args[1];
+
+  if (!sub) {
+    const team = raidTeamHeroes(state);
+    console.log(
+      color(
+        `\nRaid team — ${team.length} heroes${raid ? ` · next: ${raid.name} (avg lvl ${raid.minLevel}+, iLvl ${raid.recommendedIlvl})` : " · no raid left"}`,
+        "bold",
+      ),
+    );
+    if (team.length === 0) {
+      console.log(color("No team set. Run raidteam auto.", "yellow"));
+      return;
+    }
+    table(
+      ["#", "hero", "role", "lvl", "iLvl"],
+      team.map((h, i) => [String(i + 1), h.name, h.role, String(h.level), String(itemLevel(h.gear))]),
+    );
+    console.log(color("The planner prefers this ten, fills injuries from the bench, and loot defaults here.", "dim"));
+    return;
+  }
+
+  if (sub === "auto") {
+    const next = autoRaidTeam(state);
+    save(next);
+    console.log(color(`raid team set to the best ten: ${raidTeamHeroes(next).map((h) => h.name).join(", ")}`, "green"));
+    return;
+  }
+
+  const tokens = args.slice(1).flatMap((t) => t.split(",")).filter(Boolean);
+  const heroes = tokens.map((t) => heroByToken(state, t));
+  if (heroes.length === 0) {
+    console.error(color("Usage: raidteam auto | raidteam <hero,hero,...>", "red"));
+    process.exit(1);
+  }
+  if (heroes.length > 10) {
+    console.error(color(`A raid team is at most ten heroes; got ${heroes.length}.`, "red"));
+    process.exit(1);
+  }
+  if (new Set(heroes.map((h) => h.id)).size !== heroes.length) {
+    console.error(color("A hero cannot hold two raid slots.", "red"));
+    process.exit(1);
+  }
+  const next: GameState = { ...state, raidTeam: heroes.map((h) => h.id) };
+  save(next);
+  console.log(color(`raid team: ${heroes.map((h) => h.name).join(", ")}`, "green"));
+};
+
 const cmdHelp = (): void => {
   console.log(`
 ${color("world-first", "bold")} — progression harness
@@ -1218,6 +1371,8 @@ ${color("world-first", "bold")} — progression harness
   ${color("inspect", "cyan")} <id>                phases, bestiary, drops and chances
   ${color("tavern", "cyan")} · ${color("hire", "cyan")} <n>
   ${color("party", "cyan")} --content <id> --heroes 1,2,3 [--stance push]
+  ${color("loot", "cyan")} [<n> <hero>|auto]         assign waiting drops
+  ${color("raidteam", "cyan")} [auto|heroes]          the stable raid ten
   ${color("clear", "cyan")}                       unassign everyone (they rest)
   ${color("auto", "cyan")}                        let the AI plan today
   ${color("advance", "cyan")} [--days N]           stops when something needs you
@@ -1246,6 +1401,8 @@ switch (command) {
   case "advance": cmdAdvance(); break;
   case "report": cmdReport(); break;
   case "attention": cmdAttention(); break;
+  case "loot": cmdLoot(); break;
+  case "raidteam": cmdRaidTeam(); break;
   case "resolve": cmdResolve(); break;
   case "ai": cmdAi(); break;
   case "sim": cmdSim(); break;

@@ -11,6 +11,7 @@ import { assignedIds, availableContent } from "./plan";
 import { renewalWage, wageBill } from "./economy";
 import { wageBudgetFor } from "./facilities";
 import { cardById, optionAffordable } from "./content/events";
+import { lootUpgrade, suggestLootTarget } from "./loot-target";
 import { CONTENT, KIND_LABEL } from "./content/content";
 import { CONTRACT, PROMISE } from "./content/tuning";
 
@@ -195,6 +196,25 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
       title: `${hero.name} expects his spot`,
       detail: `${promise.daysAssigned}/${PROMISE.startsRequired} starts, promise due ${promise.dueOn === today ? "tonight" : "tomorrow"}.`,
       options: [{ key: "ack", label: "Noted", effect: { kind: "acknowledge" } }],
+    });
+  }
+
+  // One non-blocking pointer while drops wait. A raid clear can drop five
+  // items; a per-item gate would turn a decision into a chore. The `loot`
+  // screen is where the choice lives; this line only says it is there.
+  const loot = state.pendingLoot ?? [];
+  if (loot.length > 0) {
+    const first = loot[0]!;
+    const target = state.roster.find((h) => h.id === suggestLootTarget(state, first));
+    const label = first.item ?? `${first.slot} ${first.ilvl}`;
+    items.push({
+      id: "loot-pending:guild",
+      kind: "loot-pending",
+      day: today,
+      blocking: false,
+      title: `${loot.length} drop${loot.length === 1 ? "" : "s"} waiting`,
+      detail: `${first.contentName}: ${label}${target ? ` — ${target.name} +${lootUpgrade(target, first)}` : ""}. Assign before you advance.`,
+      options: [{ key: "assign", label: "Assign the drops", effect: { kind: "assign-loot" } }],
     });
   }
 

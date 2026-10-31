@@ -529,6 +529,19 @@ The per-hero term matters: `gainXp` discards XP at level 60, so a capped hero co
 
 The weights are data in `PLANNER_VALUE` (`content/tuning.ts`). The measured effect, the three arms and the per-personality cost are in [progression-report.md](progression-report.md) §3.5. The rivals run the same planner, so the race tightens rather than the player gaining a private edge.
 
+### 5.5 Loot assignment and the raid ten
+
+A clear does not give gear to the lowest-geared hero. `EncounterOutcome.loot` carries untargeted `LootItem`s; `resolveDay` queues them in `pendingLoot` with an id `loot-<day>-<contentId>-<i>`. The queue is consumed by:
+
+- **The player:** `loot` lists the drops, the suggested hero and the alternatives; `loot <n> <hero>` assigns one; `loot auto` assigns all to the need suggestion. The next `advance` auto-assigns anything left, with one dim warning.
+- **The AI:** `autoAssignLoot(state, "party-lowest")` at the end of its turn. It keeps the old lowest-geared-in-the-clearing-party pick. That is the **floor**, not the ceiling: it wastes 24% of items and holds the measured ladder at 42/60 full clears. The player's need pick wastes 0 and, in the all-need lab, reaches 52/60 (§3.6). The AI is the harness; the player's decision is the feature.
+
+The default need target ranks the whole roster by `max(0, ilvl - gear[slot])`, with a `LOOT.teamBias` of 4 item levels for a `raidTeam` hero. The suggestion is recomputed at apply time, never stored: two same-slot drops in one clear would otherwise point at the same hero and the second would overwrite the first. A drop no hero can use is discarded at queue time; assigning a hero whose slot is already higher is allowed and logs "no upgrade".
+
+**The standing ten.** `raidTeam` is up to ten roster ids, optional and read with `?? []`. The AI builds it at the first raid it can enter, from `bestPartyFor` at that moment; `ensureRaidTeam` appends missing live heroes and never replaces a name; `autoRaidTeam` is the explicit re-pick. The planner's raid prep (`planDay`) uses `stableRaidParty`: available members first, bench fill, fallback to the best legal party. Allowed deviations are one night each: injury/unavailable, team cannot meet the gate, a known threat `withCounters` swaps one body. A clearly stronger bench hero does **not** replace an available member; that is the churn the feature removes. Promotion is `raidteam <heroes>` or `raidteam auto`.
+
+The gear gap is not closed: day-40 team iLvl is 46–55 against the 65 target, and the team is fixed at the wall. The next lever is the loot rate or a wall-change re-pick, not a larger team bias.
+
 ---
 
 ## 6. Rival guilds — simulated, not scripted
@@ -578,8 +591,9 @@ These are the items the build actually derives:
 | Wage bill > budget | "The coffers are thin" (FYI) | Noted | Defers the item for the day |
 | Fatigue ≥ 70 and assigned | "N heroes are running on empty" (FYI) | Noted | One line for the whole rotation, not one per body |
 | An event card is pending | The card | The card's affordable options | The bot prices every option by its effects (`src/sim/ai/cards.ts`); the trace is in [progression-report.md](progression-report.md) §5.4 |
+| Drops waiting | "2 drops are waiting" (FYI) | Assign | Applies the need target and empties the queue; the next Advance would do the same. Never blocks and never counts toward the three |
 
-**Design, not built:** the gear-drop "who gets the axe?" modal, the rival-kill "they pulled ahead" modal, and the morale-crack modal. They are in [screens.md](screens.md) and [vision.md](vision.md), not in `deriveAttention`.
+**Design, not built:** the gear-drop **modal** (the sim and CLI have the `loot` queue and the FYI item; the modal is the UI form), the rival-kill "they pulled ahead" modal, and the morale-crack modal. They are in [screens.md](screens.md) and [vision.md](vision.md), not in `deriveAttention`.
 
 Design rule for every attention item: **it must have no dominant answer.** If one option is always right, delete the item. Every option must also be **total**: it either settles the item or changes what the item is about. `ignore` and `acknowledge` write a one-day deferral (`attentionMutedUntil`); `promise` and `rotate` reset the grievance; `rotate` is hidden when there is no party to put the hero in. A test iterates every item and every option in five mid-run states and asserts none comes straight back.
 

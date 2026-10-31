@@ -10,15 +10,16 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 102 tests, `resolveDay` clones its input |
+| Simulation core | Done — deterministic, 114 tests, `resolveDay` clones its input |
 | Progression ladder | Done — 3 heroes → 3 farms, 6 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities; prices the purse, the next wall's level gate and the gear gap |
 | Rivals | Done — three full guilds run the same planner and the same `resolveDay`. Each has a roster, gold, facilities and a score; the leaderboard has a real rank |
 | Contract board | Done — two open missions are posted at full pay each day; every other mission pays 25% after its first clear. The AI skips token repeats; the Drowned Mill fell from 26.4 to 13.75 clears/run |
 | Reward-aware planner | Done — a purse target, the next wall's level gate and the raid party's gear gap weight XP, gold and loot. The Quartermaster is 24,520 and the Gambler 21,549; the Tyrant stall is 7/20 against the 6/20 target |
+| Loot assignment & raid ten | Done — a clear queues drops; the player assigns any hero or takes the need suggestion, the AI keeps the old lowest-party pick (42/60 full clears). The standing ten is built at the first raid; day-40 team iLvl is 46–55 against the 65 target |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
-| Balance | Provisional — 20 seeds per personality; Steward 23,087, Quartermaster 24,520, Gambler 21,549; full clears 13/15/12; average rank 2.25–2.80. The Tyrant stalls 7/20 against the 6/20 target (see [progression-report.md](progression-report.md) §3.5) |
+| Balance | Provisional — the pre-feature build is 20 seeds: Steward 23,087, Quartermaster 24,520, Gambler 21,549; full clears 13/15/12. The shipped conservative AI is 42/60; the player's need pick is 52/60; day-40 team iLvl is 46–55 against the 65 target (see [progression-report.md](progression-report.md) §3.6) |
 | UI | **None** |
 | Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
 | Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
@@ -67,6 +68,8 @@ Everything else — rivals, UI, facilities — amplifies a loop that must first 
 
 **Shipped after the contract board:** the reward-aware planner (§3.5). The AI now prices the purse, the next wall's level gate and the raid party's gear gap; the Quartermaster returns as the clear winner, the Gambler recovers, and the total full clears return to the pre-board 40/60. The attribution caveat and the three measured arms are in the report.
 
+**Shipped after the reward planner:** loot assignment and the standing raid ten (§3.6). A clear queues untargeted drops; the player gives each to any hero or takes the need suggestion, and the next Advance takes the default. The AI keeps the old lowest-party pick as its floor (42/60 full clears); the player's need pick wastes no items and reaches 52/60 in the all-need lab. The standing ten is built at the first open raid; the day-40 ten is 46–55 against the 65 target, so the gear gap remains the next lever.
+
 **Kill criterion:** if a 30-day human playtest produces no moment the player wants to retell, stop and rethink the loop before any UI work.
 
 ### Phase 2 — Rivals on the planner ✅ *shipped*
@@ -92,8 +95,8 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 
 ### Phase 4 — The missing levers
 
-- **Manual loot assignment** — the "who gets the axe?" decision, the best drama per line of code in the design.
-- **Role assignment** — the sim and CLI can switch a hero's role at the fit cost, and the planner re-specs on 3.5% of days. The lever is small until the affinity spread widens (O5); the hero sheet has no chips yet.
+- **Role assignment** — the sim and CLI can switch a hero's role at the fit cost, and the planner re-specs on 3.5% of days. The lever is small until the affinity spread widens (O5); the hero sheet has no chips yet. This is the last missing Phase 0 lever.
+- **A new three-hero activity with a non-mechanics check** — the board rotates pay and level, not the check; four of six missions are mechanics. The check is still the better long-term addition.
 - **Contracts and promises** — the ledger ships (due day, kept/broken); what is missing is the counter-offer loop and a transfer request behind a broken promise.
 
 ### Phase 5 — Onboarding and length

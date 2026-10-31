@@ -51,6 +51,7 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 - **Needs You** — max 3 blocking cards, each with inline buttons. Cards *are* the attention items ([guild-manager-model.md](guild-manager-model.md) §7). Clicking opens the modal; the inline buttons resolve directly.
 - **FYI** — collapsed one-liner feed, expandable. Never blocks.
 - **Yesterday** — the digest, compressed to one line per activity, with a link to the full Day Report modal.
+- **Loot FYI** — one non-blocking line while drops wait: `2 drops — Ashbringer (weapon 232) → Varis +84 · Assign`. It never counts toward the three blocking cards and never gates Advance; the next Advance auto-assigns.
 - **World First** — top 4 guilds, boss count, best pull %, with your row highlighted. Click → Raid screen.
 - **Score so far** — a small strip under the ticker: `Score 8,450 · rank 2 of 4`. The score must be visible early and often, or the deadline feels arbitrary. No breakdown here; the breakdown lives on the Raid screen and at the Run End.
 - **The Week** — 7 day-cells: activity density (▓ raided / ░ farmed / blank rested), plus the RESET marker on day 7. This is the "one glance" answer to "when do I get paid / when does the market refresh".
@@ -110,7 +111,7 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 1. **Identity** — portrait, name, level, class, current role, **Power 127** (large), status chips, and up to three trait chips (`Keen Eye`, `Steadfast`).
 2. **Attributes** — 2 columns × 4 rows (**Body** | **Spirit**), colour-banded 1–20. No scrolling, no tabs. Every value has a tooltip; candidates show ranges (`12–16`) instead of numbers.
 3. **Role fit** — a row of 8 chips; each shows `Evoker 127` `Arcanist 118` `Bulwark 41`. The selected one is highlighted. Clicking *previews* the power change live before you commit.
-4. **Gear** — 4 slots with iLvl + rarity colour, and an "equip from bag" action that opens the Gear Assign modal with deltas.
+4. **Gear** — 4 slots with iLvl + rarity colour. There is no bag; a clear's drops wait in the loot queue, and "who gets it?" opens the Gear Assign modal with deltas.
 5. **Condition** — fatigue bar, sharpness bar, health bar, morale icon, and a sentence: *"Output at 93%: condition and sharpness are both in the numbers. Two more raid nights before fatigue bites."*
 6. **Contract** — wage, days left, release clause, squad-status promise, market value. `Renew` / `Release` buttons.
 7. **History** — 10-day activity strip, bosses seen, kills, wipes, drops received.
@@ -193,8 +194,12 @@ This screen is the whole game, so its details matter:
 - **Live projection.** The bottom strip recalculates on every change: each phase's check ratio, pass/marginal/fail, colour-coded. This is the single most important interaction in the product — it lets the player *experiment* and learn the model without reading documentation.
 - **"Est. best pull: ~48%"** — one number that answers "is tonight worth it?".
 - **Auto-fill** buttons for dungeon/farm (lowest fatigue, best role fit) so the daily routine isn't tedious, while the raid party stays manual.
-- **Split-run toggle** on the farm party with a "funnel gear to X" target.
+- **Split-run toggle** on the farm party with a "funnel gear to X" target. This is design, not built; the shipped funnel is the standing ten plus the loot default.
 - **Flasks** as a small chip row: `2 flasks · +4% each · 120g` — one click to apply, with the gold cost shown, because "preparation is the game" needs at least one prep purchase.
+
+**Raid team strip.** Ten chips above the raid slot: `★ name · role · lvl · iLvl`. `Set team` opens a picker; `Auto` fills the best ten; `Clear` empties it. A short team says `7/10 — the planner will fill 3 from the bench`. The team is the standing ten, not tonight's party: injuries and a failed level gate are filled for one night and the team is unchanged. A clearly stronger bench hero does not replace an available member; promotion is this strip.
+
+**Loot strip.** After a clear, a non-blocking strip above the parties: `3 drops waiting` with the headline item and the suggested hero. It opens the Gear Assign modal: the item, the suggested hero with `current → new (+gain)`, and the top three alternatives with their gains. Actions: `Assign` (the picked hero), `Auto` (the need default), `Close` (the next Advance takes the default). No drop is ever a blocking modal.
 
 **Content picker (the target list).** The dropdown behind each party slot lists **only what the guild can field** — prerequisite cleared, enough heroes, average level met. Columns: `name · kind · level · party · gold · xp · loot · pay · projected · status`. Pay is `full` for a posted contract or a first clear, `25%` for a token repeat, `—` for farms, dungeons and raids. Status is `new` (never attempted), `open` (attempted, not cleared) or `cleared ×N`. Locked and not-yet-fieldable areas are hidden; a footer may say `4 areas not open yet`, never a name. Opening one fires a single digest line: `New area open: The Old Quarry — Farm, level 5, 1-5 heroes.` The list must never show a row the party command would refuse: the projected column is the best legal party's best pull, the same number the War Room strip shows.
 

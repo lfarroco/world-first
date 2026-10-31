@@ -27,6 +27,13 @@ export type Attributes = Record<AttrKey, number>;
 export type GearSlot = "weapon" | "chest" | "helm" | "trinket";
 export type Gear = Record<GearSlot, number>;
 
+/** One item a clear dropped, before it is assigned to a hero. */
+export type LootItem = {
+  slot: GearSlot;
+  ilvl: number;
+  item?: string;
+};
+
 export type CheckType = "dps" | "mitigation" | "mechanics" | "sustain";
 
 /** A named threat on a content phase. See content/traits.ts. */
@@ -247,7 +254,8 @@ export type AttentionEffect =
   | { kind: "renew"; heroId: string }
   | { kind: "release"; heroId: string }
   | { kind: "acknowledge" }
-  | { kind: "event"; cardId: string; optionKey: string };
+  | { kind: "event"; cardId: string; optionKey: string }
+  | { kind: "assign-loot" };
 
 export type AttentionOption = {
   key: string;
@@ -261,6 +269,7 @@ export type AttentionKind =
   | "wage-over-budget"
   | "fatigue-risk"
   | "promise-due"
+  | "loot-pending"
   | "event";
 
 export type AttentionItem = {
@@ -321,6 +330,8 @@ export type EncounterLog = {
   gold: number;
   /** 1 for full pay; the board's token rate when this mission was not posted. */
   payScale?: number;
+  /** Items this clear dropped, for the report after the queue is empty. */
+  loot?: LootItem[];
 };
 
 export type ScoreLine = {
@@ -351,6 +362,15 @@ export type PromiseRecord = {
   dueOn: number;
   daysAssigned: number;
   status: "open" | "kept" | "broken";
+};
+
+export type PendingLoot = LootItem & {
+  id: string;
+  day: number;
+  contentId: string;
+  contentName: string;
+  /** The party that cleared it; the AI's conservative default uses it. */
+  partyIds?: string[];
 };
 
 export type GameState = {
@@ -399,6 +419,16 @@ export type GameState = {
    * existed still loads; a missing ledger is an empty one.
    */
   promises?: PromiseRecord[];
+  /**
+   * Drops from the last resolved day that have not been assigned. Optional:
+   * a save written before the field existed loads as an empty queue.
+   */
+  pendingLoot?: PendingLoot[];
+  /**
+   * The ten heroes the guild wants at the next raid. The planner prefers them
+   * and the loot default funnels gear to them. Optional for old saves.
+   */
+  raidTeam?: string[];
 };
 
 export type { Rng } from "./rng";

@@ -244,7 +244,35 @@ World First is 6/20, 6/20 and 2/20, and the average rank is 2.45/2.25/2.80. The 
 
 **Rejected:** a flat `gold/4` weight (0.5 points per gold, far below the ~4 the same-band Toll/Mill flip needs); a hard-coded gold phase; a loot value with no band check; the first build's 1.25 points per item level (Vault 625 against the Mill's 795 at level 20/iLvl 10); a party-level XP weight (it paid capped heroes); and keeping the uncapped `ratio × 30`.
 
-**What remains:** the day-40 raid party is still iLvl 48–52 against the next wall, a gap of ~100. On the board-only build, 129/129 Tyrant attempts were below the 225 recommendation (mean 151, −33%), and the reward model does not close that gap. The purse is smaller: the mean board-only run ended 2,509g short of its cheapest unbought facility tier, and the planner still has no facility/hire reserve. Manual loot assignment and the role-affinity pass are the next levers, not a larger loot weight.
+**What remains:** the day-40 raid party is still iLvl 48–52 against the next wall, a gap of ~100. On the board-only build, 129/129 Tyrant attempts were below the 225 recommendation (mean 151, −33%), and the reward model does not close that gap. The purse is smaller: the mean board-only run ended 2,509g short of its cheapest unbought facility tier, and the planner still has no facility/hire reserve. Loot assignment and the raid ten are measured in §3.6; the role-affinity pass is the next lever, not a larger loot weight.
+
+### 3.6 Loot assignment and the raid ten (2026-10-31)
+
+**The decision.** A clear no longer gives gear to the lowest-geared party member. It queues untargeted items in `pendingLoot`; the player gives each to any hero, or the next Advance takes the suggestion. The default ranks the whole roster by the actual slot upgrade, with a +4 item-level bias for a hero on the `raidTeam`. A drop no hero can use is discarded at queue time, not assigned and wasted. The AI's auto uses the **old** lowest-geared-in-the-clearing-party pick as a floor; the player's default (and `loot auto`) uses the need pick. That is deliberate: an AI that takes the need pick for every guild made the ladder too easy (§3.6.2), and the player's choice is the feature.
+
+**The ten.** `raidTeam` is a standing list, built at the first raid the guild can enter, from the best ten at that moment; `ensureRaidTeam` appends missing heroes and never replaces a live name. The planner sends it, fills injuries from the bench for one night, and falls back to the best legal party if the team cannot meet the gate. `raidteam auto` re-picks; `raidteam <heroes>` sets; `roster` marks members with `★`. Growing the team from day 1 was measured and rejected: it keeps the starters, not the best ten at the wall (44/60 below).
+
+**Measured.** 20 seeds for the pre-feature build (59be992); 10 seeds for the three feature arms, seeds 1+17i. The 10-seed columns are noisier; read the full-clear totals, not single scores.
+
+| Build | Steward | Quartermaster | Gambler | Full clears | Day-40 team iLvl | Day-60 team iLvl | Wasted items |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 59be992, no queue, nightly best ten (20 seeds) | 23,087 | 24,520 | 21,549 | 13/15/12 = 40/60 | 50/48/52 | not measured at this build | 28.2% (10 seeds) |
+| Shipped AI, conservative pick (10 seeds) | 25,337 | 25,513 | 21,474 | 16/16/10 = 42/60 | 46/46/51 | 92/107/92 | 514/577/466 |
+| Need pick, same team (10 seeds) | 25,434 | 26,600 | 23,040 | 18/20/14 = 52/60 | 55/50/55 | 115/113/99 | 0 |
+| Need pick, starters grown from day 1 (10 seeds) | 24,322 | 24,070 | 24,197 | 14/14/16 = 44/60 | 52/50/55 | 106/109/97 | 0 |
+
+World First and average rank, in the same order: 6/6/2 and 2.45/2.25/2.80 (59be992); 10/10/6 and 1.90/1.60/2.60 (shipped); 4/4/2 and 2.70/2.60/2.90 (need, all guilds); 4/3/2 and 2.20/2.40/2.70 (starters). The rank is relative: the need arm switches all four guilds, and its rank falls while its absolute score rises. The shipped AI's rank improves because every guild now holds a stable ten and the player's seed and roster happen to sit better; that is not a player-only edge. The player-only override (the player uses the need pick while the rivals stay on the floor) was not measured; the all-need arm is its upper bound.
+
+**What the numbers say.**
+
+1. **The conservative AI holds the full-clear total, but the wall is softer.** 42/60 sits inside the 36–46 total, yet the Steward stalls 4/20 against the 6/20 target 3 (the Quartermaster 4/20, the Gambler 10/20). The score moves +9.7% / +4.1% / −0.3%; the Steward is outside the +0–8% guard and the Gambler's 21.5k is under the 23k floor (10 seeds, ±1k). The player's need pick is 23.0k on the Gambler. The next balance pass is the wall and the Gambler's floor, not a larger loot weight. The 24% waste is the old pick, measured, not hidden.
+2. **The player's pick is worth more than the AI's floor.** In the all-need lab (all four guilds) the need pick converts the 24% waste to 0 and adds 10 full clears (42 → 52), mostly the Quartermaster (+4) and Gambler (+4), and lifts the day-60 ten by 6–23 item levels. The player-only override was not measured; against old-rival AI it can only be at least this good on absolute gear and score. That is the "who gets the axe?" decision: the same drops, a different target.
+3. **The stable ten does not close the gear gap.** The day-40 ten is 46–55 iLvl against the 65 target; the shipped AI is 1–4 iLvl below the nightly best-ten it replaced at day 40, because the team is fixed at the wall while the best ten keeps moving. The need pick recovers some of it; the gap remains. The next lever is the loot rate or a measured wall-change re-pick, not a larger `teamBias`.
+4. **The bench is not starved.** The team ends at 153–200 iLvl against a bench median of 138–201; the team takes 62–69% of items. The +4 bias is a thumb on the scale, not a wall.
+
+**Rejected:** storing the suggestion (it goes stale after the first of two same-slot drops; the target is recomputed at apply); the old lowest-geared pick as the **player's** default (24% waste); the need pick as the **AI's** default (all-need 52/60 is above the full-clear target and the Quartermaster clears 20/20); a per-drop blocking modal (a raid drops 4–5 items; the queue would gate most days); a persistent priority list (a second roster, no slot awareness); the starters team (44/60); a pre-party funnel target (the slot is not known when the party is set); a gear stash (four numbers per hero, no capacity model); class or role restrictions on items (no item entity exists); an RNG tie-break (roster order is deterministic and legible).
+
+**Cost:** the queue is bounded by the day's clears and consumed on the next Advance; the AI clears its own queue at the end of its turn. A `loot` command and a `raidteam` line replace no existing screen. `sim --runs 20` was not re-timed; the added work is one party ranking when the team is missing, and a full stable team returns without ranking.
 
 ---
 
@@ -469,10 +497,10 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 ## 7. Known gaps
 
 - **The world run costs ~10× the guild run.** Three rivals × 84 planner turns is 1.1 s per run on a quiet host; `sim --runs 20` is ~65 s. The race is real, not free.
-- **No loot choice** — drops are auto-assigned to the lowest-geared hero. A named drop is a name printed on a gear number, not an item entity; there is no "who gets the axe?" decision. In the AI trace this shows as a gear funnel that rotates with the party: seed 777 cleared Gatewarden 8 times, then stalled on the Tyrant at 30% with iLvl 148–183 against a 225 recommendation.
-- **The need model is coarse.** The planner now prices the purse, the next wall's level gate and the raid party's gear gap (§3.5), but loot is still valued by the worst hero's average rather than the actual slot, named drops and forge `lootIlvl` are ignored, the purse has no facility/hire reserve, and the value does not price `traitEconomy` or the rival `rewardScale`. The gear gap is the sharp one: on the board-only build 129/129 Tyrant attempts were below the 225 recommendation (mean 151, −33%), and the day-40 raid party is still iLvl 48–52. The purse is smaller: the mean run ended 2,509g short of its cheapest unbought facility tier. Both are gear-rate problems, not content-choice ones.
+- **The AI's auto is the floor, not the ceiling.** A clear queues untargeted drops; the player assigns them, or the next Advance takes the need suggestion. The AI's own auto keeps the old lowest-geared-in-the-party pick, which wastes 24% of items (514/2,158 on the Steward, 10 seeds); the player's need pick wastes 0 and adds 10 full clears in the all-need lab (§3.6).
+- **The need model is coarse.** The planner now prices the purse, the next wall's level gate and the raid party's gear gap (§3.5), and assignment prices the actual slot (§3.6), but the planner's `lootValue` still measures the band against the worst hero's average, named drops and forge `lootIlvl` are ignored, the purse has no facility/hire reserve, and the value does not price `traitEconomy` or the rival `rewardScale`. The gear gap is the sharp one: on the board-only build 129/129 Tyrant attempts were below the 225 recommendation (mean 151, −33%); the day-40 team is 46–55 against the 65 target. The purse is smaller: the mean run ended 2,509g short of its cheapest unbought facility tier. Both are gear-rate problems, not content-choice ones.
 - **Repeatable missions are capped by the contract board, not by a decay.** The Drowned Mill is 26.4 → 13.75 clears/run; the board costs ~2.5% of score and three Steward full clears (§3.4). The remaining gap is the check, not the pay: four of six missions are mechanics, and a new three-hero activity with a different check is still the better long-term addition. See [open-questions.md](open-questions.md) O7.
-- **No stable raid roster** — the planner picks the best ten each day, so loot and mastery spread across 16 heroes instead of concentrating on the next wall.
+- **The stable ten is fixed at the wall.** `raidTeam` is built at the first open raid and kept; it does not re-pick at a wall change. Day-40 team iLvl is 46–55 against the 65 target, and the shipped AI is 1–4 iLvl behind the nightly best ten it replaced. `raidteam auto` is the manual re-pick; a measured wall-change re-pick is the follow-up.
 - **Role assignment is sim-only** — `role <hero> <role>` sets the role and the fit multiplier applies to every check. The planner re-specs on 3.5% of days for no measurable gain; the hero sheet has no chips yet.
 - **Promises are a debt now, with a hole at the end.** The ledger writes a due day, counts starts, and settles kept/broken (§7.1a). Two pieces are still missing: the planner never reads `contract.status`, so it cannot plan around a promise, and a broken promise has no transfer request behind it — only morale.
 - **Facilities now compete with wages.** Before the re-pricing the AI maxed the tree by ~day 70 and ended with ~10k; now it ends with ~2k and one tier short. That is the intended tension, but the facility prices were set against the old, broken wage bill.
@@ -482,6 +510,6 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 
 ## 8. What to do next
 
-1. **Manual loot assignment**, then **teach the planner to reassign roles** — the two missing levers from Phase 0.
+1. **Teach the planner to reassign roles** — the last missing lever from Phase 0.
 2. **A new three-hero activity with a non-mechanics check.** The board rotates pay and level, not the check; four of six missions are mechanics.
 3. Then the vertical-slice UI, unchanged: Roster → War Room → Report.

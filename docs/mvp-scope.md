@@ -55,10 +55,10 @@ These are **acceptance tests**, not aspirations. The sim should be able to prove
 |---|---|---|
 | 1 | A new player loses on the first raid night no more than once | Onboarding must not punish |
 | 2 | The AI clears Gatewarden by day 45–55 | An early win, before the wall |
-| 3 | The Tyrant stalls the average run: 6/20 Steward seeds stop at two raids, none lower — **the shipped build measures 7/20**; see [progression-report.md](progression-report.md) §3.5 | The wall that teaches gearing |
+| 3 | The Tyrant stalls the average run: 6/20 Steward seeds stop at two raids, none lower — **the shipped conservative AI clears 42/60; the Steward stalls 4/20, the Quartermaster 4/20, the Gambler 10/20; the player's need pick clears 52/60**; see [progression-report.md](progression-report.md) §3.6. The wall is softer than this target; the next balance pass owns it | The wall that teaches gearing |
 | 4 | A good bot clears 2–3 of the 3 raids; a great run clears all three | The ladder must be winnable but tight |
 | 5 | A do-nothing bot never clears a dungeon | Actions must matter |
-| 6 | A two-raid run scores ~16k; a full clear 23–30k; max ~31k | The score must have headroom |
+| 6 | A two-raid run scores ~16k; a full clear 23–30k; max ~31k. The conservative Gambler is 21.5k, below the floor; the player's need pick is 23.0k | The score must have headroom |
 | 7 | ≤ 3 attention items block a typical day | The queue must not become a chore |
 | 8 | A day resolves (sim) in < 2 ms | 1000-run batch tests must be feasible |
 | 9 | The wage crunch is felt by day 14–18 — **not met**; there is no early-game pressure yet | The economy must bite in the first run |

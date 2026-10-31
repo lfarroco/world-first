@@ -52,6 +52,8 @@ export const foundGuild = (seed: number, guildName: string): GameState => {
     eventLog: [],
     attentionMutedUntil: {},
     promises: [],
+    pendingLoot: [],
+    raidTeam: [],
   };
 
   // The starting areas are open from day one; seed the ledger so the first

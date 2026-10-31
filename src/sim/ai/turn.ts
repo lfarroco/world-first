@@ -6,6 +6,8 @@ import { renewalWage, wageBill } from "../economy";
 import { wageBudgetFor } from "../facilities";
 import { applyFacilityDecision, hireDecision, planDay, resetRoles, reviewRoles } from "./planner";
 import { chooseCardOption } from "./cards";
+import { autoAssignLoot } from "../loot";
+import { ensureRaidTeam } from "../team";
 import type { Personality } from "./personalities";
 
 export type AiTurn = {
@@ -47,7 +49,11 @@ const contractChoice = (
  */
 export const aiTurn = (state: GameState, personality: Personality): AiTurn => {
   const notes: string[] = [];
-  let next = state;
+  // Apply anything the previous turn left waiting, then keep the same raid ten.
+  let next = ensureRaidTeam(autoAssignLoot(state, "party-lowest"));
+  if ((state.pendingLoot ?? []).length > 0) {
+    notes.push(`loot: ${state.pendingLoot!.length} item(s) assigned`);
+  }
 
   const hire = hireDecision(next, personality);
   if (hire) {
@@ -76,7 +82,10 @@ export const aiTurn = (state: GameState, personality: Personality): AiTurn => {
   next = roles.state;
   notes.push(...planNotes, ...roles.notes);
 
-  next = resolveDay(next);
+  const resolved = resolveDay(next);
+  const newDrops = (resolved.pendingLoot ?? []).length;
+  next = autoAssignLoot(resolved, "party-lowest");
+  if (newDrops > 0) notes.push(`loot: ${newDrops} item(s) assigned`);
 
   for (const item of blockingAttention(next)) {
     if (item.kind === "event") {

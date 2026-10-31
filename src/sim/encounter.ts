@@ -27,6 +27,7 @@ import {
 import { checkContribution, formMod, heroPower } from "./hero";
 import { rngStream } from "./rng";
 import { levelOk, partyOf } from "./plan";
+import type { LootItem } from "./types";
 import { lootBonusFor } from "./facilities";
 
 export type EncounterOutcome = {
@@ -35,7 +36,7 @@ export type EncounterOutcome = {
   readonly cleared: boolean;
   readonly bestPull: number;
   readonly injured: { heroId: string; name: string; days: number }[];
-  readonly loot: { heroId: string; name: string; slot: string; ilvl: number; item?: string }[];
+  readonly loot: LootItem[];
   readonly xp: number;
   readonly gold: number;
   readonly economy: TraitEconomy;
@@ -236,7 +237,9 @@ export const resolveAssignment = (state: GameState, assignment: Assignment): Enc
     }
   }
 
-  const loot: { heroId: string; name: string; slot: string; ilvl: number; item?: string }[] = [];
+  // The loot is generated without a hero. The day decides the default target
+  // (the raid team's best upgrade) and the player may reassign it.
+  const loot: LootItem[] = [];
   if (cleared && content.loot.count > 0) {
     const lootRng = rngStream(state.seed, "loot", state.day, content.id);
     // A separate stream: adding named drops must not reshuffle the generic
@@ -244,14 +247,10 @@ export const resolveAssignment = (state: GameState, assignment: Assignment): Enc
     const named = rollNamedDrop(content, rngStream(state.seed, "namedDrop", state.day, content.id));
     const slots = ["weapon", "chest", "helm", "trinket"] as const;
     for (let i = 0; i < content.loot.count; i += 1) {
-      const target = [...party].sort((a, b) => itemLevelOf(a) - itemLevelOf(b))[i % party.length];
-      if (!target) break;
       if (i === 0 && named) {
         // The named item is the clear's headline: fixed slot, fixed ilvl, and
         // the same forge/scavenger bonuses as any other drop.
         loot.push({
-          heroId: target.id,
-          name: target.name,
           slot: named.slot,
           ilvl: named.ilvl + lootBonusFor(state.facilities) + economy.lootIlvl,
           item: named.name,
@@ -264,7 +263,7 @@ export const resolveAssignment = (state: GameState, assignment: Assignment): Enc
         Math.floor(lootRng() * (content.loot.ilvlMax - content.loot.ilvlMin + 1)) +
         lootBonusFor(state.facilities) +
         economy.lootIlvl;
-      loot.push({ heroId: target.id, name: target.name, slot, ilvl });
+      loot.push({ slot, ilvl });
     }
   }
 
@@ -283,8 +282,7 @@ export const resolveAssignment = (state: GameState, assignment: Assignment): Enc
   };
 };
 
-const itemLevelOf = (hero: Hero): number =>
-  Math.round((hero.gear.weapon + hero.gear.chest + hero.gear.helm + hero.gear.trinket) / 4);
+
 
 export const encounterFatigue = (content: ContentDef): number => attemptCost(content);
 

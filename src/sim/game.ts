@@ -9,6 +9,7 @@ import { partyOf, pruneUnavailable } from "./plan";
 import { startingRivals } from "./rivals";
 import { rosterCapFor, wageBudgetFor } from "./facilities";
 import { resolveEvent } from "./world-events";
+import { autoAssignLoot } from "./loot";
 import { computeScore } from "./score";
 import { ROLES } from "./content/roles";
 import { foundGuild } from "./founding";
@@ -97,6 +98,7 @@ export const releaseHero = (state: GameState, heroId: string): GameState => {
   return {
     ...state,
     roster: state.roster.filter((h) => h.id !== heroId),
+    raidTeam: state.raidTeam?.filter((id) => id !== heroId),
     plan: {
       parties: state.plan.parties.map((p) => ({
         ...p,
@@ -260,6 +262,9 @@ export const resolveAttention = (
       };
       break;
     case "acknowledge":
+      break;
+    case "assign-loot":
+      next = autoAssignLoot(state);
       break;
     case "event": {
       const resolved = resolveEvent(state, effect.cardId, effect.optionKey);

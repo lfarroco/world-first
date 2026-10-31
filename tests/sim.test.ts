@@ -9,6 +9,14 @@ import {
   postedContractIds,
   rewardContext,
   rewardValue,
+  assignLoot,
+  autoAssignLoot,
+  suggestLootTarget,
+  queueLoot,
+  ensureRaidTeam,
+  autoRaidTeam,
+  stableRaidParty,
+  raidTeamHeroes,
   lootValue,
   partyGold,
   isPosted,
@@ -514,6 +522,253 @@ describe("reward-aware planner", () => {
     expect(rewardContext(under).gearGap).toBeGreaterThan(rewardContext(geared).gearGap);
     expect(rewardContext(geared).lootWeight).toBeLessThan(rewardContext(under).lootWeight);
     expect(rewardContext(base).nextWall?.kind).toBe("raid");
+  });
+});
+
+describe("loot and the raid team", () => {
+  const at = (h: Hero, level: number, ilvl: number): Hero => ({
+    ...h,
+    level,
+    attrs: {
+      might: 20, agility: 20, vitality: 20, endurance: 20,
+      focus: 20, discipline: 20, awareness: 20, composure: 20,
+    },
+    gear: { weapon: ilvl, chest: ilvl, helm: ilvl, trinket: ilvl },
+    traits: [],
+    fatigue: 0,
+    sharpness: 60,
+    morale: 60,
+    health: 100,
+    contract: { ...h.contract, daysLeft: 30 },
+  });
+
+  const three = (seed: number, ilvl: number): GameState => {
+    const base = newGame(seed, "Loot");
+    const roster = base.roster.map((h) => at(h, 60, ilvl));
+    return { ...base, roster, plan: { parties: [] }, attention: [], pendingEvent: null };
+  };
+
+  it("suggests the largest upgrade, with a small team bias", () => {
+    const base = three(1, 10);
+    const roster = base.roster.map((h, i) =>
+      i === 0 ? { ...h, gear: { ...h.gear, weapon: 100 } } : h,
+    );
+    const state: GameState = { ...base, roster, raidTeam: [roster[1]!.id] };
+    const drop = { slot: "weapon" as const, ilvl: 20 };
+    expect(suggestLootTarget(state, drop)).toBe(roster[1]!.id);
+    expect(roster).toHaveLength(3);
+  });
+
+  it("assigns a drop purely, removes it from the queue, and dates the event today", () => {
+    const state = three(1, 10);
+    const content = contentById("plundered-vault")!;
+    const pending = queueLoot(state, content, state.roster, [{ slot: "weapon", ilvl: 30 }], 5);
+    const withPending: GameState = { ...state, pendingLoot: pending, day: 6 };
+    const snapshot = structuredClone(withPending);
+    const next = assignLoot(withPending, pending[0]!.id, state.roster[2]!.id);
+    expect(withPending).toEqual(snapshot);
+    expect(next.roster.find((h) => h.id === state.roster[2]!.id)!.gear.weapon).toBe(30);
+    expect(next.pendingLoot).toHaveLength(0);
+    expect(next.events.some((e) => e.day === 6 && e.text.includes("takes"))).toBe(true);
+  });
+
+  it("recomputes the target at apply time, so two drops do not overwrite one slot", () => {
+    const state = three(2, 10);
+    const content = contentById("plundered-vault")!;
+    const pending = queueLoot(
+      state,
+      content,
+      state.roster,
+      [{ slot: "weapon", ilvl: 20 }, { slot: "weapon", ilvl: 20 }],
+      5,
+    );
+    const withPending: GameState = { ...state, pendingLoot: pending, day: 6 };
+    const next = autoAssignLoot(withPending);
+    expect(next.roster.filter((h) => h.gear.weapon === 20)).toHaveLength(2);
+    expect(next.pendingLoot).toHaveLength(0);
+  });
+
+  it("keeps the AI's old lowest-in-party policy as a floor", () => {
+    const base = three(11, 10);
+    const roster = base.roster.map((h, i) =>
+      i === 0
+        ? { ...h, gear: { weapon: 100, chest: 100, helm: 100, trinket: 100 } }
+        : i === 2
+          ? { ...h, gear: { weapon: 0, chest: 100, helm: 100, trinket: 100 } }
+          : h,
+    );
+    const state: GameState = { ...base, roster, raidTeam: [] };
+    const content = contentById("plundered-vault")!;
+    const party = [roster[1]!, roster[2]!];
+    const pending = queueLoot(state, content, party, [{ slot: "weapon", ilvl: 60 }], 5);
+    const withPending: GameState = { ...state, pendingLoot: pending, day: 6 };
+    const old = autoAssignLoot(withPending, "party-lowest");
+    expect(old.roster[1]!.gear.weapon).toBe(60);
+    expect(old.roster[2]!.gear.weapon).toBe(0);
+    const need = autoAssignLoot(withPending);
+    expect(need.roster[2]!.gear.weapon).toBe(60);
+    expect(need.roster[1]!.gear.weapon).toBe(10);
+  });
+
+  it("drops a queue item no hero can use", () => {
+    const state = three(3, 100);
+    const content = contentById("plundered-vault")!;
+    const pending = queueLoot(state, content, state.roster, [{ slot: "weapon", ilvl: 5 }], 5);
+    expect(pending).toHaveLength(0);
+  });
+
+  it("lets a much larger bench upgrade beat the team bias", () => {
+    const base = three(8, 10);
+    const roster = base.roster.map((h, i) => ({
+      ...h,
+      gear: { ...h.gear, weapon: i === 0 ? 17 : 10 },
+    }));
+    const state: GameState = { ...base, roster, raidTeam: [roster[0]!.id] };
+    const drop = { slot: "weapon" as const, ilvl: 20 };
+    expect(suggestLootTarget(state, drop)).toBe(roster[1]!.id);
+    const close: GameState = {
+      ...base,
+      roster: base.roster.map((h, i) => ({
+        ...h,
+        gear: { ...h.gear, weapon: i === 0 ? 13 : 11 },
+      })),
+      raidTeam: [base.roster[0]!.id],
+    };
+    expect(suggestLootTarget(close, drop)).toBe(base.roster[0]!.id);
+  });
+
+  it("shows one non-blocking loot item and assigns it from the queue", () => {
+    const state = three(9, 10);
+    const content = contentById("plundered-vault")!;
+    const pending = queueLoot(state, content, state.roster, [{ slot: "weapon", ilvl: 30 }], 5);
+    const withLoot: GameState = {
+      ...state,
+      day: 6,
+      pendingLoot: pending,
+      attention: deriveAttention({ ...state, day: 6, pendingLoot: pending }),
+    };
+    const item = withLoot.attention.find((i) => i.kind === "loot-pending");
+    expect(item?.blocking).toBe(false);
+    expect(blockedItems(withLoot)).toHaveLength(0);
+    const next = resolveAttention(withLoot, "loot-pending:guild", "assign");
+    expect(next.pendingLoot).toHaveLength(0);
+    expect(next.roster.some((h) => h.gear.weapon === 30)).toBe(true);
+    expect(next.attention.some((i) => i.kind === "loot-pending")).toBe(false);
+  });
+
+  it("resolves a day with pending loot without mutating the input", () => {
+    const state = three(10, 10);
+    const content = contentById("plundered-vault")!;
+    const pending = queueLoot(state, content, state.roster, [{ slot: "weapon", ilvl: 30 }], 5);
+    const withLoot: GameState = { ...state, pendingLoot: pending, day: 6 };
+    const snapshot = structuredClone(withLoot);
+    expect(resolveDay(withLoot)).toEqual(resolveDay(withLoot));
+    resolveDay(withLoot);
+    expect(withLoot).toEqual(snapshot);
+  });
+
+  it("builds a ten, keeps a player-set team, and fills from the bench", () => {
+    const base = newGame(4, "Team");
+    const roster = Array.from({ length: 12 }, (_, i) => ({
+      ...makeHero(4, 900 + i, i % 2 === 0 ? "warrior" : "mage", 60),
+      contract: { wage: 100, daysLeft: 30, status: "rotation" as const },
+    }));
+    const full: GameState = {
+      ...base,
+      roster,
+      plan: { parties: [] },
+      progress: base.progress.map((p) =>
+        p.contentId === "ashen-spire" ? { ...p, clears: 1, attempts: 1 } : p,
+      ),
+    };
+    const auto = ensureRaidTeam(full);
+    expect(auto.raidTeam).toHaveLength(10);
+    const eight: GameState = { ...auto, raidTeam: auto.raidTeam!.slice(0, 8) };
+    const grown = ensureRaidTeam(eight);
+    expect(grown.raidTeam).toHaveLength(10);
+    expect(grown.raidTeam!.slice(0, 8)).toEqual(eight.raidTeam);
+    expect(autoRaidTeam(eight).raidTeam).toHaveLength(10);
+    expect(raidTeamHeroes(auto)).toHaveLength(10);
+
+    const raid = contentById("raid-gatewarden")!;
+    const stable = stableRaidParty(auto, raid);
+    expect(stable.map((h) => h.id)).toEqual(auto.raidTeam);
+
+    const small = newGame(4, "Grow");
+    const three = autoRaidTeam(small);
+    expect(three.raidTeam).toHaveLength(3);
+    const bigger: GameState = {
+      ...three,
+      roster: [
+        ...three.roster,
+        ...Array.from({ length: 7 }, (_, i) => ({
+          ...makeHero(4, 950 + i, "mage", 60),
+          contract: { wage: 100, daysLeft: 30, status: "rotation" as const },
+        })),
+      ],
+      progress: three.progress.map((p) =>
+        p.contentId === "ashen-spire" ? { ...p, clears: 1, attempts: 1 } : p,
+      ),
+    };
+    const grownAgain = ensureRaidTeam(bigger);
+    expect(grownAgain.raidTeam).toHaveLength(10);
+    expect(grownAgain.raidTeam!.slice(0, 3)).toEqual(three.raidTeam);
+  });
+
+  it("leaves a clear's drops pending until the next day, then applies them", () => {
+    const base = three(5, 10);
+    const content = contentById("plundered-vault")!;
+    const roster = base.roster;
+    const state: GameState = {
+      ...base,
+      day: 10,
+      roster,
+      progress: base.progress.map((p) =>
+        p.contentId === content.id ? { ...p, clears: 5, attempts: 5 } : p,
+      ),
+      plan: {
+        parties: [{ contentId: content.id, heroes: roster.map((h) => h.id), stance: "steady" }],
+      },
+      raidTeam: [roster[0]!.id],
+    };
+    const next = resolveDay(state);
+    expect(next.pendingLoot?.length).toBe(content.loot.count);
+    expect(next.roster.every((h) => h.gear.weapon === 10)).toBe(true);
+    const applied = autoAssignLoot(next);
+    expect(applied.pendingLoot).toHaveLength(0);
+    expect(applied.roster.some((h) => h.gear.weapon > 10)).toBe(true);
+  });
+
+  it("applies the last day's drops before the final score", () => {
+    const base = three(6, 10);
+    const content = contentById("plundered-vault")!;
+    const roster = base.roster;
+    const state: GameState = {
+      ...base,
+      day: 84,
+      roster,
+      progress: base.progress.map((p) =>
+        p.contentId === content.id ? { ...p, clears: 5, attempts: 5 } : p,
+      ),
+      plan: {
+        parties: [{ contentId: content.id, heroes: roster.map((h) => h.id), stance: "steady" }],
+      },
+      raidTeam: [roster[0]!.id],
+    };
+    const next = resolveDay(state);
+    expect(next.finished).toBe(true);
+    expect(next.pendingLoot).toHaveLength(0);
+    expect(next.roster.some((h) => h.gear.weapon > 10)).toBe(true);
+  });
+
+  it("loads an old save without the new fields", () => {
+    const state = three(7, 10);
+    const old: GameState = { ...state };
+    delete old.pendingLoot;
+    delete old.raidTeam;
+    expect(autoAssignLoot(old)).toBe(old);
+    expect(ensureRaidTeam(old).raidTeam ?? []).toHaveLength(0);
+    expect(autoRaidTeam(old).raidTeam).toHaveLength(3);
   });
 });
 
