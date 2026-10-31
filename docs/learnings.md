@@ -503,3 +503,12 @@ O5 said role affinities were too flat for the 0.88 fit, and the planner re-specc
 **Rejected:** the 1.30 table. It made the **decision** spread (the flips targeted Bulwark/Oracle/Lightbringer instead of only Vanguard/Trickster, and the median day-40 projection rose 1.32 → 1.48), but it made the **ladder** volatile: three gate variants produced 19/30, 22/30 and 17/30 full clears; the Steward swung 10/20–20/20 and the Gambler 4/20–8/20; the 1.15 build holds 21/30. The 1.25 fallback repeats the volatility without the decision gain. The 1.15 table stays.
 
 **The role lever is a short-content tool.** A flip moves one hero +8.9% on the switched check and −42.5% on the off-check; in a 10-hero raid that is 1.7–3% of a phase, while a 3-hero mission can move 13% of a check with two flips. No content collapsed (every non-Tyrant area stayed 100% entry/clear; the Tyrant entry rose 80 → 87–97%), and no requirement was bumped. If roles must decide raids, the next lever is a party-level mechanic, not a bigger table.
+
+### L86. A seventh mission at the gold ceiling makes the cautious guild too strong
+The contract board left a clear gap: four of six missions are mechanics, and the spare party has one good three-hero job. I probed a seventh mission — **The Broken Bridge**, level 18, three heroes, a **mitigation 36** check, 300g/60xp/one item (26–40) — using the actual content data and the shipped planner. It was played: 3.3/2.5/2.7 clears per run, posted on 20% of days.
+
+**Measured, 10 seeds (1+17i):** Steward 24,075 (14/20 full), Quartermaster **27,553 (20/20)**, Gambler 20,686 (10/20); total 44/60. The Steward's 14/20 is the 6/20 stall target; the Quartermaster's 20/20 is the failure. 300g passes the Toll House's 260, so the cautious guild's purse stops binding on the extra night and it clears every raid. The Steward lost 1,562 score and two full clears to the opportunity cost; the Gambler lost 788.
+
+**The check was right, the reward was not.** A 3-hero party at level 20/iLvl 30 sums ~32 mitigation with one warrior, ~35 with warrior/rogue/cleric, and ~47 with two warriors and a cleric; 36 is a tank-pair check that a one-tank party fails without gear or a Bulwark. The level band and the missing mitigation check are the right addition. The content was reverted, not shipped.
+
+**Next:** ≤220g (below the Toll House) and/or requirement 40, then 20 seeds; the target is Steward 14–16/20, Quartermaster 15–17/20, Gambler 9–12/20, and no 20/20. Do not ship a mission whose gold raises the cautious guild above the wall on its own.

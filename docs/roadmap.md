@@ -97,7 +97,7 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 ### Phase 4 — The missing levers
 
 - **Role assignment** — shipped as the reviewer gate and the check readout. The 1.30 affinity widening was measured and rejected: it moved the ladder 17–22/30 and the Steward 10/20–20/20 (§6.4). The 1.15 table stays; the role lever is a short-content tool (5–13% of a check on a 3-hero mission). A party-level mechanic is the next lever if roles must decide raids.
-- **A new three-hero activity with a non-mechanics check** — the board rotates pay and level, not the check; four of six missions are mechanics. The check is still the better long-term addition.
+- **A new three-hero activity with a non-mechanics check** — the board rotates pay and level, not the check; four of six missions are mechanics. A mitigation candidate was measured and reverted: at 36 with 300g it made the Quartermaster clear 20/20 (see [learnings.md](learnings.md) L86). The check and level work; the next pass is ≤220g and/or requirement 40.
 - **Contracts and promises** — the ledger ships (due day, kept/broken); what is missing is the counter-offer loop and a transfer request behind a broken promise.
 
 ### Phase 5 — Onboarding and length
