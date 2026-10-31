@@ -547,3 +547,41 @@ The first renewal negotiation offered 15% under market, with a 22% maximum disco
 The first counter build put the wage-budget check above `contractChoice`'s `rank < RAID_SIZE + 3 → renew` early return. The early return is the "the raid team is kept at any price" rule; folding it into the budget branch let the AI release expensive starters. The sweep fell from 16/20 to **12/20** (Steward) and 9/20 to 6/20 (Gambler) with no tuning change. Restoring the early return restored 16/20.
 
 The old cost branch was dead code for every rank the roster can produce (rank ≥ 13 is impossible with a 13-hero roster, and rank < 13 returns first). It looked safe to "fix". It was not: the early return was the rule, and the dead branch was a guard for a different roster size. A refactor that moves a branch is a behaviour change; measure it like one.
+
+## The browser shell (2026-10-31)
+
+### L90. A vertical slice that cannot hire is not playable
+The screen spec stops at Roster, War Room and Report. Those three cannot reach the game's own content: the first dungeon needs four heroes and the first raid needs ten, the starting roster is three, and the first dungeon is also the first free recruit. Without a tavern the player is capped at three-hero missions and can never see the ladder the simulation was built for. Facilities had the same shape — the AI spent its surplus on them; the player had no button.
+**Evidence:** `content.ts` gates: Hollow Crypt needs 4, Gatewarden needs 10; `ROSTER_START = 3`; no free recruit before the first dungeon clear. A day-41 AI save has 15 heroes and two five-man dungeon parties, which the player could not copy.
+**Changes:** the first pass ships Guild Hall, Tavern (immediate signing at the listed fee) and the four facility upgrades alongside the slice. The Hall is the only home that can show the queue, the race and the budget together.
+**Rejected:** shipping the three screens alone and telling the player to use the CLI to hire. That is a demo, not a product. The full signing negotiation stays out until `hireCandidate` has negotiation state; adding a fake modal would put a rule in the UI.
+
+### L91. One pure reducer made the browser testable without a DOM
+The first store sketch had one method per action, each calling a sim function. That is fine for the screen and useless for the gate: the pre-commit test run cannot click, and the interesting failures are the action sequences (assign, resolve, advance, save, reload), not the pixels. Moving every mutation into `applyAction(state, action) → state` made the whole UI vocabulary headless.
+**Evidence:** 12 tests in `tests/ui-store.test.ts` cover determinism from `(seed, actionLog)`, no input mutation, hire cost, facility gate, raid-ten filtering, save round-trip and rejection, and the report helpers. The 12-test file runs in 0.1–0.5 s on the dev host; the full suite is 136 tests in 7.8 s.
+**Changes:** `store/actions.ts` is the only mutation vocabulary; `gameStore.ts` calls it, re-derives attention and writes the save. UI state (screen, drawer, modal, report, toast) never reaches the save.
+**Rejected:** testing the store through React Testing Library (a new dependency and a jsdom setup for behaviour that is not in React) and keeping setters as the source of truth (untestable without a browser).
+
+### L92. A legal-party rule in two places drifts; put it in sim
+The CLI's `projectionFor` had the "best party, fall back to highest-level legal party, or null" rule inline. The War Room and the content picker need the same answer, and a second copy would eventually show a party the game refuses. The rule is part of the game, not the presentation.
+**Evidence:** the CLI's rule was three lines (bestPartyFor, levelPartyFor, levelOk); the UI needs it for the content list, the inspect sheet and the auto-fill button. A projection that disagrees with `validatePlan` is exactly the failure `mvp-scope` target 11 forbids.
+**Changes:** `fieldableParty(state, content, pool?)` lives in `sim/plan.ts`; the CLI and the UI call it. `focusPull`, `nextLevers`, `pullTraits` and `masteryReport` moved to `sim/report.ts` for the same reason. No behaviour changed and all 136 tests pass.
+**Rejected:** a UI-only helper (a second rule) and leaving the CLI as the only place the rule exists (the browser would re-derive it from primitives).
+
+### L93. Space must ignore text fields, not buttons
+The first keyboard handler returned early for any focused `BUTTON` or `A`. The intent was to avoid stealing Space from a focused control; the effect was that after the player clicked anything, Space stopped advancing the day. The shortcut only worked when the page had no focus. The documented rule is the opposite: Space is global except inside a text field.
+**Evidence:** the headless pass focused the Help button, sent a real key event, and the day stayed at 1. The key log showed `key: " "`, `target: "BUTTON"`, and the app had already returned. After the change, the same event is `defaultPrevented: true` and the day moves to 2; a blocking queue opens instead of resolving a day.
+**Changes:** the handler now ignores only `INPUT`, `TEXTAREA`, `SELECT` and `contentEditable`. Escape still closes the drawer first, then the modal. `1–4`, `R`, `W` work with a button focused.
+**Verified:** CDP key dispatch; manual Escape and Space passes; the modal/drawer guard is checked before the day moves.
+
+### L94. A save is the whole world, and it costs about 5 ms
+The rival guilds are full `GameState`s inside the player's state, so the browser save is not a roster snapshot. It is three more rosters, purses, plans, promises and event logs. That is the price of "the race is simulated", and it is paid on every game action because the store writes after every mutation.
+**Evidence:** day-41 save 164 kB, day-84 save 251 kB. Over 200 runs on the dev host: JSON.stringify 4.7 / 6.3 ms, JSON.parse 3.3 / 4.9 ms. The world day itself is ~13 ms, so the save is a real but second-order cost: an advance is one world tick plus one write, tens of milliseconds, not a stall. No UI-only action writes at all.
+**Changes:** the store writes only on game actions, never on screen/modal/drawer state. `loadSave` validates the version and the state shape and returns null rather than booting a partial world. The save is one slot, `world-first.save`.
+**Rejected for now:** trimming rival event logs at save time (the world tick already trims at 120 entries), debouncing writes (a crash between advance and save loses the day), and moving the log to IndexedDB (no measured need). Revisit if a replay log grows to thousands of actions.
+
+### L95. The shell added 402 kB and no new architecture
+The UI is a projection: React 19, Zustand 5, Tailwind 4 and Vite 8 add build weight and almost no new rules. The one new architectural seam is the pure action reducer; everything else calls the sim or the selectors. That is the outcome ADR 0001/0002 paid for.
+**Evidence:** production build 73 modules, 402.79 kB JS / 120.57 kB gzip, 32.12 kB CSS / 7.47 kB gzip, 0.32 s. No component library, chart library or drag library. `sim/` gained two shared helpers (`fieldableParty`, `report.ts`) and no framework import. The 84-day UI run finished at day 85 with the run-end card and no console errors; the same-seed button started a fresh day-1 run.
+**Changes:** dependencies are React, React DOM, Zustand and Tailwind plus their Vite plugins and type packages. Tailwind 4 needs no config file; tokens live in `src/app/styles.css` under `@theme`. The design direction is recorded in `screens.md`, and `open-questions` O2 is closed.
+**Rejected:** a component library (it fights the dense table), a drag library (the first pass uses click-to-fill; drag needs layout and hit-testing work), and CSS-in-JS (one stylesheet plus tokens is enough).

@@ -10,7 +10,7 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 124 tests, `resolveDay` clones its input |
+| Simulation core | Done — deterministic, 136 tests, `resolveDay` clones its input |
 | Progression ladder | Done — 3 heroes → 3 farms, 7 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities; prices the purse, the next wall's level gate and the gear gap |
@@ -23,7 +23,7 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 | Role review | Done — the reviewer only re-specs a party below 1.0, caps at two flips, and stops at 1.0; the `role` command prints the four check deltas. The 1.30 affinity widening was measured and rejected (ladder volatility); the 1.15 table stays |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
 | Balance | Provisional — 20 seeds on the current build (bridge + contracts): Steward 25,238, Quartermaster 26,302, Gambler 21,208; full clears 16/18/10 = 44/60. The earlier pre-bridge control on the same harness was 15/17/9 = 41/60. The conservative AI is 44/60; the player's need pick is 52/60; day-40 team iLvl is 46–55 against the 65 target (§3.6–§3.8) |
-| UI | **None** |
+| UI | **Vertical slice shipped** — Guild Hall, Roster + Hero Sheet, War Room with live projection, Report + Run End, attention queue, loot, tavern, facilities. No drag-and-drop, raid hub, scouting fog or wage negotiation. Bundle 402 kB raw / 120 kB gzip; 136 tests; `npm run dev` |
 | Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
 | Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
 | Economy sinks | Four facilities, three levels each; the AI maxes the tree by ~day 70 and still ends with ~10k |
@@ -73,7 +73,7 @@ Everything else — rivals, UI, facilities — amplifies a loop that must first 
 
 **Shipped after the reward planner:** loot assignment and the standing raid ten (§3.6). A clear queues untargeted drops; the player gives each to any hero or takes the need suggestion, and the next Advance takes the default. The AI keeps the old lowest-party pick as its floor (42/60 full clears); the player's need pick wastes no items and reaches 52/60 in the all-need lab. The standing ten is built at the first open raid; the day-40 ten is 46–55 against the 65 target, so the gear gap remains the next lever.
 
-**Kill criterion:** if a 30-day human playtest produces no moment the player wants to retell, stop and rethink the loop before any UI work.
+**Kill criterion:** if a 30-day human playtest produces no moment the player wants to retell, stop and rethink the loop before any UI work. **It has not been run.** The UI now makes it runnable; if it fails, UI polish stops and the loop changes.
 
 ### Phase 2 — Rivals on the planner ✅ *shipped*
 
@@ -85,16 +85,24 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 
 **The cost:** a full world run takes ~1.1 s instead of ~0.1 s, because three rival guilds plan 84 days each. The unit tests use the player-only `aiRun`; the race has its own three world tests. `sim --runs 20` now takes ~65 s.
 
-### Phase 3 — UI vertical slice *(the product)*
+### Phase 3 — UI vertical slice *(the product)* ◐ *shipped, unplayed*
 
 **Goal:** a stranger plays a week without asking what a number means.
 
-- Vite + React + Zustand. [ADR 0002](adr/0002-ui-framework.md) accepted React + Vite on 2026-10-30; the gate is closed, not pending.
-- Three screens: **Roster + hero drawer**, **War Room** (parties, stance, projection strip), **Report** (day digest and wipe report).
-- Then the attention modal.
-- Empty states, keyboard `Space` to advance, one number per row.
+**Shipped 2026-10-31.** React 19 + Vite 8 + Zustand 5 + Tailwind 4 ([ADR 0002](adr/0002-ui-framework.md) chose React; the exact versions are in [tech-notes.md](tech-notes.md) §2.6).
 
-**Kill criterion:** if the wipe report in the UI does not make a player say "ah — swap the rogue", the model is wrong, not the screen.
+- **Guild Hall** — queue-first, digest, standings, week, contracts, promises, loot, facilities, tavern. The compact home the loop needs.
+- **Roster + Hero Sheet** — sortable, grouped table; six views; all eight role chips previewing the four check contributions; gear, condition, contract, traits and a ten-day event strip.
+- **War Room** — three party cards in Front/Mid/Back order, target picker limited to fieldable content, inspect sheet, stance, auto-fill, standing raid ten, loot strip and a live projection that recomputes on every change.
+- **Report + Run End** — digest, killing/failed pull, per-phase checks, threat counter, next levers with numbers, live score, and the day-84 verdict with the three moments.
+- **Attention and loot** — blocking items gate Advance; every option carries its consequence; drops never block and the next Advance takes the default.
+- **Tavern and facilities** — pulled forward from the amplification list because a guild that cannot hire is stuck at three heroes (see the learning below).
+
+**Measured:** 136 tests (12 new headless action/reducer tests); production build 402.79 kB JS / 120.57 kB gzip and 32.12 kB CSS / 7.47 kB gzip in 0.32 s; a save is 164–251 kB because it carries the three rival guilds (4.7–6.3 ms to stringify, 3.3–4.9 ms to parse). A full 84-day UI run completes and reaches the verdict (automated, first-option queue).
+
+**Cut from this pass:** drag-and-drop, bulk roster actions, comparison drawer, column chooser, scouting fog, signing negotiation, raid hub, contracts table, settings, mobile card list, fixed bottom Advance. Each needs a sim field or a playtest.
+
+**Kill criterion:** if the wipe report in the UI does not make a player say "ah — swap the rogue", the model is wrong, not the screen. **This has not been tested with a human.** The UI makes the test possible; it does not pass it.
 
 ### Phase 4 — The missing levers
 
@@ -114,7 +122,7 @@ The first week is a natural tutorial: one concept per day, delivered by the stew
 |---|---|---|
 | Before Phase 3 | **React or Angular** ([ADR 0002](adr/0002-ui-framework.md)) | **Resolved 2026-10-30:** React + Vite. No longer blocks the phase |
 | After Phase 1 playtest | **84 days or 56** | Balance of everything after |
-| Before Phase 3 | **Art direction**: type, colour, spacing | Every screen's feel |
+| Before Phase 3 | **Art direction**: type, colour, spacing | **Resolved 2026-10-31:** dark operations console, tokens in [screens.md](screens.md) §Visual direction |
 | Before any public surface | **Name** ("World First" is a working title) | Domain, store page |
 
 ---

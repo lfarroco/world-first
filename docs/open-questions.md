@@ -59,8 +59,11 @@ You like **World First**; **MMO Guild Simulator** is descriptive and hard to own
 
 Recommendation: keep **World First** as the working title and ship under it unless a search turns up an active game by that name.
 
-### O2. Art direction
-Dark slate / gold / parchment is a good direction. Type, colour and spacing should be settled before the first screen; portraits and any 2D battle view stay placeholders through v0.1.
+### O2. Art direction — **Resolved 2026-10-31**
+
+**Shipped:** dark operations console. Slate background (`#090b0e`), gold as the only accent (`#d8b35f`), warm ink (`#e9e5d9`), four semantic colours for check verdicts, Palatino-family serif for titles and the score, system sans at 11–13px for the dense tables, tabular figures everywhere. The tokens live in `src/app/styles.css` under `@theme`; the full rationale and the rejected directions are in [screens.md](screens.md) §Visual direction.
+
+**Rejected:** parchment/light (a wall of beige at fifteen roster rows), pure-black terminal (panels disappear), blue SaaS dashboard (reads as a tool, not a race), a component library (the dense table is the product). Portraits, crest art and any 2D battle view stay placeholders through v0.1; the arrow is the only icon.
 
 ### O3. Session target
 Still unanswered: **5–10 minute daily check** vs **45–90 minute weekly binge**. Click-driven (D1) implies the latter for v0.1; it changes how much density the screens carry. Default: binge-first, compact mode later.

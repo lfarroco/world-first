@@ -2,7 +2,7 @@
 
 *A management game where you run a raiding guild: **Football Manager** for a WoW-style Race to World First.*
 
-**Status:** the simulation is playable end to end — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer the AI prices and answers, a promises ledger, four upgradable facilities, level-priced wages, a personality-driven AI that plays it, three rival guilds on the same planner with a real leaderboard rank, a daily contract board, a planner that prices the purse and the next wall's gear gap, and a CLI. No UI yet.
+**Status:** playable end to end in the browser and the terminal — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer the AI prices and answers, a promises ledger, four upgradable facilities, level-priced wages, a personality-driven AI, three rival guilds on the same planner with a real leaderboard rank, a daily contract board, and a planner that prices the purse and the next wall's gear gap. The UI is the vertical slice: Guild Hall, Roster + Hero Sheet, War Room with live check projection, Report with the wipe analysis, the attention queue, loot assignment, the tavern, and the Run End verdict. It is a working product surface, not a polished one.
 
 ```bash
 npm install
@@ -12,6 +12,7 @@ npm run cli -- content       # what is open: rewards, projection, status
 npm run cli -- inspect warrens  # phases, mobs, drops and chances
 npm run cli -- ai --days 30  # watch the AI play it
 npm run cli -- sim --runs 10 # balance sweep, three rival guilds per run
+npm run dev                  # http://localhost:5173 — the game
 npm run check                # typecheck + tests + docs check
 ```
 
@@ -32,11 +33,12 @@ npm run check                # typecheck + tests + docs check
 | 7 | [**tech-notes.md**](docs/tech-notes.md) | The deterministic sim rule, stack, code shape, CLI, testing |
 | 8 | [**open-questions.md**](docs/open-questions.md) | **Decisions** (locked) + the open questions |
 | 9 | [**adr/0001-functional-ts.md**](docs/adr/0001-functional-ts.md) | Language/FP decision: TS strict, functional core, no fp-ts; why not PureScript; Vite over Next |
-| 10 | [**adr/0002-ui-framework.md**](docs/adr/0002-ui-framework.md) | UI framework: React (proposed), Angular contingency plan, and why the decision can wait |
-| 11 | [**phase-0-report.md**](docs/phase-0-report.md) | The first playable: the day pipeline and the wipe report |
-| 12 | [**progression-report.md**](docs/progression-report.md) | **The ladder and the AI** — levels, dungeons, three raids, personalities, and the measured balance |
-| 13 | [**learnings.md**](docs/learnings.md) | **The log** — 75 things we got wrong, what proved it, and what changed |
-| 14 | [**roadmap.md**](docs/roadmap.md) | What could kill the project, and the order I'd build in |
+| 10 | [**adr/0002-ui-framework.md**](docs/adr/0002-ui-framework.md) | UI framework: React + Vite chosen; the Angular contingency and why the decision could wait |
+| 11 | [**adr/0003-ui-shell-dependencies.md**](docs/adr/0003-ui-shell-dependencies.md) | React 19 + Vite 8 + Zustand 5 + Tailwind 4, and the libraries we did not take |
+| 12 | [**phase-0-report.md**](docs/phase-0-report.md) | The first playable: the day pipeline and the wipe report |
+| 13 | [**progression-report.md**](docs/progression-report.md) | **The ladder and the AI** — levels, dungeons, three raids, personalities, and the measured balance |
+| 14 | [**learnings.md**](docs/learnings.md) | **The log** — 95 things we got wrong, what proved it, and what changed |
+| 15 | [**roadmap.md**](docs/roadmap.md) | What could kill the project, and the order I'd build in |
 
 Raw sourced research behind the blueprint:
 
@@ -74,8 +76,10 @@ If you read nothing else, these are the differences between the current draft GD
 
 ## Where it stands
 
-The sim is deterministic, tested (124 tests) and playable from a terminal. A run is 84 days: three level-1 heroes, a farm, missions, four dungeons, three raids. Seventeen areas, each with a bestiary and a named drop table the player can inspect before committing a party. Twenty traits (counters, bonds, craft, flaws, specialists) give heroes a second layer, and two boss threats can be answered or eaten. An AI plays it end to end — including the ten event cards, which it prices instead of taking the first option. Three rival guilds are full simulations of their own: rosters, gold, facilities and promises, played by the same planner. They score with the same formula, so the run ends with a real rank among four. Missions sit on a daily contract board: two are posted at full pay, the rest pay 25% of their gold and XP after the first clear, and the AI will not spend a night on a token repeat. The planner prices a night by need — the purse, the next wall's level gate and the raid party's gear gap — not only by XP. A standing raid ten takes the wall, and a clear's drops wait for the player to decide who gets the axe; the AI's own pick is the conservative floor. A renewal is a negotiation: pay market, counter 12% under (a refusal raises his number), or let him walk. A broken promise raises a transfer request. Three personalities produce three different games: the cautious Quartermaster scores highest and shares the most World Firsts, while the Gambler spends into arrears and pays for it.
+The sim is deterministic, tested (136 tests) and playable from a terminal and a browser. A run is 84 days: three level-1 heroes, a farm, missions, four dungeons, three raids. Seventeen areas, each with a bestiary and a named drop table the player can inspect before committing a party. Twenty traits (counters, bonds, craft, flaws, specialists) give heroes a second layer, and two boss threats can be answered or eaten. An AI plays it end to end — including the ten event cards, which it prices instead of taking the first option. Three rival guilds are full simulations of their own: rosters, gold, facilities and promises, played by the same planner. They score with the same formula, so the run ends with a real rank among four. Missions sit on a daily contract board: two are posted at full pay, the rest pay 25% of their gold and XP after the first clear, and the AI will not spend a night on a token repeat. The planner prices a night by need — the purse, the next wall's level gate and the raid party's gear gap — not only by XP. A standing raid ten takes the wall, and a clear's drops wait for the player to decide who gets the axe; the AI's own pick is the conservative floor. A renewal is a negotiation: pay market, counter 12% under (a refusal raises his number), or let him walk. A broken promise raises a transfer request. Three personalities produce three different games: the cautious Quartermaster scores highest and shares the most World Firsts, while the Gambler spends into arrears and pays for it.
 
 See [progression-report.md](docs/progression-report.md) for the numbers and the lessons.
 
-**Next:** the vertical-slice UI. The framework gate is closed (ADR 0002 accepted React + Vite), and the non-UI backlog is done: the rivals, the contract board, the need-aware planner, loot assignment, the role review, The Broken Bridge mitigation mission and the contract/promise negotiation. The conservative AI clears 44/60 full runs, the player's need pick 52/60, and the Tyrant wall is softer than target 3 — the next balance item. The role reviewer now only re-specs a party below 1.0 and the role chips show the four check deltas; the 1.30 affinity table was measured and rejected. A full world run is about ten times the guild-only run (1.1 s against 0.10 s on a quiet host), which is the price of simulating the race.
+**Screens:** [Guild Hall](docs/screenshots/hall.png) · [Roster](docs/screenshots/roster.png) · [Hero Sheet](docs/screenshots/hero-sheet.png) · [War Room](docs/screenshots/war-room.png) · [Report](docs/screenshots/report.png) · [Run End](docs/screenshots/run-end.png). See [screens.md](docs/screens.md) for what is built and what was cut.
+
+**Next:** play thirty days by hand. The build now exists to answer the one question no sweep can: does a day produce a decision worth retelling? The UI makes the loop testable with a stranger; it does not settle the kill criterion. After that: the Raid hub, drag-and-drop party building, scouting fog for the tavern, and the signing negotiation. The conservative AI clears 44/60 full runs, the player's need pick 52/60, and the Tyrant wall is softer than target 3 — the next balance item.

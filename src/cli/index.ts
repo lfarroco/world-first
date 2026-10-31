@@ -53,7 +53,10 @@ import {
   hireCandidate,
   isStance,
   itemLevel,
-  masteryFor,
+  focusPull,
+  fieldableParty,
+  nextLevers,
+  pullTraits,
   newGame,
   partyOf,
   personalityById,
@@ -77,9 +80,6 @@ import {
   availableContent,
   contentAvailability,
   unavailableContent,
-  bestPartyFor,
-  levelPartyFor,
-  levelOk,
 } from "../sim/plan";
 import { FACILITIES, facilityById, facilitySummary, nextCost, buyFacility, rosterCapFor, wageBudgetFor } from "../sim/facilities";
 import { blockingAttention, hasBlocking } from "../sim/events";
@@ -497,14 +497,11 @@ const cmdRoster = (): void => {
 
 /** Tonight's best legal party from heroes who can actually fight. */
 const projectionFor = (state: GameState, content: (typeof CONTENT)[number]) => {
-  const ready = state.roster.filter((h) => isAvailable(h));
-  // The contribution ranking can miss the average gate; show the highest-level
-  // legal party instead, because that is a party the player can actually send.
-  let party = bestPartyFor(state, content, ready);
-  if (party.length < content.minHeroes || !levelOk(content, party)) {
-    party = levelPartyFor(content, ready);
-  }
-  if (party.length < content.minHeroes || !levelOk(content, party)) return null;
+  // The contribution ranking can miss the average gate; `fieldableParty` falls
+  // back to the highest-level legal party, because that is a party the player
+  // can actually send. It is the same helper the War Room uses.
+  const party = fieldableParty(state, content);
+  if (!party) return null;
   const projection = projectAssignment(state, {
     contentId: content.id,
     heroes: party.map((h) => h.id),
@@ -1048,12 +1045,8 @@ const cmdReport = (): void => {
       ),
     );
   }
-  // A clear must show the pull that killed the boss. Showing the last failed
-  // pull under a CLEARED banner teaches the wrong lesson about a fight that is
-  // over — and it was the row the player read after every first clear.
-  const last = log.cleared
-    ? [...log.pulls].reverse().find((p) => p.killed) ?? log.pulls.at(-1)
-    : [...log.pulls].reverse().find((p) => !p.killed) ?? log.pulls.at(-1);
+  // A clear shows the pull that killed the boss; a wipe shows the last failure.
+  const last = focusPull(log);
   if (!last) return;
   console.log(
     color(
@@ -1100,24 +1093,13 @@ const cmdReport = (): void => {
     }
   }
 
-  const traits = new Set<string>();
-  for (const phase of last.phases) for (const name of phase.traits ?? []) traits.add(name);
-  if (traits.size > 0) console.log(color(`traits: ${[...traits].join(", ")}`, "dim"));
+  const traits = pullTraits(log);
+  if (traits.length > 0) console.log(color(`traits: ${traits.join(", ")}`, "dim"));
 
-  const failed = last.phases.find((p) => p.outcome === "fail");
-  if (failed) {
-    const gap = Math.max(0, failed.requirement - failed.value);
-    const progress = state.progress.find((p) => p.contentId === log.contentId);
-    const attempts = progress?.attempts ?? 0;
-    console.log(color(`\nnext lever: +${Math.round(gap)} ${failed.checkLabel}`, "bold"));
-    // Do not recommend a lever the night already took. The old string always
-    // said "switch to Push", including on push nights.
-    if (log.stance === "push") {
-      console.log(color(`  already on Push — the +12% check bonus is already in these numbers`, "dim"));
-    } else {
-      console.log(`  +${Math.round(failed.value * 0.12)}  switch stance to Push (+12% checks, +55% injury risk)`);
-    }
-    console.log(`  +${Math.round(failed.value * 0.15)}  one gear tier from the next dungeon clear`);
+  const levers = nextLevers(state, log);
+  if (levers.length > 0) {
+    console.log(color(`\nnext levers`, "bold"));
+    for (const lever of levers) console.log(`  ${pad(lever.label, 18)}  ${color(lever.detail, "dim")}`);
     if (state.plan.parties.some((p) => p.contentId === log.contentId)) {
       const projection = projectAssignment(state, state.plan.parties.find((p) => p.contentId === log.contentId)!);
       if (projection) {
@@ -1130,9 +1112,6 @@ const cmdReport = (): void => {
         );
       }
     }
-    console.log(
-      `  mastery ${Math.round(masteryFor(attempts) * 100)}% after ${attempts} pull${attempts === 1 ? "" : "s"} (2% per pull, cap 30%)`,
-    );
   }
   console.log();
 };

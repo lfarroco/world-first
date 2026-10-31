@@ -38,12 +38,12 @@ The language and FP approach are settled in [ADR 0001](adr/0001-functional-ts.md
 |---|---|---|
 | Language | **TypeScript** (strict, `noUncheckedIndexedAccess`) | The sim is arithmetic; types catch the class of bug that ruins balance |
 | Approach | **Functional core / imperative shell** — see [ADR 0001](adr/0001-functional-ts.md) | The sim is pure and deterministic; the UI is a normal React app |
-| Build | **Vite** | The game is 100% client-side; no SSR to buy, faster HMR and a simpler mental model than Next |
-| UI | **React** + **Zustand** (per [ADR 0002](adr/0002-ui-framework.md), deferred until Phase 0) | Boring and well-supported; the store holds the action log and calls `advanceDay` |
-| Styling | **Tailwind** + a small design-token layer | Density requires tight control of spacing/size |
+| Build | **Vite 8.3.5** | The game is 100% client-side; no SSR to buy, faster HMR and a simpler mental model than Next |
+| UI | **React 19.3.1** + **Zustand 5.0.16** (per [ADR 0002](adr/0002-ui-framework.md)) | Boring and well-supported; the store holds the action log and calls the pure `applyAction` reducer |
+| Styling | **Tailwind CSS 4.3.3** via `@tailwindcss/vite`, no config file, design tokens in `@theme` | Density requires tight control of spacing/size |
 | Data | **localStorage** behind a `SaveStore` interface | See [open-questions.md](open-questions.md) D6 |
 | CLI | plain Node + a table printer | Must not depend on the web app |
-| Tests | **Vitest** + **fast-check** | Property-based tests are where the functional core pays off |
+| Tests | **Vitest 5** + **fast-check** | Property-based tests are where the functional core pays off; the UI reducer is tested headlessly |
 | Lint | ESLint + `dependency-cruiser` | Enforces "sim is pure" mechanically instead of by discipline |
 
 **Not using:** Phaser / PixiJS (no real-time rendering in v0.1) · a heavy component library (we need a very specific dense-table look) · Redux · **fp-ts / Effect / ts-pattern / Immer in the sim** (rationale in the ADR).
@@ -64,6 +64,25 @@ The sim is implemented and tested; see [phase-0-report.md](phase-0-report.md). T
 
 ---
 
+## 2.6 The browser shell (2026-10-31)
+
+The dependency decision is [ADR 0003](adr/0003-ui-shell-dependencies.md). The UI is a thin projection of `GameState`. No screen mutates state and no screen computes a game number differently from the sim.
+
+| Piece | File | Rule |
+|---|---|---|
+| Pure actions | `store/actions.ts` | `applyAction(state, action) → state`. The entire UI vocabulary (assign, stance, hire, release, facility, attention, loot, team, advance) is one reducer. The store calls it; the tests call it without a DOM. |
+| Store | `store/gameStore.ts` | Zustand. UI state (screen, drawer, modal, report, toast) lives here and never enters the save. Game mutations go through `applyAction`, re-derive the attention queue, then write. |
+| Save | `store/save.ts` | Versioned localStorage file; validation rejects an unknown version or a broken state instead of crashing the boot. |
+| Selectors | `store/selectors.ts` | Presentation composition (wage info, content rows, party advice, week strip, role chips). It calls sim functions; it does not reimplement them. |
+| Screens | `ui/screens/` | `Hall`, `Roster` + `HeroSheet`, `WarRoom`, `Report`, `Title`. |
+| Modals | `ui/modals/` | attention, inspect, loot, tavern, new run, help. |
+| Chrome | `ui/components/` | top bar, tabs, primitives, event line. |
+| Shell | `app/App.tsx`, `app/styles.css`, `app/clock.ts` | keyboard, overlays, design tokens. `clock.ts` is the only place the shell reads `Date` / `Math.random`. |
+
+**Three additions to the sim for the UI, all shared with the CLI:** `fieldableParty` in `plan.ts` (the best legal party, or null), and `focusPull` / `nextLevers` / `pullTraits` / `masteryReport` in `report.ts`. The browser and the terminal now read the same report logic.
+
+**Two rules the UI keeps:** blocking attention is checked *before* `advanceDay`, never after; and drops never block. A click on Advance with a blocking item opens the queue and resolves nothing.
+
 ## 3. Code shape
 
 ```
@@ -74,8 +93,9 @@ src/
     content/              content.ts (the ladder), roles.ts, classes.ts,
                           heroes.ts (generation + XP curve), tuning.ts  ← data, not logic
     hero.ts               attributes → roleScore → power; XP and levelling
-    plan.ts               parties, unlocks, validation
+    plan.ts               parties, unlocks, fieldableParty, validation
     encounter.ts          phase resolution + projections for any content
+    report.ts             focusPull, nextLevers, pullTraits, digestForDay
     day.ts                the day pipeline for one guild
     economy.ts
     founding.ts           the state every guild starts from (no rivals)
@@ -84,15 +104,15 @@ src/
     world.ts              tickRivals, advanceDay, runWorld
     events.ts             event + attention derivation
     ai/                   personalities.ts · planner.ts · reward.ts · turn.ts (aiTurn, aiRun)
-    game.ts               newGame, hiring, assigning, advancing
+    game.ts               newGame, hiring, assigning, resolving attention
     index.ts              the public surface
-  app/                    ← Vite entry, routing, providers
-  ui/                     ← components: DataGrid, AttributeBlock, CheckBar, AttentionCard…
-  store/                  ← Zustand slices, save/load, action log
+  app/                    ← Vite entry, App shell, keyboard, tokens, clock
+  ui/                     ← components/, screens/, modals/
+  store/                  ← actions.ts (pure), gameStore.ts, save.ts, selectors.ts
   cli/                    ← headless driver
 ```
 
-The dependency rule is one-way: `sim` imports nothing from `ui`/`store`/`app`. If that ever inverts, determinism and testing are gone.
+The dependency rule is one-way: `sim` imports nothing from `ui`/`store`/`app`. If that ever inverts, determinism and testing are gone. `vite.config.ts` and `index.html` sit at the repo root.
 
 ---
 
@@ -120,21 +140,23 @@ Each stream is seeded from `hash(seed, streamName, day)` so results are stable w
 type Save = {
   version: number;         // migration gate
   seed: number;
-  createdAt: string;
+  savedAt: string;      // overwritten on every write; the run start is the seed
   state: GameState;        // cached snapshot, derivable
-  actionLog: Action[];     // { day, type, payload }
+  actionLog: LoggedAction[]; // { day, action: GameAction }
 }
 ```
 
-- The **action log** is the source of truth; `state` is a cache. If they ever disagree, replay wins.
-- Migrations are `migrate(save): Save` functions chained by version. Start at 1 and never mutate in place.
-- Keep the log small: actions only (assign, stance, sign, advance), never derived data.
+- The **action log** is intended as the source of truth; `state` is a cache. Replay is not implemented yet: the UI loads the cache and appends actions, and the tests assert that the same seed and the same actions produce the same state. Do not assume `state` can be rebuilt from the log until a replay test exists.
+- Migrations are `migrate(save): Save` functions chained by version. The browser gate is at version 1 and rejects anything it does not recognise rather than loading a partial state (`store/save.ts`). Never mutate a save in place.
+- Keep the log small: actions only (assign, stance, sign, advance, resolve, loot), never derived data. The UI's `GameAction` union is the vocabulary.
+- **One slot**, `world-first.save` in localStorage. The seed and the guild name are in the file. There is no export yet.
+- A save carries the three rival guilds, so it is 164–251 kB. That is the real cost of "the race is simulated"; see §8.
 
-`pendingLoot` and `raidTeam` are optional fields on `GameState`; a save without them loads with an empty queue and no team, and behaves exactly as the previous build until its first new drop. No `version` bump and no migration function: the fields are additive and read with `?? []`. The queue's ids (`loot-<day>-<contentId>-<i>`) are content-derived; the assignment uses no RNG, so replaying the day gives the same items and the same suggestions. When the action log becomes the source of truth, `loot <n> <hero>`, `loot auto` and `raidteam` must be actions, not direct state writes.
+`pendingLoot` and `raidTeam` are optional fields on `GameState`; a save without them loads with an empty queue and no team. The queue's ids (`loot-<day>-<contentId>-<i>`) are content-derived; the assignment uses no RNG, so replaying the day gives the same items and the same suggestions. When replay lands, `loot <n> <hero>`, `loot auto` and `raidteam` are already actions in `store/actions.ts`, not direct state writes.
 
 ---
 
-## 6. CLI (build this before the UI)
+## 6. CLI (built before the UI; still the harness)
 
 ```
 guild new --seed 1234 --name "Ironbound Order"
@@ -161,7 +183,7 @@ The CLI is not a developer toy — it is the **primary test harness**. If a wipe
 | Determinism | resolve the same day twice, assert deep equality; an AI run reproduces its score and raid count from the seed; the contract board is a pure function of the state |
 | Balance | `npm run cli -- sim --runs N` across personalities; the AI is the test harness |
 | Balance | `guild sim --policy {idle, random, greedy, perfect}` — assert the MVP targets in [mvp-scope.md](mvp-scope.md) §3 |
-| UI | visual smoke tests on the table + drawer; no snapshot-everything |
+| UI | 11 headless tests on `applyAction` and the save file (determinism, no mutation, hire, facility, raid ten, report helpers), plus a Playwright-free headless-Chrome CDP pass for the screens and the 84-day run. No DOM snapshot tests. |
 
 The `perfect` policy is a small search/greedy bot. It's the single most valuable test asset: it tells you whether the game is winnable, and it's the baseline for "is this too easy".
 
@@ -175,7 +197,9 @@ Measured 2026-10-31 on the shipped build:
 - **One world day:** ~13 ms at the board build, because `tickRivals` gives three full guilds an `aiTurn`. A full 84-day world run was 1.1 s over a 30-run sample on a quiet host; the first measurement on an earlier build was 0.84 s. The reward context adds one `bestPartyFor` per day; the current build was not re-measured on a quiet host.
 - **`sim --runs 20`** (60 world runs) is ~65 s at the board build. The unit tests use the player-only `aiRun`; three world runs cover the race.
 - The roster table is ≤ 22 rows. No virtualisation needed. Tavern is ≤ 3.
-- The expensive thing will be **re-rendering the projection strip on every drag**. Compute projections in a `useMemo` keyed by `(party, stance, boss)` and keep the math pure — it's already a pure function, so memoisation is free.
+- **The projection is the expensive interaction.** `projectAssignment` runs on every party/stance/content change. It is one pure call over the party (≤22 heroes), so the War Room recomputes it rather than caching a derived number; keep it pure. The 15-hero AI save rendered without a visible delay in the headless pass; no frame timing was taken.
+- **Production bundle:** 402.79 kB JS / 120.57 kB gzip and 32.12 kB CSS / 7.47 kB gzip, built in 0.32 s (`vite build`, 73 modules). No component library, no chart library, no drag library.
+- **Save cost:** a day-41 save is 164 kB; a finished run is 251 kB because it carries three rival guilds. JSON.stringify is 4.7 / 6.3 ms and parse is 3.3 / 4.9 ms over 200 runs on the dev host. The store writes on every game action, not on UI state, so a day costs one write (~5 ms) on top of the ~13 ms world tick.
 - A 10,000-day batch is ~12 s with `aiRun` (player only, ~119 full runs) and ~100 s with the world attached. Optimise the rival planner first if that becomes the bottleneck; do not cut the race out of the sweep.
 
 ---
@@ -185,13 +209,17 @@ Measured 2026-10-31 on the shipped build:
 Bosses, roles, classes, hero name pools, and tuning constants live in `sim/content/` as typed data:
 
 ```ts
-export const BOSSES: Boss[] = [
-  { id: 'vael', name: 'Archdemon Vael', recommendedIlvl: 170,
-    phases: [
-      { name: 'Summoning', check: 'mechanics', requirement: 310, share: 0.25 },
-      { name: 'Inferno',   check: 'sustain',   requirement: 360, share: 0.35 },
-      { name: 'Enrage',    check: 'dps',       requirement: 470, share: 0.40 },
-    ]},
+export const CONTENT: ContentDef[] = [
+  {
+    id: "wolf-den", name: "The Wolf Den", kind: "mission", tier: 1, minLevel: 1,
+    minHeroes: 3, maxHeroes: 3, recommendedIlvl: 12, gold: 70, xp: 120,
+    phases: [{ name: "The Den", check: "dps", requirement: 16, share: 1 }],
+    requires: ["warrens"], contractColumn: "xp",
+    loot: { count: 1, ilvlMin: 8, ilvlMax: 18 },
+    mobs: [{ name: "Grey Wolf", role: "Pack", check: "dps", note: "Circles and bites." }],
+    drops: [{ name: "Wolf-Fang Cleaver", slot: "weapon", ilvl: 18, chance: 0.2 }],
+    blurb: "Three heroes, one pack.",
+  },
 ]
 ```
 

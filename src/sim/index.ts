@@ -10,6 +10,7 @@ export * from "./board";
 export * from "./loot";
 export * from "./team";
 export * from "./score";
+export * from "./report";
 export * from "./events";
 export * from "./day";
 export * from "./game";

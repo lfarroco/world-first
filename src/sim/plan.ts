@@ -87,6 +87,25 @@ export const levelPartyFor = (content: ContentDef, available: readonly Hero[]): 
 };
 
 /**
+ * The party the UI shows as "tonight". `bestPartyFor` ranks by contribution and
+ * can miss the average gate; this falls back to the highest-level legal party so
+ * the screen never projects a party the game would refuse. Null means the guild
+ * cannot field the content at all.
+ */
+export const fieldableParty = (
+  state: GameState,
+  content: ContentDef,
+  available: readonly Hero[] = state.roster.filter(isAvailable),
+): Hero[] | null => {
+  let party = bestPartyFor(state, content, available);
+  if (party.length < content.minHeroes || !levelOk(content, party)) {
+    party = levelPartyFor(content, available);
+  }
+  if (party.length < content.minHeroes || !levelOk(content, party)) return null;
+  return party;
+};
+
+/**
  * Cheap version of `bestPartyFor` for the availability check: can the roster
  * field any legal party? Ranking every hero for every content is what the
  * planner calls every day, and the roster sort is a different question.

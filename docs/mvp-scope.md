@@ -32,18 +32,19 @@ If those three are fun with no art, the game is real. Everything else is amplifi
 | Content gate | **Only fieldable content is listed** — prerequisite clears, roster size and party average level · one `unlock` event per area · `inspect <id>` shows phases, mobs, drops and per-clear chances |
 | Day loop | 9-stage pipeline · digest · **attention queue (max 3 blocking)** · Advance Day |
 | Progression | level gates + prerequisite clears · locked content hidden · free recruits on the three ladder dungeons (55% of your best; side dungeon excluded) · tavern recruits ≈ 62–80% of your best |
-| Economy | gold in/out · weekly wages vs budget · **arrears instead of game over** |
+| Economy | gold in/out · weekly wages vs budget · **arrears instead of game over** · four facilities × three levels |
 | Recruitment | Tavern: 3 candidates, refresh on day 7 · signing modal (wage / length / squad status) · potential fog |
 | Rivals | 3 NPC guilds, deterministic per seed, each a full guild run by the same planner and `resolveDay`; scored with the same formula so the rank is real |
 | Contract board | Two open missions are posted at full pay each day; every other mission pays 25% of its gold and XP after the first clear. First clears and loot are unaffected; the AI skips token repeats |
 | Run | **84-day deadline** · 3 raids · World First · **final score, band and rank** |
 | Retention | morale deltas · transfer requests · contract expiry · squad-status promises |
 | Persistence | localStorage save, versioned, deterministic from seed + action log |
+| UI | **Browser vertical slice:** Guild Hall, Roster + Hero Sheet, War Room with live projection, Report + Run End, attention queue, loot assignment, tavern (immediate signing), four facility upgrades, keyboard and responsive layout |
 | Dev tooling | headless CLI: `new`, `content`, `inspect <id>`, `party`, `advance`, `ai`, `sim --runs N [--clears]`, `status` · **AI planner** (`src/sim/ai`) with personalities |
 
 ### Out (v0.1, explicitly)
 
-Split runs · doctrine toggles · doctrine familiarity · two-audience grades (board vs heroes) · board objectives/firing · training sessions · youth academy · scouting network and scouts as entities · staff · press/media · facility tree (one guild-hall tier only) · poaching · loans · multi-tier seasons · 2D replay · multiplayer · cosmetics · mobile-native layout (responsive only) · localisation · save export.
+Split runs · doctrine toggles · doctrine familiarity · two-audience grades (board vs heroes) · board objectives/firing · training sessions · youth academy · scouting network and scouts as entities · staff · press/media · poaching · loans · multi-tier seasons · 2D replay · multiplayer · cosmetics · mobile-native layout (responsive only) · localisation · save export. Also cut from the first UI pass: drag-and-drop parties, bulk roster actions, comparison drawer, signing negotiation, scouting fog, raid hub, contracts table and settings.
 
 Each of these is in [vision.md](vision.md) §5 with a phase.
 
@@ -74,9 +75,9 @@ Targets 4 and 5 tell you whether the race is tuned; 6 tells you whether the scor
 `types` → `rng` → `heroes` (attributes, roles, power) → `checks` (boss resolution) → `day` (pipeline) → `economy` → `rivals` → CLI.
 Shipped when: the CLI can play a full run in a terminal and print a readable wipe report. Measured (20 seeds/personality, after the 2026-10-30 economy pass): 2.60–2.80 raids; on 20 Steward seeds, 14 clear all three and 6 stop at two; an idle guild clears nothing — see [progression-report.md](progression-report.md) §1.1 and §3.
 
-**Phase 1 — vertical slice UI**
-Roster table + hero sheet drawer → War Room (drag, projection strip) → Day report modal → Wipe report modal.
-Ship when: a stranger can play a week without asking what a number means.
+**Phase 1 — vertical slice UI** ◐ *built 2026-10-31, not playtested*
+Roster table + hero sheet drawer → War Room (click-to-fill, projection strip) → Report screen → Wipe analysis. The attention queue, loot assignment, tavern and facilities were pulled forward because a guild that cannot hire is stuck at three heroes.
+Ship when: a stranger can play a week without asking what a number means. **Not verified.** The build is the instrument for that test, not the result.
 
 **Phase 2 — the loop becomes a game**
 Guild Hall + attention queue → Advance Day gating → Tavern + signing → Raid/RWF screen.

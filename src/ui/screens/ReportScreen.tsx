@@ -1,0 +1,408 @@
+import {
+  KIND_LABEL,
+  RAIDS,
+  RUN_DAYS,
+  computeScore,
+  contentById,
+  focusPull,
+  masteryReport,
+  nextLevers,
+  playerRank,
+  pullTraits,
+  type EncounterLog,
+  type GameEvent,
+  type GameState,
+  type ScoreLine,
+} from "../../sim";
+import { randomSeed } from "../../app/clock";
+import { useGameStore } from "../../store/gameStore";
+import { guildSummary } from "../../store/selectors";
+import { EventLine } from "../components/EventLine";
+import { Chip } from "../components/Primitives";
+
+const fmt = (value: number): string => Math.round(value).toLocaleString("en-US");
+
+/** `-0` is a real JS number and reads as "+-0" if you are not careful. */
+const signed = (value: number): string => {
+  const rounded = Math.abs(value) < 0.5 ? 0 : Math.round(value);
+  return `${rounded > 0 ? "+" : ""}${rounded.toLocaleString("en-US")}`;
+};
+
+const EncounterReport = ({ game, encounter }: { game: GameState; encounter: EncounterLog }) => {
+  const setScreen = useGameStore((s) => s.setScreen);
+  const pull = focusPull(encounter);
+  const levers = nextLevers(game, encounter);
+  const mastery = masteryReport(game, encounter);
+  const traits = pullTraits(encounter);
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <div className="eyebrow">
+            {KIND_LABEL[encounter.contentKind]} · day {encounter.day} · {encounter.stance} stance
+          </div>
+          <div className="section-title">{encounter.contentName}</div>
+        </div>
+        <div className="row-wrap">
+          {encounter.payScale !== undefined && encounter.payScale < 1 ? (
+            <Chip tone="warn">token {Math.round(encounter.payScale * 100)}%</Chip>
+          ) : null}
+          <Chip tone={encounter.cleared ? "good" : "bad"}>
+            {encounter.cleared ? "cleared" : `wipe · best ${Math.round(encounter.bestPull * 100)}%`}
+          </Chip>
+        </div>
+      </div>
+
+      {pull ? (
+        <div className="panel-body">
+          <div className="spread" style={{ marginBottom: 6 }}>
+            <span className="small muted">
+              {encounter.cleared ? "Killing" : "Last"} pull {pull.index} of {encounter.pulls.length}
+            </span>
+            <span className="tiny dim">
+              mastery {Math.round(mastery.mastery * 100)}% · {mastery.attempts}{" "}
+              {mastery.attempts === 1 ? "attempt" : "attempts"} logged
+            </span>
+          </div>
+          {pull.phases.map((phase) => (
+            <div className="phase-result" data-outcome={phase.outcome} key={phase.name}>
+              <div className="spread">
+                <span style={{ fontWeight: 600 }}>{phase.name}</span>
+                <span className={`small ${phase.outcome === "fail" ? "bad" : phase.outcome === "scrape" ? "warn" : "good"}`}>
+                  {phase.outcome === "fail" ? "FAIL" : phase.outcome}{" "}
+                  <span className="mono dim">
+                    {phase.value}/{phase.requirement} · {phase.ratio.toFixed(2)}
+                  </span>
+                </span>
+              </div>
+              <div className="tiny dim">
+                {phase.checkLabel}
+                {phase.offNights.length > 0 ? ` · off nights: ${phase.offNights.join(", ")}` : ""}
+                {phase.ability
+                  ? ` · ${phase.ability.name}${phase.ability.countered ? ` countered by ${phase.ability.counterHero ?? "the party"}` : ` uncountered ×${phase.ability.mult.toFixed(2)}`}`
+                  : ""}
+              </div>
+            </div>
+          ))}
+          {traits.length > 0 ? <div className="tiny dim" style={{ marginTop: 6 }}>Traits in the pull: {traits.join(", ")}.</div> : null}
+          {encounter.injured.length > 0 ? (
+            <div className="small bad" style={{ marginTop: 6 }}>
+              Injured: {encounter.injured.join(", ")}.
+            </div>
+          ) : null}
+          {encounter.loot && encounter.loot.length > 0 ? (
+            <div className="small dim" style={{ marginTop: 6 }}>
+              Drops: {encounter.loot.map((l) => (l.item ? `${l.item} (${l.slot} ${l.ilvl})` : `${l.slot} ${l.ilvl}`)).join(", ")}.
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="empty">No pull was logged.</div>
+      )}
+
+      {levers.length > 0 ? (
+        <div className="panel-body" style={{ borderTop: "1px solid var(--color-line-soft)" }}>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>
+            Next levers
+          </div>
+          {levers.map((lever) => (
+            <div className="lever" key={lever.label}>
+              <span className={`lever-value ${lever.gain > 0 ? "good" : "dim"}`}>{lever.label}</span>
+              <span className="lever-detail">{lever.detail}</span>
+            </div>
+          ))}
+          <div className="row" style={{ marginTop: 8 }}>
+            <button className="btn btn-primary btn-sm" onClick={() => setScreen("war")}>
+              Go to War Room
+            </button>
+            <span className="tiny dim">The failed check names the lever; the party card shows the new projection.</span>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+};
+
+const ScoreCard = ({ game, lines }: { game: GameState; lines: ScoreLine[] }) => {
+  const max = Math.max(1, ...lines.map((line) => Math.abs(line.value)));
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <span className="eyebrow">Score so far</span>
+        <span className="tiny dim">same formula at the end</span>
+      </div>
+      <div className="panel-body">
+        {lines.map((line) => (
+          <div className="score-line" key={line.label}>
+            <span className="small muted">{line.label}</span>
+            <span className="mono small" style={{ textAlign: "right" }}>
+              {signed(line.value)}
+            </span>
+            <div className="score-bar" title={line.detail}>
+              <div style={{ width: `${Math.max(0, Math.min(100, (line.value / max) * 100))}%` }} />
+            </div>
+          </div>
+        ))}
+        <div className="spread" style={{ marginTop: 8 }}>
+          <span className="eyebrow">Total</span>
+          <span className="mono" style={{ fontSize: 18 }}>
+            {fmt(game.score ?? guildSummary(game).latestScore)}
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const momentsFor = (game: GameState): { day: number; text: string }[] => {
+  const cleared = game.progress
+    .map((p) => ({ progress: p, content: contentById(p.contentId) }))
+    .filter((entry) => entry.content && entry.progress.clearedOnDay !== null)
+    .sort((a, b) => (a.progress.clearedOnDay ?? 0) - (b.progress.clearedOnDay ?? 0));
+  const raids = cleared.filter((entry) => entry.content?.kind === "raid");
+  const firstDungeon = cleared.find((entry) => entry.content?.kind === "dungeon");
+  const firstRaid = raids[0];
+  const lastRaid = raids.at(-1);
+  const lastWipe = [...game.events].reverse().find((event: GameEvent) => event.kind === "wipe");
+
+  // The arc, not the first three dated rows: the first way in, the first raid,
+  // and the run's ending (World First if it happened, otherwise the last raid).
+  const picks: { day: number; text: string }[] = [];
+  const push = (day: number | null | undefined, text: string): void => {
+    if (day === null || day === undefined) return;
+    if (picks.some((pick) => pick.text === text)) return;
+    picks.push({ day, text });
+  };
+  if (firstDungeon) {
+    push(
+      firstDungeon.progress.clearedOnDay,
+      `First dungeon clear: ${firstDungeon.content?.name ?? "a dungeon"}.`,
+    );
+  }
+  if (firstRaid) {
+    push(firstRaid.progress.clearedOnDay, `${firstRaid.content?.name ?? "raid"} fell for the first time.`);
+  }
+  if (game.worldFirstDay !== null) {
+    push(game.worldFirstDay, "World First: the Tyrant fell before any rival.");
+  } else if (lastRaid && lastRaid !== firstRaid) {
+    push(lastRaid.progress.clearedOnDay, `${lastRaid.content?.name ?? "raid"} fell for the first time.`);
+  }
+  if (picks.length < 3 && lastWipe) push(lastWipe.day, lastWipe.text);
+  if (picks.length < 3) {
+    const first = cleared[0];
+    if (first) {
+      push(first.progress.clearedOnDay, `First clear: ${first.content?.name ?? "an area"}.`);
+    }
+  }
+  return picks.slice(0, 3).sort((a, b) => a.day - b.day);
+};
+
+const RunEnd = ({ game }: { game: GameState }) => {
+  const startRun = useGameStore((s) => s.startRun);
+  const openModal = useGameStore((s) => s.openModal);
+  const lines = game.scoreLines ?? [];
+  const rank = playerRank(game);
+  const summary = guildSummary(game);
+  const moments = momentsFor(game);
+
+  return (
+    <div className="panel run-end">
+      <div className="run-card">
+        <div className="title-kicker">The run is complete</div>
+        <div className="row" style={{ justifyContent: "center", gap: 22 }}>
+          <div>
+            <div className="eyebrow">Rank</div>
+            <div className="band">
+              {rank}
+              <span className="small muted" style={{ fontSize: 13 }}>
+                {" "}/ {game.rivals.length + 1}
+              </span>
+            </div>
+          </div>
+          <div>
+            <div className="eyebrow">Band</div>
+            <div className="band">{game.band ?? "—"}</div>
+          </div>
+          <div>
+            <div className="eyebrow">Score</div>
+            <div className="run-score">{fmt(game.score ?? 0)}</div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 18, textAlign: "left" }}>
+          {lines.map((line) => {
+            const max = Math.max(1, ...lines.map((l) => Math.abs(l.value)));
+            return (
+              <div className="score-line" key={line.label}>
+                <span className="small muted">{line.label}</span>
+                <span className="mono small" style={{ textAlign: "right" }}>
+                  {signed(line.value)}
+                </span>
+                <div className="score-bar">
+                  <div style={{ width: `${Math.max(0, Math.min(100, (line.value / max) * 100))}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {moments.length > 0 ? (
+          <div style={{ marginTop: 18, textAlign: "left" }}>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>
+              Three moments that mattered
+            </div>
+            {moments.map((moment) => (
+              <div className="small" key={`${moment.day}-${moment.text}`} style={{ padding: "3px 0" }}>
+                <span className="mono dim">Day {moment.day}</span> — {moment.text}
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div style={{ marginTop: 18 }}>
+          <div className="eyebrow" style={{ marginBottom: 4, textAlign: "left" }}>
+            The table
+          </div>
+          {summary.standings.map((row, index) => (
+            <div className="standings-row" key={row.name} data-player={row.isPlayer}>
+              <span className="standings-rank">{index + 1}</span>
+              <span style={{ fontWeight: row.isPlayer ? 700 : 500 }}>{row.name}</span>
+              <span className="mono" style={{ textAlign: "right" }}>
+                {fmt(row.score)}
+              </span>
+              <span className="mono dim" style={{ textAlign: "right" }}>
+                {row.raids}/{RAIDS.length}
+              </span>
+              <span className="standings-activity tiny dim">
+                {row.worldFirstDay !== null ? `World First day ${row.worldFirstDay}` : "—"}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="row-wrap" style={{ justifyContent: "center", marginTop: 20 }}>
+          <button className="btn btn-primary" onClick={() => startRun(game.seed, game.guildName)}>
+            New run — same seed
+          </button>
+          <button className="btn" onClick={() => startRun(randomSeed(), game.guildName)}>
+            New run — new seed
+          </button>
+          <button className="btn" onClick={() => openModal({ kind: "new-run" })}>
+            Custom
+          </button>
+        </div>
+        <div className="tiny dim" style={{ marginTop: 8 }}>
+          Same seed and the same actions reproduce this run. Day {Math.min(game.day, RUN_DAYS)} of {RUN_DAYS}.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const ReportScreen = () => {
+  const game = useGameStore((s) => s.game);
+  const report = useGameStore((s) => s.report);
+  const setScreen = useGameStore((s) => s.setScreen);
+  if (!game) return null;
+
+  const summary = guildSummary(game);
+  // During a run the report shows the live breakdown; at the end the run-end
+  // card owns the same numbers, so the side card is dropped to avoid a repeat.
+  const liveScore = game.finished ? null : computeScore(game);
+  const encounter = report?.encounter ?? (game.lastEncounter?.day === report?.day ? game.lastEncounter : null);
+
+  return (
+    <div className="stack" style={{ gap: 12 }}>
+      <header className="spread">
+        <div>
+          <h1 className="screen-title">
+            {game.finished ? "Run report" : report ? `Day ${report.day} report` : "Report"}
+          </h1>
+          <p className="screen-sub">
+            {game.finished
+              ? "The verdict, the components, and the moments that made the run. The next run can use the same seed."
+              : "The digest, the pull that decided the night, and the next lever with numbers. A wipe names the check that failed; the projection names what a change buys."}
+          </p>
+        </div>
+        <div className="row-wrap small">
+          <Chip tone="info">rank {summary.rank} of {game.rivals.length + 1}</Chip>
+          <Chip>score {fmt(summary.latestScore)}</Chip>
+          <button className="btn btn-sm" onClick={() => setScreen("hall")}>
+            Guild Hall
+          </button>
+          <button className="btn btn-sm" onClick={() => setScreen("war")}>
+            War Room
+          </button>
+        </div>
+      </header>
+
+      {game.finished ? <RunEnd game={game} /> : null}
+
+      <div className="report-grid">
+        <div className="stack" style={{ gap: 12 }}>
+          <section className="panel">
+            <div className="panel-head">
+              <span className="eyebrow">{report ? `Digest · day ${report.day}` : "Digest"}</span>
+              <span className="tiny dim">{report ? `${report.events.length} entries` : "no day resolved"}</span>
+            </div>
+            <div className="card-list">
+              {!report ? (
+                <div className="empty">Advance the day to produce a report.</div>
+              ) : report.events.length === 0 ? (
+                <div className="empty">Nothing was logged. A quiet day is still a day.</div>
+              ) : (
+                report.events.map((event) => <EventLine key={event.id} event={event} />)
+              )}
+            </div>
+          </section>
+
+          {encounter ? <EncounterReport game={game} encounter={encounter} /> : (
+            <section className="panel">
+              <div className="empty">No encounter on this day. The digest is the whole report.</div>
+            </section>
+          )}
+        </div>
+
+        <aside className="stack" style={{ gap: 12 }}>
+          {liveScore ? <ScoreCard game={game} lines={liveScore.lines} /> : null}
+          <section className="panel">
+            <div className="panel-head">
+              <span className="eyebrow">The race</span>
+            </div>
+            <div className="panel-body stack" style={{ gap: 6 }}>
+              {summary.standings.map((row) => (
+                <div className="spread small" key={row.name}>
+                  <span className={row.isPlayer ? "gold" : ""}>
+                    {row.name}
+                    {row.isPlayer ? " (you)" : ""}
+                  </span>
+                  <span className="mono">{fmt(row.score)}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+          {!game.finished ? (
+            <section className="panel">
+              <div className="panel-head">
+                <span className="eyebrow">Next</span>
+              </div>
+              <div className="panel-body stack" style={{ gap: 6 }}>
+                <button className="btn btn-block" onClick={() => setScreen("war")}>
+                  Plan tomorrow
+                </button>
+                <button className="btn btn-ghost btn-block" onClick={() => setScreen("hall")}>
+                  Back to the hall
+                </button>
+                <div className="tiny dim">
+                  The next lever is a party change, a stance, or a gear tier. The report shows the number
+                  each one is worth on the failed check.
+                </div>
+              </div>
+            </section>
+          ) : null}
+        </aside>
+      </div>
+    </div>
+  );
+};
