@@ -8,12 +8,12 @@ import type {
   SquadStatus,
 } from "./types";
 import { assignedIds, availableContent } from "./plan";
-import { renewalWage, wageBill } from "./economy";
+import { counterDemand, counterHint, counterOffer, renewalWage, transferFee, wageBill } from "./economy";
 import { wageBudgetFor } from "./facilities";
 import { cardById, optionAffordable } from "./content/events";
 import { lootUpgrade, suggestLootTarget } from "./loot-target";
 import { CONTENT, KIND_LABEL } from "./content/content";
-import { CONTRACT, PROMISE } from "./content/tuning";
+import { CONTRACT, NEGOTIATION, PROMISE } from "./content/tuning";
 
 /** Deterministic id: no global counters, or replays diverge. */
 const hashText = (text: string): number => {
@@ -118,11 +118,37 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
   }
 
   for (const hero of state.roster) {
-    if (hero.contract.daysLeft <= 7) {
+    if (hero.contract.counterRefused) {
+      // He turned the counter down and named a final number. The market rate
+      // is off the table: meet the raise or lose him. This is the second half
+      // of the negotiation, not a re-roll.
+      const demand = counterDemand(hero);
+      items.push({
+        id: itemId("contract-counter", hero.id, today),
+        kind: "contract-counter",
+        day: today,
+        blocking: true,
+        heroId: hero.id,
+        title: `${hero.name}'s final number`,
+        detail: `He turned down ${counterOffer(hero)}g/week. He wants ${demand}g/week for ${CONTRACT.daysMax} days.`,
+        options: [
+          {
+            key: "meet",
+            label: `Meet it (${hero.contract.wage}g → ${demand}g/week)`,
+            effect: { kind: "meet-counter", heroId: hero.id },
+          },
+          { key: "release", label: "Let him walk", effect: { kind: "release", heroId: hero.id } },
+        ],
+      });
+      continue;
+    }
+    if (hero.contract.daysLeft <= NEGOTIATION.windowDays) {
       // Renewal re-prices to the hero's current level. Show the number: a
       // level-60 wage can be ten times the level-1 one, and the player is
       // choosing between that and losing the hero.
       const market = renewalWage(hero);
+      const offer = counterOffer(hero);
+      const hint = counterHint(hero) ? "he looks ready to talk" : "he may refuse";
       items.push({
         id: itemId("contract-expiring", hero.id, today),
         kind: "contract-expiring",
@@ -137,6 +163,17 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
             label: `Renew at market (${hero.contract.wage}g → ${market}g/week, ${CONTRACT.daysMax} days)`,
             effect: { kind: "renew", heroId: hero.id },
           },
+          // A counter is a real cut, and a refusal is final. Hide it only when
+          // no cut is possible, so it is never a trap option.
+          ...(hero.morale > NEGOTIATION.moraleFloor
+            ? [
+                {
+                  key: "counter",
+                  label: `Counter ${offer}g/week (${Math.round((1 - offer / market) * 100)}% under) — ${hint}`,
+                  effect: { kind: "counter" as const, heroId: hero.id },
+                },
+              ]
+            : []),
           { key: "release", label: "Let him walk", effect: { kind: "release", heroId: hero.id } },
         ],
       });
@@ -196,6 +233,38 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
       title: `${hero.name} expects his spot`,
       detail: `${promise.daysAssigned}/${PROMISE.startsRequired} starts, promise due ${promise.dueOn === today ? "tonight" : "tomorrow"}.`,
       options: [{ key: "ack", label: "Noted", effect: { kind: "acknowledge" } }],
+    });
+  }
+
+  // A broken promise costs more than a morale hit: he asks to leave. The
+  // request is derived from the ledger until it is answered, so it cannot be
+  // missed by a missed digest line. Rare enough to sit ahead of the ordinary
+  // blockers, and blocking because the answer changes the roster.
+  for (const promise of state.promises ?? []) {
+    if (promise.status !== "broken" || promise.transferAsked) continue;
+    const hero = state.roster.find((h) => h.id === promise.heroId);
+    if (!hero) continue;
+    const fee = transferFee(hero);
+    items.unshift({
+      id: `transfer-request:${hero.id}`,
+      kind: "transfer-request",
+      day: today,
+      blocking: true,
+      heroId: hero.id,
+      title: `${hero.name} asks for a transfer`,
+      detail: `You promised him starts and he did not get them. A rival will take him for ${fee}g.`,
+      options: [
+        {
+          key: "transfer",
+          label: `Grant it (${fee}g)`,
+          effect: { kind: "transfer", heroId: hero.id, accept: true },
+        },
+        {
+          key: "refuse",
+          label: "Refuse — he stays, unhappy",
+          effect: { kind: "transfer", heroId: hero.id, accept: false },
+        },
+      ],
     });
   }
 

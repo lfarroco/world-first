@@ -227,6 +227,10 @@ Morale 1–100, moving daily by small deltas. These are the values the build app
 | Promised the A-team | **+10** |
 | Rotated into a party | **+5** |
 | Contract renewed | **+8** |
+| Counter-offer accepted | **+4** |
+| Counter-offer refused | **−6** |
+| Transfer request granted | 0 (he leaves; the guild takes the fee) |
+| Transfer request refused | **−10** |
 | Complaint ignored | **−12** |
 | In arrears | **−2/day** (whole roster) |
 | Won World First | score only; no morale delta yet |
@@ -234,9 +238,10 @@ Morale 1–100, moving daily by small deltas. These are the values the build app
 **Departure rules** (implemented):
 - Contract reaches 0 days → the hero leaves for free (a bad event, not a negotiation).
 - An event option can remove a hero (`leave`); the release option on a contract item can remove them earlier.
-- Transfer requests, release clauses, buyouts and wage-under-market morale are **design, not implemented** — see [progression-report.md](progression-report.md) §7.
+- A refused counter-offer is final: he names a 25% raise, and the next item is meet it or let him walk.
+- A broken promise raises a transfer request the same day. Grant it and the buying guild pays half the hero's recruit fee (`feeForLevel × 0.5`); refuse it and he stays at −10 morale. Release clauses, buyouts and wage-under-market morale are still **design, not implemented** — see [progression-report.md](progression-report.md) §7.
 
-This is the retention loop, and it's the cheapest source of narrative in the game once the negotiation half exists.
+This is the retention loop, and it's the cheapest source of narrative in the game now that the negotiation half exists.
 
 ---
 
@@ -423,6 +428,8 @@ A content is a record in `src/sim/content/content.ts`. The fields the player mee
 
 **Rewards are a choice, not a stack.** Each band carries more than one job. The XP run pays no loot, the gold run pays no XP, and the loot run pays neither. The shipped numbers and the measured effect are in [progression-report.md](progression-report.md) §1.1; the rule is that a new option must take something away, or it is free progression.
 
+**The mission band has one non-mechanics job.** The Broken Bridge (level 18, three heroes, mitigation 36, 220g/60xp/one item) gives the spare party a check the other four mechanics missions do not: a tank-pair line that a one-tank party fails without gear or a Bulwark. It was added after the contract board exposed the gap; the measured arms and the reason 220g is the ceiling are in [progression-report.md](progression-report.md) §3.7.
+
 **Missions are on a daily contract board.** Two of the guild's open missions are posted at full pay. Every other mission still exists, but a repeated clear pays `CONTRACT_BOARD.tokenPay` (25%) of its gold and XP. First clears are always full, and loot and mastery are untouched: the board is a pay rule, not a drop rule.
 
 The board is derived from `(seed, day)` and the guild's open missions. Nothing is stored, so there is no save migration; a hire or release before Advance can change which two are posted, and the screen warns when a planned party is on a token mission. `payScaleFor` is the only place the rate lives; `resolveDay` reads it before `progress.clears` moves, which is why the first clear is never taxed.
@@ -479,6 +486,7 @@ That's the whole tactical layer for v0.1, and it is enough: it creates the "do w
 | Mission or dungeon fail | 40% of the gold, no loot | daily |
 | Dungeon clear | 120g / 180g / 360g + 2–3 items | daily |
 | Raid clear | 900g / 1200g / 1800g + 4–5 items | every clear |
+| Transfer fee | half the hero's recruit fee (`feeForLevel × 0.5`) | when a broken promise's transfer is granted |
 | World First | score only (+3000); no gold | once per run |
 
 **Sinks**
@@ -486,6 +494,7 @@ That's the whole tactical layer for v0.1, and it is enough: it creates the "do w
 | Sink | Cost |
 |---|---|
 | Wages | `max(12, 8 + 2.6 × level)` per hero — **weekly, day 7**. A **renewal re-prices** the wage to the hero's current level (`renewalWage`), so a starter signed at level 1 costs 164g/week at level 60, not 12g |
+| Renewal counter | A 12% cut when the hero takes it; a refusal raises his number 25% instead. The one way a wage goes down |
 | Recruitment | `40 + 0.35 × level²` (level 1 ≈ 40g, level 60 ≈ 1300g). The fee does not track power: the tavern prints role, item level, power and traits so the purchase is legible |
 | Facilities | 800–4800g per level (see [progression-report.md](progression-report.md) §5.2) |
 | Flasks, healing fees, tavern refresh | **design, not built** |
@@ -599,7 +608,9 @@ These are the items the build actually derives:
 | Trigger | Modal | Options | Consequence |
 |---|---|---|---|
 | Hero benched 3+ days, morale ≤ 58 | "Varis wants words" | Promise a spot · Rotate in · Ignore | +10 / +5 / −12 morale; promise and rotate also reset `daysBenched`. The promise opens a ledger row (§7.1a) |
-| Contract ≤ 7 days | "Thorne's contract" | Renew at market (shown as `24g → 164g/week`, 28 days) · Let walk | Wage re-prices to the hero's level / hero leaves |
+| Contract ≤ 7 days | "Thorne's contract" | Renew at market (shown as `24g → 164g/week`, 28 days) · Counter at 12% under · Let walk | Wage re-prices to the hero's level / a cut he may refuse / hero leaves. The counter is hidden below 40 morale, so it is never a trap; "he looks ready to talk" needs a visible estimate 10% clear of the cut |
+| Counter refused | "Thorne's final number" | Meet the raise (market + 25%) · Let walk | The raise is paid / hero leaves. The market rate is off the table; there is no reroll |
+| Promise broken | "Varis asks for a transfer" | Grant it (half the recruit fee) · Refuse | Hero leaves and the guild takes the fee / hero stays at −10 morale. Asked once per broken promise |
 | Promise due tomorrow | "Varis expects his spot" (FYI) | Noted | Names the starts so far and the last night that can keep it |
 | Wage bill > budget | "The coffers are thin" (FYI) | Noted | Defers the item for the day |
 | Fatigue ≥ 70 and assigned | "N heroes are running on empty" (FYI) | Noted | One line for the whole rotation, not one per body |
@@ -616,9 +627,11 @@ Design rule for every attention item: **it must have no dominant answer.** If on
 
 This is the cheapest narrative device in the whole design: it converts an off-hand dialogue choice into a future obligation, and the "broken promise" moment is *earned* rather than random. FM's Playing Time ladder does the same job; ours is a table of 5–20 rows and one cron check per day.
 
-**Built.** The promise option writes a `PromiseRecord`: hero, day made, due day (`madeOn + 7 - 1`), starts counted, status `open / kept / broken`. The day pipeline counts a start whenever the hero is in a deployed party, and on the last day of the window it settles: **kept** at 3 or more starts (+5 morale), **broken** below that (−15 morale, contract status set to bench). The queue shows an FYI the day before with the count so far ("2/3 starts, promise due tomorrow"), and `today` lists every open promise. A save written before the ledger existed has no promises and is not migrated.
+**Built.** The promise option writes a `PromiseRecord`: hero, day made, due day (`madeOn + 7 - 1`), starts counted, status `open / kept / broken`. The day pipeline counts a start whenever the hero is in a deployed party, and on the last day of the window it settles: **kept** at 3 or more starts (+5 morale, contract status back to rotation), **broken** below that (−15 morale, contract status set to bench). The queue shows an FYI the day before with the count so far ("2/3 starts, promise due tomorrow"), and `today` lists every open promise. A save written before the ledger existed has no promises and is not migrated.
 
-What is still missing: the planner never reads `contract.status`, so the bot cannot plan around a promise, and a broken promise has no transfer request behind it.
+**A broken promise now has a consequence past morale.** The same day it settles, the hero asks for a transfer: a blocking item with two answers. Grant it and he leaves for half his recruit fee (a new, small gold source); refuse it and he stays at −10 morale. `PromiseRecord.transferAsked` records the answer, so the request is asked once. There is no buyout currency and no rival purse: the fee is the buying guild's money, the same way mission gold is.
+
+What is still missing: the planner never reads `contract.status`, so the bot cannot plan around a promise it made. The negotiation half is built: the 12% renewal counter, the refused-counter raise, and the transfer request. The counter is a threshold, not a roll — morale and days left are visible, loyalty is hidden, so "he looks ready to talk" can still be refused. The AI prices its own counter on the same visible hint, not on the acceptance threshold, so the bot can misread a hero exactly as a player can.
 
 **(b) "Why am I seeing this?"** Every item in the queue has a one-line provenance and a link that changes the rule: *"Shown because: fatigue > 70 and assigned to raid. [Change this →]"*. FM has this per feed source with a frequency setting (Minimal / Normal / Extensive); it is the difference between a feed you trust and one you learn to ignore. We ship it from day one, with three global toggles (contracts, morale, economy) and everything else on.
 

@@ -512,3 +512,38 @@ The contract board left a clear gap: four of six missions are mechanics, and the
 **The check was right, the reward was not.** A 3-hero party at level 20/iLvl 30 sums ~32 mitigation with one warrior, ~35 with warrior/rogue/cleric, and ~47 with two warriors and a cleric; 36 is a tank-pair check that a one-tank party fails without gear or a Bulwark. The level band and the missing mitigation check are the right addition. The content was reverted, not shipped.
 
 **Next:** ≤220g (below the Toll House) and/or requirement 40, then 20 seeds; the target is Steward 14–16/20, Quartermaster 15–17/20, Gambler 9–12/20, and no 20/20. Do not ship a mission whose gold raises the cautious guild above the wall on its own.
+
+### L87. A 10-seed all-clear was noise; the gold ceiling was not the lever
+L86 reverted the 300g mitigation mission because a 10-seed arm put the Quartermaster at 20/20. The same arm on 20 seeds is **18/20**. The 10th-to-20th seed moved one raid, which is the sample size talking, not the content.
+
+The second pass measured one dial at a time, 20 seeds per personality (seeds 1+17i, `runWorld`), against a control on the same harness.
+
+| Arm | Steward | Quartermaster | Gambler | Full clears |
+|---|---:|---:|---:|---:|
+| Control, no mission | 15/20 | 17/20 | 9/20 | 41/60 |
+| 300g, req 36 | 15/20 | 18/20 | 10/20 | 43/60 |
+| 220g, req 36 | 16/20 | 19/20 | 9/20 | 44/60 |
+| 200g, req 36 | 15/20 | 19/20 | 10/20 | 44/60 |
+| 160g, req 36 | 15/20 | 19/20 | 10/20 | 44/60 |
+| 220g, req 40 | 15/20 | 19/20 | 8/20 | 42/60 |
+| 180g, req 40 | 14/20 | 19/20 | 9/20 | 42/60 |
+
+**Gold from 160 to 300 moves the Quartermaster between 18 and 19 full clears; requirement 40 moves it zero and costs the Gambler two.** The mission's value is the extra full-pay night and its item, not the gold or the check. The check is right (a 3-hero party at level 20/iLvl 30 sums ~32 mitigation with one tank and ~47 with two), and the tank-pair requirement 36 stays.
+
+**Shipped: 220g, 60xp, one 26–40 item, mitigation 36, level 18.** 220 is the ceiling the brief allowed and stays below the Toll House's 260, so it cannot fund a raid on its own. The Steward is 16/20 (inside 14–16); the Quartermaster is 19/20, one clear below the failure gate and above L86's 15–17 expectation. The total rises by three full clears. That is the price of a seventh mission the spare party can take.
+
+**Rejected:** 300g; requirement 40; 180g/req 40; a second mitigation mission; 160g (same ladder, less honest pay for a level-18 job).
+
+**The lesson is the gate, not the content.** A 20/20 on one 10-seed arm is not a failure signal; run 20 seeds with a control before reverting. The first pass cost a session and sent the next pass chasing a dial that did not exist.
+
+### L88. A counter-offer that almost always succeeds is a button, not a negotiation
+The first renewal negotiation offered 15% under market, with a 22% maximum discount and a narrow loyalty band (0.75–1.25). On 30 runs the AI made 401 counters: **398 accepted, 3 refused**. The wage was 15% cheaper on almost every contract and the only decision was pressing the button. The arithmetic was the cause: contracts are answered at morale 80–100, where the visible maximum (0.22 × 0.67–1.0) cleared the 15% offer for nearly every loyalty roll.
+
+**Retuned:** 12% under, a 15% visible maximum, a loyalty band of 0.45–1.27, and "he looks ready to talk" only when the visible estimate is 10% clear of the offer. On the same 30 runs: 269–324 accepted and 57–68 refused per personality (15–20% refused), so the counter is a real risk; a refusal raises his number 25%, which at 80% acceptance leaves a 4.6% expected wage saving. The AI prices its counter on the same visible hint as the player, not on the hidden threshold, so it can misread a hero the way a player can.
+
+**The transfer request is player-facing.** The AI's own promises never fired in 10 runs: `benched-unhappy` needs morale ≤58 and three bench days, and the AI keeps morale high. The sweep therefore does not exercise the transfer request; its tests are the harness. That is acceptable because the bot still does not read `contract.status`; a promise the planner cannot honour is a debt it breaks by accident, and the transfer request is the visible consequence.
+
+### L89. Moving an early return changes behaviour, even when the branches look equivalent
+The first counter build put the wage-budget check above `contractChoice`'s `rank < RAID_SIZE + 3 → renew` early return. The early return is the "the raid team is kept at any price" rule; folding it into the budget branch let the AI release expensive starters. The sweep fell from 16/20 to **12/20** (Steward) and 9/20 to 6/20 (Gambler) with no tuning change. Restoring the early return restored 16/20.
+
+The old cost branch was dead code for every rank the roster can produce (rank ≥ 13 is impossible with a 13-hero roster, and rank < 13 returns first). It looked safe to "fix". It was not: the early return was the rule, and the dead branch was a guard for a different roster size. A refactor that moves a branch is a behaviour change; measure it like one.

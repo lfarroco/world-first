@@ -78,6 +78,12 @@ export type Contract = {
   wage: number;
   daysLeft: number;
   status: SquadStatus;
+  /**
+   * The hero turned down a counter-offer. His new number is final: the queue
+   * shows `contract-counter` instead of the usual renewal until it is met or
+   * he walks. Optional so a save written before negotiation loads.
+   */
+  counterRefused?: boolean;
 };
 
 export type Hero = {
@@ -252,6 +258,9 @@ export type AttentionEffect =
   | { kind: "rotate"; heroId: string }
   | { kind: "ignore" }
   | { kind: "renew"; heroId: string }
+  | { kind: "counter"; heroId: string }
+  | { kind: "meet-counter"; heroId: string }
+  | { kind: "transfer"; heroId: string; accept: boolean }
   | { kind: "release"; heroId: string }
   | { kind: "acknowledge" }
   | { kind: "event"; cardId: string; optionKey: string }
@@ -266,6 +275,8 @@ export type AttentionOption = {
 export type AttentionKind =
   | "benched-unhappy"
   | "contract-expiring"
+  | "contract-counter"
+  | "transfer-request"
   | "wage-over-budget"
   | "fatigue-risk"
   | "promise-due"
@@ -362,6 +373,11 @@ export type PromiseRecord = {
   dueOn: number;
   daysAssigned: number;
   status: "open" | "kept" | "broken";
+  /**
+   * The transfer request a broken promise raised has been answered. Without
+   * this the request would be derived every day after the promise closes.
+   */
+  transferAsked?: boolean;
 };
 
 export type PendingLoot = LootItem & {

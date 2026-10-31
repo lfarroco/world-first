@@ -34,7 +34,7 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 ┌───────────────────────────┬───────────────────────────────────────────────┐
 │ NEEDS YOU (2)             │  YESTERDAY                                     │
 │ ⚠ Thorne: contract 3 days │  Raid · Boss 3 · 9 pulls · best 41%  [open]   │
-│   [Renew] [Let walk]      │   ├ P3 enrage failed: 412 vs 470                 │
+│   [Renew] [Counter] [Walk]│   ├ P3 enrage failed: 412 vs 470                 │
 │ ⚠ Wage bill over budget   │   └ Ignis top damage · Thorne off-role          │
 │   [Cut] [Raise income]    │  Dungeon · Halls of Valor · cleared · +2 items │
 │                           │  Farm · 4 heroes · +180g                       │
@@ -312,7 +312,8 @@ Design notes:
 | **Day Report** | after advance | full digest: every activity, every drop, every injury, the rival ticker | Close · Next |
 | **Wipe Report** | after a raid night with a wipe | per-phase checks, contributors, **next lever with numbers** | Close · Go to War Room |
 | **Signing** | Tavern | wage/length/status, 3-round counter | Offer · Walk away |
-| **Contract renewal** | Guild / attention | hero demands vs your offer, morale impact preview | Offer · Let walk |
+| **Contract renewal** | Guild / attention | hero demands, the 12% counter, the morale impact; a refusal shows his final number | Renew · Counter · Let walk |
+| **Transfer request** | Guild / attention | the fee, the hero's morale, the bench that replaces him | Grant · Refuse |
 | **Gear assign** | drop / hero sheet | candidates with delta power, morale impact per hero | Assign · Stash |
 | **Attention item** | Guild Hall | 2–4 options, each with its consequences in numbers | Choose (no dismiss unless non-blocking) |
 | **Comparison** | roster | two heroes, attribute deltas, power delta | Close |

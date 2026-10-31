@@ -315,7 +315,11 @@ export const resolveDay = (input: GameState): GameState => {
       const kept = promise.daysAssigned >= PROMISE.startsRequired;
       promise.status = kept ? "kept" : "broken";
       hero.morale = clamp(hero.morale + (kept ? PROMISE.keptMorale : PROMISE.brokenMorale), 1, 100);
-      if (!kept) hero.contract = { ...hero.contract, status: "bench" };
+      // The promise settles the squad status too: a kept promise is the end of
+      // the A-team claim, and a broken one is the bench mark the planner sees.
+      hero.contract = kept
+        ? { ...hero.contract, status: "rotation" }
+        : { ...hero.contract, status: "bench" };
       push(
         state,
         event(

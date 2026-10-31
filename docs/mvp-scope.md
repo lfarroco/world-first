@@ -28,7 +28,7 @@ If those three are fun with no art, the game is real. Everything else is amplifi
 |---|---|
 | Heroes | **8 attributes** · 8 roles · 4 classes · 5 hidden attributes · level 1–60 · XP curve · gear (4 slots, iLvl) |
 | Party | Up to **3 parties**, any mix of farm / mission / dungeon / raid · 3 stances |
-| Combat | 16 content entries (3 farms, 6 missions, 4 dungeons, 3 raids) · 1–3 phases each · 4 check types · mastery · consistency rolls · fatigue/sharpness/morale · bestiary and named drops |
+| Combat | 17 content entries (3 farms, 7 missions, 4 dungeons, 3 raids) · 1–3 phases each · 4 check types · mastery · consistency rolls · fatigue/sharpness/morale · bestiary and named drops |
 | Content gate | **Only fieldable content is listed** — prerequisite clears, roster size and party average level · one `unlock` event per area · `inspect <id>` shows phases, mobs, drops and per-clear chances |
 | Day loop | 9-stage pipeline · digest · **attention queue (max 3 blocking)** · Advance Day |
 | Progression | level gates + prerequisite clears · locked content hidden · free recruits on the three ladder dungeons (55% of your best; side dungeon excluded) · tavern recruits ≈ 62–80% of your best |
@@ -55,10 +55,10 @@ These are **acceptance tests**, not aspirations. The sim should be able to prove
 |---|---|---|
 | 1 | A new player loses on the first raid night no more than once | Onboarding must not punish |
 | 2 | The AI clears Gatewarden by day 45–55 | An early win, before the wall |
-| 3 | The Tyrant stalls the average run: 6/20 Steward seeds stop at two raids, none lower — **the shipped conservative AI clears 42/60; the Steward stalls 4/20, the Quartermaster 4/20, the Gambler 10/20; the player's need pick clears 52/60**; see [progression-report.md](progression-report.md) §3.6. The wall is softer than this target; the next balance pass owns it | The wall that teaches gearing |
+| 3 | The Tyrant stalls the average run: 6/20 Steward seeds stop at two raids, none lower — **the shipped conservative AI clears 44/60; the Steward stalls 4/20, the Quartermaster 2/20, the Gambler 10/20; the player's need pick clears 52/60**; see [progression-report.md](progression-report.md) §3.6–§3.8. The wall is softer than this target; the next balance pass owns it | The wall that teaches gearing |
 | 4 | A good bot clears 2–3 of the 3 raids; a great run clears all three | The ladder must be winnable but tight |
 | 5 | A do-nothing bot never clears a dungeon | Actions must matter |
-| 6 | A two-raid run scores ~16k; a full clear 23–30k; max ~31k. The conservative Gambler is 21.5k, below the floor; the player's need pick is 23.0k | The score must have headroom |
+| 6 | A two-raid run scores ~16k; a full clear 23–30k; max ~31k. The conservative Gambler is 21.2k, below the floor; the player's need pick is 23.0k | The score must have headroom |
 | 7 | ≤ 3 attention items block a typical day | The queue must not become a chore |
 | 8 | A day resolves (sim) in < 2 ms | 1000-run batch tests must be feasible |
 | 9 | The wage crunch is felt by day 14–18 — **not met**; there is no early-game pressure yet | The economy must bite in the first run |

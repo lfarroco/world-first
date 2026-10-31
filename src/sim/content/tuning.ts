@@ -107,6 +107,46 @@ export const PROMISE = {
   brokenMorale: -15,
 } as const;
 
+/**
+ * The renewal counter-offer. A contract inside the window may be renewed at
+ * market (safe) or countered 12% under (a cut, with a refusal cost).
+ *
+ * Acceptance is a threshold, not a roll: the hero takes the cut when it is
+ * above his floor. The floor moves with visible morale and days left and with
+ * hidden loyalty, so "he looks ready to talk" is a read of the man, not a
+ * number. A refusal is final — he names a higher number — so the counter is
+ * one decision, not a re-roll.
+ *
+ * The first numbers (15% cut, 22% maximum, a narrow loyalty band) accepted
+ * 398 of 401 counters in 30 runs: a 15% wage cut with no decision. The band
+ * below was widened so a happy hero still refuses about one time in four.
+ */
+export const NEGOTIATION = {
+  windowDays: 7,
+  /** The cut the queue offers, as a fraction of the market renewal wage. */
+  counterDiscount: 0.12,
+  /** The largest cut a happy, loyal, unhurried hero will take. */
+  maxDiscount: 0.15,
+  /** Below this morale the counter option is hidden: no trap options. */
+  moraleFloor: 40,
+  /** The raise a refused hero demands instead. Big enough that a 12% cut is a
+   * real gamble: at the measured ~80% acceptance, the expected saving is 4.6%. */
+  counterPenalty: 0.25,
+  /**
+   * The visible estimate must clear the offered cut by this margin before the
+   * label says he looks ready. Without it the hint was true for almost every
+   * hero and the counter became a button, not a read (L88).
+   */
+  hintMargin: 1.1,
+  /** Morale for a hero who took the cut. Half a renewal's +8. */
+  acceptMorale: 4,
+  refuseMorale: -6,
+  /** Refusing a transfer request costs the hero this much morale. */
+  transferMorale: -10,
+  /** The buying guild pays half the hero's recruit fee. */
+  transferFeeScale: 0.5,
+} as const;
+
 export const TAVERN = {
   size: 3,
   refreshFee: 120,

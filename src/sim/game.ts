@@ -1,8 +1,8 @@
 import { clamp } from "./prelude";
 import type { Assignment, AttentionItem, Candidate, GameState, Hero, RoleId } from "./types";
 import { contentById } from "./content/content";
-import { CONTRACT, MAX_PARTIES, PROMISE, ROSTER_CAP, RUN_DAYS } from "./content/tuning";
-import { renewalWage } from "./economy";
+import { CONTRACT, MAX_PARTIES, NEGOTIATION, PROMISE, ROSTER_CAP, RUN_DAYS } from "./content/tuning";
+import { acceptsCounter, counterDemand, counterOffer, renewalWage, transferFee } from "./economy";
 import { attentionKey, announceUnlocks, deriveAttention, event, push } from "./events";
 import { heroPower } from "./hero";
 import { partyOf, pruneUnavailable } from "./plan";
@@ -244,12 +244,118 @@ export const resolveAttention = (
                   // budget stops being the constraint the design says it is.
                   wage: renewalWage(h),
                   daysLeft: CONTRACT.daysMax,
+                  counterRefused: false,
                 },
               }
             : h,
         ),
       };
       break;
+    case "counter": {
+      // One counter, one answer. A refusal is final and raises his number; it
+      // does not reroll, so the player is reading the man and not a slot.
+      const hero = state.roster.find((h) => h.id === effect.heroId);
+      if (!hero) break;
+      const accepted = acceptsCounter(hero);
+      next = {
+        ...state,
+        roster: state.roster.map((h) =>
+          h.id === hero.id
+            ? {
+                ...h,
+                morale: clamp(h.morale + (accepted ? NEGOTIATION.acceptMorale : NEGOTIATION.refuseMorale), 1, 100),
+                contract: accepted
+                  ? {
+                      ...h.contract,
+                      wage: counterOffer(h),
+                      daysLeft: CONTRACT.daysMax,
+                      counterRefused: false,
+                    }
+                  : { ...h.contract, counterRefused: true },
+              }
+            : h,
+        ),
+        events: [
+          ...state.events,
+          event(
+            state.day,
+            "economy",
+            accepted ? "good" : "bad",
+            accepted
+              ? `${hero.name} took the counter-offer at ${counterOffer(hero)}g/week.`
+              : `${hero.name} refused ${counterOffer(hero)}g/week. His number is now ${counterDemand(hero)}g/week.`,
+            hero.id,
+          ),
+        ],
+      };
+      break;
+    }
+    case "meet-counter": {
+      const hero = state.roster.find((h) => h.id === effect.heroId);
+      if (!hero) break;
+      const demand = counterDemand(hero);
+      next = {
+        ...state,
+        roster: state.roster.map((h) =>
+          h.id === hero.id
+            ? {
+                ...h,
+                contract: {
+                  ...h.contract,
+                  wage: demand,
+                  daysLeft: CONTRACT.daysMax,
+                  counterRefused: false,
+                },
+              }
+            : h,
+        ),
+        events: [
+          ...state.events,
+          event(state.day, "economy", "info", `${hero.name} re-signed at ${demand}g/week after the counter.`, hero.id),
+        ],
+      };
+      break;
+    }
+    case "transfer": {
+      const hero = state.roster.find((h) => h.id === effect.heroId);
+      // The request is answered whether or not he is still here: the ledger
+      // must not raise it again tomorrow.
+      const promises = (state.promises ?? []).map((p) =>
+        p.heroId === effect.heroId ? { ...p, transferAsked: true } : p,
+      );
+      if (!hero) {
+        next = { ...state, promises };
+        break;
+      }
+      if (effect.accept) {
+        const fee = transferFee(hero);
+        const released = releaseHero(state, hero.id);
+        next = {
+          ...released,
+          gold: released.gold + fee,
+          promises,
+          events: [
+            ...released.events,
+            event(state.day, "economy", "good", `${hero.name} transferred for ${fee}g.`, hero.id),
+          ],
+        };
+      } else {
+        next = {
+          ...state,
+          promises,
+          roster: state.roster.map((h) =>
+            h.id === hero.id
+              ? { ...h, morale: clamp(h.morale + NEGOTIATION.transferMorale, 1, 100) }
+              : h,
+          ),
+          events: [
+            ...state.events,
+            event(state.day, "morale", "bad", `${hero.name} was refused a transfer. He stays, and he remembers.`, hero.id),
+          ],
+        };
+      }
+      break;
+    }
     case "release":
       next = releaseHero(state, effect.heroId);
       break;

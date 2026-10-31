@@ -1,8 +1,8 @@
-import type { GameState } from "../types";
+import type { AttentionItem, GameState } from "../types";
 import { RAID_SIZE, blockingAttention, deriveAttention } from "../events";
 import { hireCandidate, resolveAttention } from "../game";
 import { resolveDay } from "../day";
-import { renewalWage, wageBill } from "../economy";
+import { counterHint, counterOffer, renewalWage, wageBill } from "../economy";
 import { wageBudgetFor } from "../facilities";
 import { applyFacilityDecision, hireDecision, planDay, resetRoles, reviewRoles } from "./planner";
 import { chooseCardOption } from "./cards";
@@ -17,30 +17,59 @@ export type AiTurn = {
 };
 
 /**
- * Renew or release, with the bill in hand. A renewal now re-prices to the
- * hero's level, so "renew everyone" is how a guild goes broke: the raid team
- * is kept at any price, and a bench body is kept only while the budget can
- * carry it. Thrift decides how much overrun is tolerated.
+ * Renew, counter, meet his number, or release — with the bill in hand. A
+ * renewal now re-prices to the hero's level, so "renew everyone" is how a
+ * guild goes broke: the raid team is kept at any price, and a bench body is
+ * kept only while the budget can carry it. Thrift decides how much overrun is
+ * tolerated.
+ *
+ * The counter is priced on the same visible hint the player sees
+ * (`counterHint`), not on the acceptance threshold, so the bot can misread a
+ * hero exactly as a player can.
  */
 const contractChoice = (
   state: GameState,
   heroId: string,
   personality: Personality,
-): "renew" | "release" => {
+): "renew" | "release" | "counter" | "meet" => {
   const hero = state.roster.find((h) => h.id === heroId);
   if (!hero) return "release";
   const rank = [...state.roster]
     .sort((a, b) => b.level - a.level)
     .findIndex((h) => h.id === heroId);
   // A raid team plus spare bodies: a ten-hero roster cannot absorb one injury.
-  if (rank >= 0 && rank < RAID_SIZE + 3) return "renew";
-  // A bench is the rotation, not wasted payroll: it lets the raid team rest
-  // while someone else farms. Only a bill that is far past the budget, or a
-  // guild already in arrears, makes a spare body a luxury.
+  // They are kept at any price; only the counter or his final number is a
+  // choice. A body past that line is the one the bill decides.
+  if (rank >= 0 && rank < RAID_SIZE + 3) {
+    if (hero.contract.counterRefused) return "meet";
+    return counterHint(hero) && counterOffer(hero) < renewalWage(hero) ? "counter" : "renew";
+  }
   const projected = wageBill(state.roster) - hero.contract.wage + renewalWage(hero);
   const budget = wageBudgetFor(state.renown, state.facilities);
   const slack = 1.7 - personality.thrift * 0.3;
   return projected > budget * slack || state.arrearsDays > 0 ? "release" : "renew";
+};
+
+/**
+ * The option the bot takes on a queue item. The contract items share one
+ * price rule; a transfer request is that rule seen from the roster side.
+ */
+const attentionChoice = (
+  state: GameState,
+  item: AttentionItem,
+  personality: Personality,
+): string | undefined => {
+  if (item.kind === "benched-unhappy") {
+    return personality.ambition > 0.5 ? "promise" : "rotate";
+  }
+  if (!item.heroId) return item.options[0]?.key;
+  if (item.kind === "contract-expiring" || item.kind === "contract-counter") {
+    return contractChoice(state, item.heroId, personality);
+  }
+  if (item.kind === "transfer-request") {
+    return contractChoice(state, item.heroId, personality) === "release" ? "transfer" : "refuse";
+  }
+  return item.options[0]?.key;
 };
 
 /**
@@ -104,18 +133,16 @@ export const aiTurn = (state: GameState, personality: Personality): AiTurn => {
       continue;
     }
 
-    const preferred =
-      item.kind === "benched-unhappy"
-        ? personality.ambition > 0.5
-          ? "promise"
-          : "rotate"
-        : item.kind === "contract-expiring" && item.heroId
-          ? contractChoice(next, item.heroId, personality)
-          : item.options[0]?.key;
-    if (preferred) {
-      next = resolveAttention(next, item.id, preferred);
-      notes.push(`${item.kind} → ${preferred}`);
-    }
+    const preferred = attentionChoice(next, item, personality);
+    if (!preferred) continue;
+    // The counter can be hidden for morale; renew is the safe fallback. A
+    // refused counter only offers meet/release, so it falls back to meet.
+    const key = item.options.some((o) => o.key === preferred)
+      ? preferred
+      : (item.options.find((o) => o.key === "renew") ?? item.options.find((o) => o.key === "meet"))
+          ?.key ?? item.options[0]!.key;
+    next = resolveAttention(next, item.id, key);
+    notes.push(`${item.kind} → ${key}`);
   }
   next = { ...next, attention: deriveAttention(next) };
 

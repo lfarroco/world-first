@@ -235,6 +235,37 @@ export const CONTENT: ContentDef[] = [
     ],
     blurb: "Opened from the inside. Two items guaranteed, and something still waiting.",
   },
+  {
+    id: "broken-bridge",
+    contractColumn: "gold",
+    name: "The Broken Bridge",
+    kind: "mission",
+    tier: 1,
+    minLevel: 18,
+    minHeroes: 3,
+    maxHeroes: 3,
+    recommendedIlvl: 30,
+    // The one mission that asks for mitigation. A one-tank party at level 20
+    // / iLvl 30 sums about 32; a tank pair with a healer sums about 47. 36 is
+    // the tank-pair check: gear or a Bulwark closes the gap.
+    phases: [{ name: "The Span", check: "mitigation", requirement: 36, share: 1 }],
+    // 220g is below the Toll House's 260 on purpose: the cautious guild must
+    // not be able to fund a raid on this night alone (learnings L86, L87).
+    gold: 220,
+    xp: 60,
+    loot: { count: 1, ilvlMin: 26, ilvlMax: 40 },
+    requires: [],
+    mobs: [
+      { name: "Bridge Troll", role: "Brute", note: "Swings for the span, not for you. The line holds or nobody does.", check: "mitigation" },
+      { name: "Span Warden", role: "Boss", note: "Holds the middle plank. Every step forward is a shield check.", check: "mitigation" },
+    ],
+    drops: [
+      { name: "Bridgewarden's Hammer", slot: "weapon", ilvl: 38, chance: 0.16 },
+      { name: "Riveted Span Plate", slot: "chest", ilvl: 34, chance: 0.12 },
+      { name: "Ferryman's Lantern", slot: "trinket", ilvl: 32, chance: 0.1 },
+    ],
+    blurb: "The old span is held by something that hits like the river. Hold the line.",
+  },
 
   // ── Tier 2: dungeons ───────────────────────────────────────────────────────
   {

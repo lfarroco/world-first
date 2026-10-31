@@ -81,6 +81,11 @@ import {
   sharpMod,
   PROMISE,
   CONTRACT,
+  NEGOTIATION,
+  acceptsCounter,
+  counterDemand,
+  counterOffer,
+  transferFee,
   type ClassId,
   type Hero,
   type TraitId,
@@ -142,7 +147,7 @@ describe("starting position", () => {
   it("has the whole ladder defined, three raids deep", () => {
     expect(RAIDS).toHaveLength(3);
     expect(CONTENT.filter((c) => c.kind === "dungeon")).toHaveLength(4);
-    expect(CONTENT.filter((c) => c.kind === "mission")).toHaveLength(6);
+    expect(CONTENT.filter((c) => c.kind === "mission")).toHaveLength(7);
     expect(CONTENT.filter((c) => c.kind === "farm")).toHaveLength(3);
   });
 });
@@ -203,6 +208,20 @@ describe("content data", () => {
     expect(mill.xp).toBeGreaterThan(road.xp);
     expect(mill.gold).toBeLessThan(road.gold);
     expect(mill.loot.count).toBeLessThan(road.loot.count);
+  });
+
+  it("adds the missing mitigation mission in the mid band", () => {
+    // The board rotates pay and level, not the check. Before this mission five
+    // of six missions were mechanics; the spare party had no tank job.
+    const bridge = contentById("broken-bridge")!;
+    expect(bridge.kind).toBe("mission");
+    expect(bridge.phases[0]!.check).toBe("mitigation");
+    expect(bridge.minHeroes).toBe(3);
+    expect(bridge.minLevel).toBeGreaterThan(contentById("bandit-road")!.minLevel);
+    expect(bridge.minLevel).toBeLessThan(28);
+    // The gold stays under the Toll House, or the cautious guild funds a raid
+    // on the extra night alone (learnings L86).
+    expect(bridge.gold).toBeLessThanOrEqual(220);
   });
 });
 
@@ -1920,5 +1939,124 @@ describe("playthrough fixes", () => {
     const items = deriveAttention(state).filter((i) => i.kind === "fatigue-risk");
     expect(items).toHaveLength(1);
     expect(items[0]!.title).toContain("3 heroes");
+  });
+});
+
+describe("contract negotiation", () => {
+  const at = (
+    start: GameState,
+    heroId: string,
+    patch: (h: Hero) => Hero,
+  ): GameState => ({
+    ...start,
+    roster: start.roster.map((h) => (h.id === heroId ? patch(h) : h)),
+  });
+
+  it("takes a counter-offer from a happy, loyal hero and re-prices the wage", () => {
+    const start = newGame(41, "Counter");
+    const hero = start.roster[0]!;
+    const state = at(start, hero.id, (h) => ({
+      ...h,
+      level: 30,
+      morale: 100,
+      hidden: { ...h.hidden, loyalty: 20 },
+      contract: { ...h.contract, daysLeft: 7, wage: 30 },
+    }));
+    const expiring = state.roster.find((h) => h.id === hero.id)!;
+    expect(acceptsCounter(expiring)).toBe(true);
+
+    const live = { ...state, attention: deriveAttention(state) };
+    const item = live.attention.find((i) => i.kind === "contract-expiring")!;
+    expect(item.options.map((o) => o.key)).toContain("counter");
+    const next = resolveAttention(live, item.id, "counter");
+    const signed = next.roster.find((h) => h.id === hero.id)!;
+    expect(signed.contract.wage).toBe(counterOffer(expiring));
+    expect(signed.contract.wage).toBeLessThan(wageForLevel(30));
+    expect(signed.contract.daysLeft).toBe(CONTRACT.daysMax);
+    expect(signed.contract.counterRefused).toBe(false);
+    expect(next.events.some((e) => e.text.includes("took the counter-offer"))).toBe(true);
+  });
+
+  it("a refused counter-offer raises the hero's final number, and meeting it re-signs", () => {
+    const start = newGame(42, "Refused");
+    const hero = start.roster[0]!;
+    const state = at(start, hero.id, (h) => ({
+      ...h,
+      level: 30,
+      morale: 50,
+      hidden: { ...h.hidden, loyalty: 5 },
+      contract: { ...h.contract, daysLeft: 7, wage: 30 },
+    }));
+    const before = state.roster.find((h) => h.id === hero.id)!;
+    expect(acceptsCounter(before)).toBe(false);
+
+    const live = { ...state, attention: deriveAttention(state) };
+    const item = live.attention.find((i) => i.kind === "contract-expiring")!;
+    const refused = resolveAttention(live, item.id, "counter");
+    const angry = refused.roster.find((h) => h.id === hero.id)!;
+    expect(angry.contract.counterRefused).toBe(true);
+    expect(angry.morale).toBe(50 + NEGOTIATION.refuseMorale);
+    expect(deriveAttention(refused).some((i) => i.kind === "contract-counter")).toBe(true);
+
+    const final = deriveAttention(refused).find((i) => i.kind === "contract-counter")!;
+    const met = resolveAttention({ ...refused, attention: deriveAttention(refused) }, final.id, "meet");
+    const signed = met.roster.find((h) => h.id === hero.id)!;
+    expect(signed.contract.wage).toBe(counterDemand(angry));
+    expect(signed.contract.wage).toBeGreaterThan(wageForLevel(30));
+    expect(signed.contract.counterRefused).toBe(false);
+    expect(deriveAttention(met).some((i) => i.kind === "contract-counter")).toBe(false);
+  });
+
+  it("hides the counter when the hero is too unhappy to discuss a cut", () => {
+    const start = newGame(43, "Grim");
+    const hero = start.roster[0]!;
+    const state = at(start, hero.id, (h) => ({
+      ...h,
+      morale: NEGOTIATION.moraleFloor,
+      contract: { ...h.contract, daysLeft: 3 },
+    }));
+    const item = deriveAttention(state).find((i) => i.kind === "contract-expiring")!;
+    expect(item.options.map((o) => o.key)).not.toContain("counter");
+    expect(item.options.map((o) => o.key)).toEqual(["renew", "release"]);
+  });
+
+  it("breaks a promise into a transfer request, and granting it pays the fee", () => {
+    const start = newGame(44, "Transfer");
+    const hero = start.roster[0]!;
+    const state: GameState = {
+      ...start,
+      day: 20,
+      gold: 100,
+      promises: [{ id: "p", heroId: hero.id, madeOn: 12, dueOn: 18, daysAssigned: 0, status: "broken" }],
+    };
+    const live = { ...state, attention: deriveAttention(state) };
+    const item = live.attention.find((i) => i.kind === "transfer-request")!;
+    expect(item.blocking).toBe(true);
+
+    const fee = transferFee(hero);
+    const next = resolveAttention(live, item.id, "transfer");
+    expect(next.roster.some((h) => h.id === hero.id)).toBe(false);
+    expect(next.gold).toBe(100 + fee);
+    expect(next.promises![0]!.transferAsked).toBe(true);
+    expect(deriveAttention(next).some((i) => i.kind === "transfer-request")).toBe(false);
+  });
+
+  it("refusing a transfer keeps the hero and does not ask again", () => {
+    const start = newGame(45, "Stay");
+    const hero = start.roster[0]!;
+    const state: GameState = {
+      ...start,
+      day: 20,
+      promises: [{ id: "p", heroId: hero.id, madeOn: 12, dueOn: 18, daysAssigned: 0, status: "broken" }],
+      roster: start.roster.map((h) => (h.id === hero.id ? { ...h, morale: 60 } : h)),
+    };
+    const live = { ...state, attention: deriveAttention(state) };
+    const item = live.attention.find((i) => i.kind === "transfer-request")!;
+    expect(item.options.map((o) => o.key)).toEqual(["transfer", "refuse"]);
+    const next = resolveAttention(live, item.id, "refuse");
+    expect(next.roster.some((h) => h.id === hero.id)).toBe(true);
+    expect(next.roster.find((h) => h.id === hero.id)!.morale).toBe(60 + NEGOTIATION.transferMorale);
+    expect(next.promises![0]!.transferAsked).toBe(true);
+    expect(deriveAttention(next).some((i) => i.kind === "transfer-request")).toBe(false);
   });
 });

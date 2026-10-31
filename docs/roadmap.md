@@ -10,17 +10,19 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 118 tests, `resolveDay` clones its input |
-| Progression ladder | Done — 3 heroes → 3 farms, 6 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
+| Simulation core | Done — deterministic, 124 tests, `resolveDay` clones its input |
+| Progression ladder | Done — 3 heroes → 3 farms, 7 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities; prices the purse, the next wall's level gate and the gear gap |
 | Rivals | Done — three full guilds run the same planner and the same `resolveDay`. Each has a roster, gold, facilities and a score; the leaderboard has a real rank |
 | Contract board | Done — two open missions are posted at full pay each day; every other mission pays 25% after its first clear. The AI skips token repeats; the Drowned Mill fell from 26.4 to 13.75 clears/run |
+| Contracts & promises | Done — a renewal is a 12% counter with a 25% raise on refusal; a broken promise raises a one-shot transfer request worth half the recruit fee. The planner still does not read `contract.status`. Measured in [progression-report.md](progression-report.md) §3.8 |
+| Mitigation mission | Done — The Broken Bridge, level 18, three heroes, mitigation 36, 220g. The one mission check the band was missing; the gold is a ceiling, not the lever (20 seeds: Steward 16/20, Quartermaster 19/20, Gambler 9/20; §3.7) |
 | Reward-aware planner | Done — a purse target, the next wall's level gate and the raid party's gear gap weight XP, gold and loot. The Quartermaster is 24,520 and the Gambler 21,549; the Tyrant stall is 7/20 against the 6/20 target |
 | Loot assignment & raid ten | Done — a clear queues drops; the player assigns any hero or takes the need suggestion, the AI keeps the old lowest-party pick (42/60 full clears). The standing ten is built at the first raid; day-40 team iLvl is 46–55 against the 65 target |
 | Role review | Done — the reviewer only re-specs a party below 1.0, caps at two flips, and stops at 1.0; the `role` command prints the four check deltas. The 1.30 affinity widening was measured and rejected (ladder volatility); the 1.15 table stays |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
-| Balance | Provisional — the pre-feature build is 20 seeds: Steward 23,087, Quartermaster 24,520, Gambler 21,549; full clears 13/15/12. The shipped conservative AI is 42/60; the player's need pick is 52/60; day-40 team iLvl is 46–55 against the 65 target (see [progression-report.md](progression-report.md) §3.6) |
+| Balance | Provisional — 20 seeds on the current build (bridge + contracts): Steward 25,238, Quartermaster 26,302, Gambler 21,208; full clears 16/18/10 = 44/60. The earlier pre-bridge control on the same harness was 15/17/9 = 41/60. The conservative AI is 44/60; the player's need pick is 52/60; day-40 team iLvl is 46–55 against the 65 target (§3.6–§3.8) |
 | UI | **None** |
 | Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
 | Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
@@ -97,8 +99,8 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 ### Phase 4 — The missing levers
 
 - **Role assignment** — shipped as the reviewer gate and the check readout. The 1.30 affinity widening was measured and rejected: it moved the ladder 17–22/30 and the Steward 10/20–20/20 (§6.4). The 1.15 table stays; the role lever is a short-content tool (5–13% of a check on a 3-hero mission). A party-level mechanic is the next lever if roles must decide raids.
-- **A new three-hero activity with a non-mechanics check** — the board rotates pay and level, not the check; four of six missions are mechanics. A mitigation candidate was measured and reverted: at 36 with 300g it made the Quartermaster clear 20/20 (see [learnings.md](learnings.md) L86). The check and level work; the next pass is ≤220g and/or requirement 40.
-- **Contracts and promises** — the ledger ships (due day, kept/broken); what is missing is the counter-offer loop and a transfer request behind a broken promise.
+- **A new three-hero activity with a non-mechanics check** — shipped as **The Broken Bridge** (level 18, mitigation 36, 220g). Twenty seeds: Steward 16/20, Quartermaster 19/20, Gambler 9/20, no 20/20. The gold curve (160–220g) and requirement 40 were measured and did not move the Quartermaster; the extra full-pay night did. Table in [progression-report.md](progression-report.md) §3.7.
+- **Contracts and promises** — shipped. A renewal inside the 7-day window can be countered 12% under; a refusal is final and raises his number 25%, so the counter is a risk on a hero you want to keep. A broken promise raises a one-shot transfer request: grant it for half his recruit fee, or refuse and take the −10 morale. The planner still does not read `contract.status`, so the bot's own promises remain unplanned; that is the next promise lever, not a new mechanic.
 
 ### Phase 5 — Onboarding and length
 

@@ -274,6 +274,53 @@ World First and average rank, in the same order: 6/6/2 and 2.45/2.25/2.80 (59be9
 
 **Cost:** the queue is bounded by the day's clears and consumed on the next Advance; the AI clears its own queue at the end of its turn. A `loot` command and a `raidteam` line replace no existing screen. `sim --runs 20` was not re-timed; the added work is one party ranking when the team is missing, and a full stable team returns without ranking.
 
+### 3.7 The Broken Bridge: the missing mitigation mission (2026-10-31)
+
+**The gap.** The contract board rotates pay and level, not the check. Four of seven missions are mechanics; the spare party had no tank job. The first candidate (level 18, mitigation 36, **300g**, 60xp, one 26–40 item) was played 2.6–3.6 times per run and posted on about a third of open days, but a 10-seed arm made the Quartermaster clear 20/20. It was reverted, not shipped ([learnings.md](learnings.md) L86).
+
+**The second pass.** One dial at a time, 20 seeds per personality (seeds 1+17i, `runWorld`), against a control on the same harness. `req` is the mitigation requirement. The mission's `recommendedIlvl` is 30 (display only; the planner prices walls, not side missions).
+
+| Arm | Steward | Quartermaster | Gambler | Full clears | Bridge clears/run | First clear day |
+|---|---:|---:|---:|---:|---:|---:|
+| Control, no mission | 24,966 | 26,061 | 21,176 | 15/17/9 = 41/60 | — | — |
+| 300g, req 36 (the reverted arm, 20 seeds) | 24,402 | 26,282 | 20,978 | 15/18/10 = 43/60 | 2.60/2.85/3.60 | 29.1/31.4/28.5 |
+| **220g, req 36 (shipped)** | **24,991** | **26,882** | **20,821** | **16/19/9 = 44/60** | **2.40/2.85/3.45** | **29.1/31.4/28.5** |
+| 200g, req 36 | 24,532 | 26,859 | 21,226 | 15/19/10 = 44/60 | 2.45/2.70/3.35 | 29.1/31.4/28.5 |
+| 160g, req 36 | 24,330 | 26,739 | 21,186 | 15/19/10 = 44/60 | 2.35/2.65/2.85 | 29.1/31.4/28.5 |
+| 220g, req 40 | 24,440 | 27,003 | 20,201 | 15/19/8 = 42/60 | 2.55/2.85/3.30 | 29.9/31.9/28.8 |
+| 180g, req 40 | 23,654 | 26,838 | 20,737 | 14/19/9 = 42/60 | 2.25/2.55/2.70 | 29.9/31.9/28.8 |
+
+**What the numbers say.**
+
+1. **Gold is not the lever.** 160g, 200g and 220g all produce 44/60 and a Quartermaster at 19/20. The mission's value is the extra full-pay night and its item, not the 80g difference. The 300g arm's 20/20 did not survive a 20-seed sample: it is 18/20 here. The 300g diagnosis in L86 was a 10-seed read of a sensitive ladder.
+2. **The requirement is not the lever either.** Requirement 40 leaves the Quartermaster at 19/20 and costs the Gambler a full clear (10 → 8 at 220g, 9 at 180g) and the Steward one at 180g. The over-gearing personality clears a tank check by gear, which is the point of the check; raising it punishes the under-geared guilds first.
+3. **The gate passes.** The Steward is 14–16/20 in every arm; no personality reaches 20/20 in any 20-seed arm. The Quartermaster is 19/20, above L86's 15–17 expectation and one clear below the failure gate. That is the cost of an extra full-pay night for the spare party: it converts into gear, and gear is the QM's edge.
+
+**Shipped: 220g, 60xp, one 26–40 item, mitigation 36 at level 18.** It is the ceiling the brief allowed and it stays below the Toll House's 260g, so the mission cannot fund a raid on its own. The test `adds the missing mitigation mission in the mid band` holds the gold at ≤220 and the check at mitigation; the schema tests hold the drops inside the band.
+
+**Rejected:** 300g (the reverted arm); requirement 40 (costs the Gambler for no Quartermaster movement); 180g/req 40 (Steward 14, the floor, for no gain); a second mitigation mission (one is enough); 160g (identical ladder within noise, and it makes the level-18 job pay less than the band below without teaching anything).
+
+### 3.8 The renewal counter and the transfer request (2026-10-31)
+
+**The decision.** A contract inside its 7-day window can be renewed at market (safe), countered 12% under (a cut), or released. The hero takes the cut when it clears his floor; the floor is visible morale and days left times hidden loyalty. A refusal is final: he names a 25% raise, and the next item is meet it or let him walk. A broken promise raises a one-shot transfer request: grant it and the buying guild pays half his recruit fee, or refuse it for −10 morale.
+
+**Measured, 20 seeds per personality (seeds 1+17i, `runWorld`), against the bridge-only build on the same harness:**
+
+| Build | Steward | Quartermaster | Gambler | Full clears | Bridge clears/run |
+|---|---:|---:|---:|---:|---:|
+| Bridge only (220g/36) | 24,991 | 26,882 | 20,821 | 16/19/9 = 44/60 | 2.40/2.85/3.45 |
+| Bridge + contracts | 25,238 | 26,302 | 21,208 | 16/18/10 = 44/60 | 2.25/2.25/3.35 |
+
+The total is unchanged. The Gambler gains a full clear and 1.9%, the Quartermaster loses one and 2.2%, the Steward is +1.0%. At 20 seeds ±1 full clear is noise; the honest reading is **balance-neutral**, with the negotiation consuming queue actions and a little spare-party time.
+
+**The first tuning was free money.** 15% under with a 22% maximum and a narrow loyalty band accepted **398 of 401** counters in 30 runs. Retuned to 12/15 with a 0.45–1.27 loyalty band and a hint margin: 269–324 accepted and 57–68 refused per personality over 10 runs each (15–20% refused). A refusal's 25% raise against the 12% cut leaves a 4.6% expected saving at 80% acceptance. The counter is a risk, not a button.
+
+**The first build also released starters.** Moving the wage-budget check above `contractChoice`'s early return took the Steward to 12/20 and the Gambler to 6/20. Restoring the early return ("the raid team is kept at any price") restored 16/20; the lesson is L89.
+
+**The transfer request is not exercised by the sweep.** The AI's own promises never fired in 10 runs: `benched-unhappy` needs morale ≤58 and three bench days, and the AI keeps morale high. Its harness is the five unit tests. That is honest but thin; the next promise lever is the planner reading `contract.status`, which the bot still does not do.
+
+**Rejected:** a three-round escalating negotiation (the queue has no numeric input and the extra state would live on the hero for no measured gain); a seeded roll (unpriceable by the bot and unnecessary when a threshold works); a transfer with no fee (granting would be strictly worse than refusing); a rival-purse model (rival gold is a separate `GameState`); RNG in `deriveAttention` (it runs several times a day and would reshuffle the world).
+
 ---
 
 ## 4. What the numbers taught
@@ -506,10 +553,11 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 - **The world run costs ~10× the guild run.** Three rivals × 84 planner turns is 1.1 s per run on a quiet host; `sim --runs 20` is ~65 s. The race is real, not free.
 - **The AI's auto is the floor, not the ceiling.** A clear queues untargeted drops; the player assigns them, or the next Advance takes the need suggestion. The AI's own auto keeps the old lowest-geared-in-the-party pick, which wastes 24% of items (514/2,158 on the Steward, 10 seeds); the player's need pick wastes 0 and adds 10 full clears in the all-need lab (§3.6).
 - **The need model is coarse.** The planner now prices the purse, the next wall's level gate and the raid party's gear gap (§3.5), and assignment prices the actual slot (§3.6), but the planner's `lootValue` still measures the band against the worst hero's average, named drops and forge `lootIlvl` are ignored, the purse has no facility/hire reserve, and the value does not price `traitEconomy` or the rival `rewardScale`. The gear gap is the sharp one: on the board-only build 129/129 Tyrant attempts were below the 225 recommendation (mean 151, −33%); the day-40 team is 46–55 against the 65 target. The purse is smaller: the mean run ended 2,509g short of its cheapest unbought facility tier. Both are gear-rate problems, not content-choice ones.
-- **Repeatable missions are capped by the contract board, not by a decay.** The Drowned Mill is 26.4 → 13.75 clears/run; the board costs ~2.5% of score and three Steward full clears (§3.4). The remaining gap is the check, not the pay: four of six missions are mechanics, and a new three-hero activity with a different check is still the better long-term addition. A mitigation candidate at level 18/36 with 300g was played 3.3 times/run but made the Quartermaster clear 20/20; it was reverted, and the next pass lowers the gold and/or raises the requirement ([learnings.md](learnings.md) L86). See [open-questions.md](open-questions.md) O7.
+- **Repeatable missions are capped by the contract board, not by a decay.** The Drowned Mill is 26.4 → 13.75 clears/run; the board costs ~2.5% of score and three Steward full clears (§3.4). Four of seven missions are mechanics; The Broken Bridge now adds the missing mitigation job (§3.7). Its gold is the ceiling, not the fix: 160–220g all produce the same ladder. See [open-questions.md](open-questions.md) O7.
 - **The stable ten is fixed at the wall.** `raidTeam` is built at the first open raid and kept; it does not re-pick at a wall change. Day-40 team iLvl is 46–55 against the 65 target, and the shipped AI is 1–4 iLvl behind the nightly best ten it replaced. `raidteam auto` is the manual re-pick; a measured wall-change re-pick is the follow-up.
 - **Role assignment is legible, not a progression lever.** The reviewer only re-specs a party below 1.0 (8/7/5 days per 10 runs at 1.15), and `checkPowerInRole` plus the `role` command show the four check deltas. The 1.30 affinity table was measured and rejected (§6.4); the 1.15 table keeps the role choice flat on the ladder. The role lever is 5–13% of a check on a 3-hero mission and 1.7–3% per flip in a raid; if roles must decide raids, the next lever is a party-level mechanic, not a bigger table.
-- **Promises are a debt now, with a hole at the end.** The ledger writes a due day, counts starts, and settles kept/broken (§7.1a). Two pieces are still missing: the planner never reads `contract.status`, so it cannot plan around a promise, and a broken promise has no transfer request behind it — only morale.
+- **Promises are a debt, and a broken one now asks to leave.** The ledger writes a due day, counts starts, and settles kept/broken (§7.1a). The missing half also ships: a renewal is a 12% counter with a 25% raise on refusal, and a broken promise raises a one-shot transfer request whose grant pays half the recruit fee. The planner still does not read `contract.status`, so the bot cannot plan around a promise it made; that is the remaining hole. The counter fires on almost every renewal the AI takes (269–324 accepted and 57–68 refused per 10 runs), so it is a real risk, not a rare event.
+- **The counter is a wage cut, not a wage reset.** A hero who takes 12% off is renewed on the cut wage, but the next renewal re-prices from `renewalWage`, which never goes below market. The saving lasts one contract. If it should compound, the mechanism is a stored market discount, not a lower `wage`.
 - **Facilities now compete with wages.** Before the re-pricing the AI maxed the tree by ~day 70 and ended with ~10k; now it ends with ~2k and one tier short. That is the intended tension, but the facility prices were set against the old, broken wage bill.
 - **No early-game pressure.** The first ten days are pleasant but consequence-free; there is no wage crisis until the roster is expensive.
 
@@ -517,7 +565,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 
 ## 8. What to do next
 
-1. **A new three-hero activity with a non-mechanics check.** The board rotates pay and level, not the check; four of six missions are mechanics. A mitigation candidate is measured in [learnings.md](learnings.md) L86; the 300g version was reverted, and the next pass tunes the reward/check.
-2. Then the vertical-slice UI, unchanged: Roster → War Room → Report.
+1. **The vertical-slice UI.** The non-UI backlog is done: the role reviewer, the contract board, the reward-aware planner, loot assignment, the mitigation mission (§3.7) and the contract/promise half (§7.1a) all ship. What is left is the decision gate (React or Angular, ADR 0002) and the screen that makes the queue playable.
+2. **The wall is still the balance item.** The Quartermaster clears 19/20 with the bridge; the day-40 ten is 46–55 iLvl against 65. The next non-UI lever, if the UI waits, is the gear rate or the wall-change re-pick (§3.6), not another mission.
 
 The role reviewer and the check readout are done; the affinity table stays 1.15 until a party-level mechanic is designed.
