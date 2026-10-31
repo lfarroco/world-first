@@ -108,21 +108,21 @@ Standard world sweep: base seed 1, step 17, `npm run cli -- sim --runs 20` (thre
 
 | Personality | Avg score | Median | Raids cleared | Full clears | Dungeons (of 4) | World First | Arrears days | Avg rank |
 |---|---|---|---|---|---|---|---|---|
-| **The Steward** (balanced) | 22,938 | 25,430 | 2.60 / 3 | 12/20 | 4.00 | 6/20 | 6 | 2.35 |
-| **The Quartermaster** (cautious, thrifty) | 23,658 | 25,873 | 2.65 / 3 | 13/20 | 4.00 | 7/20 | 3 | 2.10 |
-| **The Gambler** (reckless) | 20,686 | 17,573 | 2.45 / 3 | 9/20 | 4.00 | 3/20 | 18 | 2.80 |
+| **The Steward** (balanced) | 23,087 | 25,624 | 2.65 / 3 | 13/20 | 4.00 | 6/20 | 16 | 2.45 |
+| **The Quartermaster** (cautious, thrifty) | 24,520 | 25,980 | 2.75 / 3 | 15/20 | 4.00 | 6/20 | 1 | 2.25 |
+| **The Gambler** (reckless) | 21,549 | 24,821 | 2.55 / 3 | 12/20 | 4.00 | 2/20 | 17 | 2.80 |
 
-The current build is the contract board (§3.4). Against the pre-board table, scores are 2.5%, 2.6% and 0.6% lower; raids are 0.15, 0.10 and 0.05 lower; full clears are 3, 2 and 1 lower; arrears fall by 12, 3 and 19. The board trades a little ceiling for a better economy and a daily decision.
+The current build is the contract board (§3.4) plus the reward-aware planner (§3.5). Against the pre-board table, the Steward is 1.8% lower, the Quartermaster 0.9% higher and the Gambler 3.5% higher. Full clears are 15/15/10 → 13/15/12: the total is the pre-board 40/60, but the distribution moved from the Steward to the Gambler. The Quartermaster is the clear winner again, 1,433 above the Steward and 2,971 above the Gambler.
 
-The rank column is score, then the earlier final-boss kill, then raids, then table order. With three rivals the midpoint is 2.5; the Steward and Gambler sit slightly behind the field and the Quartermaster ahead of it. World First rose to 6/20 and 7/20 for the two careful personalities because the rivals lose more of their smaller rosters to the board; that is a relative gain, not a player buff.
+The rank column is score, then the earlier final-boss kill, then raids, then table order. With three rivals the midpoint is 2.5; the Steward and Gambler sit slightly behind the field and the Quartermaster ahead of it. World First is 6/20, 6/20 and 2/20, close to the original 3/6/3 after the rivals got the same planner.
 
-**The caution split survives.** The Gambler scores 2,972 below the Quartermaster and takes 3/20 World First against 7/20. It runs 18 arrears-days across 20 seeds against 3 for the Quartermaster: a reckless planner renews and hires into a wage bill it cannot carry, then cannot cover the 400g a rival's offer demands. Thrift now pays twice (§5.4).
+**The caution split survives.** The Gambler scores 2,971 below the Quartermaster and takes 2/20 World First against 6/20. It runs 17 arrears-days across 20 seeds against 1 for the Quartermaster: a reckless planner renews and hires into a wage bill it cannot carry, then cannot cover the 400g a rival's offer demands. Thrift now pays twice (§5.4).
 
-**The Tyrant stall moved, and it missed the target.** Across 20 Steward seeds, 12 clear all three raids, 8 clear two, and none stall at one or zero. The pre-board build was 15/20; [mvp-scope.md](mvp-scope.md) §3 targets 6/20. The board costs about three full clears. That is the trade measured in §3.4, not a Tyrant change; do not move the Tyrant in the same pass. A fresh 20-seed sweep decides whether 8/20 is acceptable or whether the content needs a compensation pass.
+**The Tyrant stall is one seed off target.** Across 20 Steward seeds, 13 clear all three raids, 7 clear two, and none stall at one or zero. [mvp-scope.md](mvp-scope.md) §3 targets 6/20; the board-only build was 8/20, and the reward-aware planner brings it to 7/20. The Quartermaster is 5/20 and the Gambler 8/20. The total full clears (40/60) match the pre-board build; the distribution moved. Do not move the Tyrant in the same pass.
 
 **A do-nothing guild** clears zero dungeons and scores ~0. **The ladder is beatable** by a mediocre bot in ~84 days, which is the right bar for a first playable version.
 
-**The top is in the target band.** The Steward clears 2.60 raids. The 2026-10-30 content pass raised the Tyrant from 650 / 538 / 725 to 750 / 620 / 835 (+15%) to absorb the new ceiling (§1.1). Do not raise it again without a fresh 20-seed sweep.
+**The top is in the target band.** The Steward clears 2.65 raids; the Quartermaster 2.75. The 2026-10-30 content pass raised the Tyrant from 650 / 538 / 725 to 750 / 620 / 835 (+15%) to absorb the new ceiling (§1.1). Do not raise it again without a fresh 20-seed sweep.
 
 ### 3.3 The economy-and-queue pass (2026-10-30)
 
@@ -176,7 +176,7 @@ The field is tight: rivals average 23.4–23.9k against the player's 20.8–24.3
 
 **Why 0.9.** At 0.85 (10 seeds) World First rose to 5/10 on two personalities — the race got easier as the rivals got slower, which is the expected direction but too far. At 0.9 the player's 20-seed line matches the pre-rival baseline exactly on score and raids, and the World First split is 3/20, 6/20, 3/20. `RIVAL.pace = 1` was not shipped. On the same 10 seeds it puts the rivals at 25,268–26,168 and 2.83 raids against 2.67, the player's World First at 1/10, 4/10 and 0/10, and the average rank at 2.60–3.60. At equal XP the field is stronger than the bot, which is the wrong side of the floor. Do not move this dial without a fresh 20-seed sweep; the 10-seed sample is noisy enough that 0.85 and 0.9 swapped the World First ordering.
 
-**Cost.** Three rival guilds planning and resolving 84 days takes ~0.84 s per run, against ~0.10 s for the player's guild. That is ~10 ms per day. `sim --runs 20` takes ~50 s. The unit tests call `aiRun` (player only); three world tests cover the race. If this becomes the bottleneck, the next lever is a cheaper rival planner, not a return to the one-number model.
+**Cost.** Three rival guilds planning and resolving 84 days takes ~1.1 s per run on a quiet host (a 30-run sample at the board build), against ~0.10 s for the player's guild. That is ~13 ms per day. `sim --runs 20` takes ~65 s. The unit tests call `aiRun` (player only); three world tests cover the race. If this becomes the bottleneck, the next lever is a cheaper rival planner, not a return to the one-number model.
 
 The old `RIVAL_LADDER`, `attemptGrowth`, `farmGrowth`, `clearGrowth` and the burnout constants are gone. The World First bug that survived the old model — `raidsCleared >= 3` included the three dungeon stages — cannot recur: a rival is awarded World First only by `tickRivals`, only after `rivalRaidsCleared(rival) === RAIDS.length`.
 
@@ -208,6 +208,43 @@ The cost is real. The Steward loses three full clears and 0.15 raids; the Tyrant
 4. **A flat repeat decay.** 26.4 → 28.5 → 27.6 Mill clears; the pick never moved. See §7 and O7.
 
 Do not reopen this with a smaller token or a third contract. The next lever, if the Tyrant stall is judged too harsh, is a measured content pass (the posted alternatives' XP or the Tyrant's requirement), one dial at a time.
+
+### 3.5 The reward-aware planner (2026-10-31)
+
+The old score was `xp + gold / 8` for every content. XP was the only currency: a cleared Toll House (40 XP) or Plundered Vault (60 XP) could never beat the Drowned Mill (260 XP), and the gold farm's per-hero gold was compared as if it were party gold. The bot stalled on the Tyrant at iLvl 148–183 against a 225 recommendation while choosing more XP (seed 777, §7).
+
+**The rule.** `src/sim/ai/reward.ts` builds a `RewardContext` once per day:
+
+| Need | Input | Weight |
+|---|---|---|
+| Purse | `gold` vs `min(2, weeksLeft) × wageBill`; arrears | `goldWeight` 1 → 32, 0.15 when rich |
+| Level gate | the next wall's `minLevel` vs the raid party's average level | `xpWeight` 1 while short, 0.4 once met |
+| Gear | the next wall's `recommendedIlvl` vs the raid party's average iLvl | `lootWeight` 1 + 2 × gap/25, capped at 12 |
+
+`rewardValue` prices a night in XP-equivalent: `xp × uncapped heroes × xpWeight + partyGold/8 × goldWeight + lootValue × lootWeight`. Farm gold is per hero and is multiplied by the party size; mission gold is paid once. `lootValue` measures the loot band against the party's worst-equipped hero, so a band below the party is worth zero. The next wall is the first uncleared raid, or the first uncleared dungeon before raiding. The clear-chance bonus is capped at 1.2: a ratio above 100% is not extra reward.
+
+Two correctness fixes came with it. `xpWeight` counts only heroes below level 60, because `gainXp` discards XP on a capped hero. The purse target uses the weeks left in the run, so a day-78 guild with 4,000g and one 1,200g payday is rich, not "short of four weeks of wages".
+
+**Measured on 20 seeds per personality.** Three arms, because the first moved three dials at once and the attribution is not isolated:
+
+| Build | Steward | Quartermaster | Gambler | Full clears (S/Q/G) |
+|---|---|---|---|---|
+| Board only, no reward model | 22,938 | 23,658 | 20,686 | 12 / 13 / 9 |
+| Reward model, 4/5 weights, party XP | 22,812 | 24,921 | 20,663 | 13 / 16 / 9 |
+| Reward model, 32/12 weights, farm scoring, party XP | 23,869 | 23,989 | 21,304 | 15 / 14 / 10 |
+| Shipped: plus per-hero cap and weeks-left purse | 23,087 | 24,520 | 21,549 | 13 / 15 / 12 |
+
+The first arm looked like a Quartermaster buff (+5.3% and +3 full clears). The second and third show that the weights and the cap move the result: the shipped build is Steward 23,087, Quartermaster 24,520, Gambler 21,549. Against the pre-board baseline that is −1.8%, +0.9% and +3.5%; full clears total 40/60, exactly the pre-board 15/15/10, with two moved from the Steward to the Gambler. The Quartermaster is the clear winner again, 1,433 above the Steward.
+
+The Tyrant stall is 7/20 on the Steward (target 6/20; board-only 8/20), 5/20 on the Quartermaster and 8/20 on the Gambler. The per-hero cap is the arm that moved the Steward from 15 to 13 full clears; the Gambler gained two. That is a distribution change, not a total loss, but it is the arm to isolate first if the Steward's stall matters more than the Gambler's recovery.
+
+The gold and loot picks move: the Plundered Vault goes 1.5 → 3.5 clears/run and the pure Toll House stays around 5.5, posted only a third of the time. The planner is not a Toll House button; it is a need model. The farm branch is now scored by value instead of a constant `"1"`, so the Old Quarry is a real fallback when the purse is empty.
+
+World First is 6/20, 6/20 and 2/20, and the average rank is 2.45/2.25/2.80. The rivals run the same planner; the race is back near the original 3/6/3, not easier. Do not bank the player's absolute score against a relative rank.
+
+**Rejected:** a flat `gold/4` weight (0.5 points per gold, far below the ~4 the same-band Toll/Mill flip needs); a hard-coded gold phase; a loot value with no band check; the first build's 1.25 points per item level (Vault 625 against the Mill's 795 at level 20/iLvl 10); a party-level XP weight (it paid capped heroes); and keeping the uncapped `ratio × 30`.
+
+**What remains:** the day-40 raid party is still iLvl 48–52 against the next wall, a gap of ~100. On the board-only build, 129/129 Tyrant attempts were below the 225 recommendation (mean 151, −33%), and the reward model does not close that gap. The purse is smaller: the mean board-only run ended 2,509g short of its cheapest unbought facility tier, and the planner still has no facility/hire reserve. Manual loot assignment and the role-affinity pass are the next levers, not a larger loot weight.
 
 ---
 
@@ -431,9 +468,9 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 
 ## 7. Known gaps
 
-- **The world run costs ~8× the guild run.** Three rivals × 84 planner turns is 0.84 s per run; `sim --runs 20` is ~50 s. The race is real, not free.
+- **The world run costs ~10× the guild run.** Three rivals × 84 planner turns is 1.1 s per run on a quiet host; `sim --runs 20` is ~65 s. The race is real, not free.
 - **No loot choice** — drops are auto-assigned to the lowest-geared hero. A named drop is a name printed on a gear number, not an item entity; there is no "who gets the axe?" decision. In the AI trace this shows as a gear funnel that rotates with the party: seed 777 cleared Gatewarden 8 times, then stalled on the Tyrant at 30% with iLvl 148–183 against a 225 recommendation.
-- **The AI does not choose by need.** `xp + gold/8` means the gold farm and the gold mission are never picked once cleared, even when the purse is the constraint. The options are meaningful to a player and invisible to the bot.
+- **The need model is coarse.** The planner now prices the purse, the next wall's level gate and the raid party's gear gap (§3.5), but loot is still valued by the worst hero's average rather than the actual slot, named drops and forge `lootIlvl` are ignored, the purse has no facility/hire reserve, and the value does not price `traitEconomy` or the rival `rewardScale`. The gear gap is the sharp one: on the board-only build 129/129 Tyrant attempts were below the 225 recommendation (mean 151, −33%), and the day-40 raid party is still iLvl 48–52. The purse is smaller: the mean run ended 2,509g short of its cheapest unbought facility tier. Both are gear-rate problems, not content-choice ones.
 - **Repeatable missions are capped by the contract board, not by a decay.** The Drowned Mill is 26.4 → 13.75 clears/run; the board costs ~2.5% of score and three Steward full clears (§3.4). The remaining gap is the check, not the pay: four of six missions are mechanics, and a new three-hero activity with a different check is still the better long-term addition. See [open-questions.md](open-questions.md) O7.
 - **No stable raid roster** — the planner picks the best ten each day, so loot and mastery spread across 16 heroes instead of concentrating on the next wall.
 - **Role assignment is sim-only** — `role <hero> <role>` sets the role and the fit multiplier applies to every check. The planner re-specs on 3.5% of days for no measurable gain; the hero sheet has no chips yet.
@@ -445,7 +482,6 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 
 ## 8. What to do next
 
-1. **Reward-aware content choice.** Give the planner a purse and a gear target so it can pick the gold run and the loot run, not only the XP run. The options exist; the bot ignores them.
-2. **Manual loot assignment**, then **teach the planner to reassign roles** — the two missing levers from Phase 0.
-3. **A new three-hero activity with a non-mechanics check.** The board rotates pay and level, not the check; four of six missions are mechanics.
-4. Then the vertical-slice UI, unchanged: Roster → War Room → Report.
+1. **Manual loot assignment**, then **teach the planner to reassign roles** — the two missing levers from Phase 0.
+2. **A new three-hero activity with a non-mechanics check.** The board rotates pay and level, not the check; four of six missions are mechanics.
+3. Then the vertical-slice UI, unchanged: Roster → War Room → Report.

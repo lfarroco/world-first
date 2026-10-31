@@ -129,6 +129,38 @@ export const RENOWN = {
   perWorldFirst: 4,
 } as const;
 
+/**
+ * How the planner prices a night. The old score was `xp + gold / 8`: it treated
+ * XP as the only currency and undercounted farm gold (per hero) as if it were
+ * party gold. These weights make the choice depend on the state: the purse, the
+ * next wall's level gate, and the raid party's gear gap.
+ *
+ * Units: one unit is one point of XP-equivalent. Gold converts at 8g = 1, the
+ * same rate the old score used; one hero-item-level converts at
+ * `EVENT_VALUE.ilvl / 8` = 1.25, the card price for permanent gear.
+ */
+export const PLANNER_VALUE = {
+  /** Weeks of wages the planner wants in the purse before it stops chasing gold. */
+  purseWeeks: 2,
+  /** Gold weight when the purse is full. */
+  goldWeightSlack: 1,
+  /** Gold weight when the guild is in arrears or the purse is empty. */
+  goldWeightBroke: 32,
+  /** Gold weight when the purse is more than `richWeeks` of wages. */
+  goldWeightRich: 0.15,
+  /** Weeks of wages above which gold stops being a need. */
+  richWeeks: 4,
+  /** XP weight while the next wall's level gate is unmet. */
+  xpWeightGated: 1,
+  /** XP weight once the gate is met but the raid party is not at the cap. */
+  xpWeightReady: 0.4,
+  /** Loot weight at no gear gap; rises by `lootWeightPer25` per 25 iLvl. */
+  lootWeightAtZero: 0,
+  lootWeightPer25: 2,
+  /** Cap on the loot weight. 12 × 1.25 = 15 XP per hero-item-level. */
+  lootWeightMax: 12,
+} as const;
+
 export const RIVAL = {
   /**
    * Global difficulty dial for the race: the multiplier on XP a rival guild

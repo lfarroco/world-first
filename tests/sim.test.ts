@@ -7,6 +7,10 @@ import {
   rivalRaidsCleared,
   contractBoard,
   postedContractIds,
+  rewardContext,
+  rewardValue,
+  lootValue,
+  partyGold,
   isPosted,
   payScaleFor,
   effectiveReward,
@@ -353,6 +357,163 @@ describe("contract board", () => {
     const { plan } = planDay(state, STEWARD);
     expect(plan.parties.some((p) => p.contentId === "drowned-mill")).toBe(false);
     expect(plan.parties.length).toBeGreaterThan(0);
+  });
+});
+
+describe("reward-aware planner", () => {
+  const at = (h: Hero, level: number, ilvl: number): Hero => ({
+    ...h,
+    level,
+    attrs: {
+      might: 20, agility: 20, vitality: 20, endurance: 20,
+      focus: 20, discipline: 20, awareness: 20, composure: 20,
+    },
+    gear: { weapon: ilvl, chest: ilvl, helm: ilvl, trinket: ilvl },
+    traits: [],
+    fatigue: 0,
+    sharpness: 60,
+    morale: 60,
+    health: 100,
+    contract: { ...h.contract, daysLeft: 30 },
+  });
+
+  const stateFor = (
+    seed: number,
+    level: number,
+    ilvl: number,
+    gold: number,
+    cleared: (id: string) => boolean,
+    broke = false,
+  ): GameState => {
+    const base = newGame(seed, "Need");
+    const roster = base.roster.map((h) => at(h, level, ilvl));
+    return {
+      ...base,
+      roster,
+      gold,
+      arrearsDays: broke ? 1 : 0,
+      progress: base.progress.map((p) => ({
+        ...p,
+        clears: cleared(p.contentId) ? 5 : 0,
+        attempts: 5,
+      })),
+      plan: { parties: [] },
+      attention: [],
+      pendingEvent: null,
+    };
+  };
+
+  /** The board changes daily; find a day that posts the pair the test needs. */
+  const dayWith = (state: GameState, ids: readonly string[]): GameState => {
+    for (let day = 1; day <= 300; day += 1) {
+      const candidate = { ...state, day };
+      const posted = new Set(contractBoard(candidate).contracts.map((c) => c.id));
+      if (ids.every((id) => posted.has(id))) return candidate;
+    }
+    throw new Error(`no day posts ${ids.join(", ")}`);
+  };
+
+  it("chases the gold run when the purse is empty", () => {
+    const state = dayWith(stateFor(1, 25, 40, 0, () => true, true), [
+      "toll-house",
+      "drowned-mill",
+    ]);
+    const { plan } = planDay(state, STEWARD);
+    expect(plan.parties[0]?.contentId).toBe("toll-house");
+    expect(rewardContext(state).goldWeight).toBeGreaterThan(1);
+    expect(rewardContext(state).lootWeight).toBe(0);
+  });
+
+  it("chases the loot run when the raid party is far below the next wall", () => {
+    const state = dayWith(
+      stateFor(2, 20, 10, 5000, (id) => contentById(id)?.kind === "mission"),
+      ["plundered-vault", "drowned-mill"],
+    );
+    const { plan } = planDay(state, STEWARD);
+    expect(plan.parties[0]?.contentId).toBe("plundered-vault");
+    const ctx = rewardContext(state);
+    expect(ctx.gearGap).toBeGreaterThan(50);
+    expect(ctx.lootWeight).toBeGreaterThan(1);
+  });
+
+  it("goes back to XP when the purse is full and the party is geared", () => {
+    const state = dayWith(
+      stateFor(3, 50, 250, 50000, () => true),
+      ["drowned-mill"],
+    );
+    const { plan } = planDay(state, STEWARD);
+    expect(plan.parties[0]?.contentId).toBe("drowned-mill");
+    expect(rewardContext(state).goldWeight).toBeLessThan(1);
+    expect(rewardContext(state).lootWeight).toBe(0);
+  });
+
+  it("picks the gold farm when broke and the XP farm when rich", () => {
+    const broke = stateFor(7, 5, 10, 0, () => true, true);
+    const rich = stateFor(7, 5, 10, 5000, () => true);
+    const one = (s: GameState): GameState => ({ ...s, roster: s.roster.slice(0, 1) });
+    expect(planDay(one(broke), STEWARD).plan.parties[0]?.contentId).toBe("old-quarry");
+    expect(planDay(one(rich), STEWARD).plan.parties[0]?.contentId).toBe("emberwood");
+  });
+
+  it("prices farm gold per hero and mission gold once", () => {
+    const base = newGame(4, "Gold");
+    const farm = contentById("emberwood")!;
+    const mission = contentById("drowned-mill")!;
+    const party = base.roster.slice(0, 3);
+    expect(partyGold(farm, party, { gold: farm.gold })).toBe(farm.gold * 3);
+    expect(partyGold(mission, party, { gold: mission.gold })).toBe(mission.gold);
+  });
+
+  it("loot is worthless once the party is above the band, and worth more below it", () => {
+    const base = newGame(5, "Loot");
+    const vault = contentById("plundered-vault")!;
+    const high = base.roster.map((h) => at(h, LEVEL_CAP, 100));
+    const low = base.roster.map((h) => at(h, LEVEL_CAP, 10));
+    expect(lootValue({ ...base, roster: high }, vault, high)).toBe(0);
+    expect(lootValue({ ...base, roster: low }, vault, low)).toBeGreaterThan(0);
+  });
+
+  it("prices XP only for heroes below the cap", () => {
+    const capped = stateFor(8, LEVEL_CAP, 10, 0, () => true, true);
+    const oneUncapped = {
+      ...capped,
+      roster: [{ ...capped.roster[0]!, level: LEVEL_CAP - 1 }, ...capped.roster.slice(1)],
+    };
+    const farm = contentById("emberwood")!;
+    const cappedValue = rewardValue(
+      capped,
+      farm,
+      capped.roster,
+      effectiveReward(capped, farm, postedContractIds(capped)),
+      rewardContext(capped),
+    );
+    const oneValue = rewardValue(
+      oneUncapped,
+      farm,
+      oneUncapped.roster,
+      effectiveReward(oneUncapped, farm, postedContractIds(oneUncapped)),
+      rewardContext(oneUncapped),
+    );
+    expect(oneValue - cappedValue).toBeCloseTo(farm.xp * rewardContext(oneUncapped).xpWeight, 5);
+  });
+
+  it("treats a late-run purse as rich once one payday is covered", () => {
+    const base = newGame(9, "Late");
+    const roster = Array.from({ length: 10 }, (_, i) => ({
+      ...makeHero(9, 900 + i, "warrior", 40),
+      contract: { wage: 120, daysLeft: 30, status: "rotation" as const },
+    }));
+    const late: GameState = { ...base, roster, gold: 4000, day: 78 };
+    expect(rewardContext(late).goldWeight).toBeLessThan(1);
+  });
+
+  it("the reward context moves with the raid party's gear, not the roster's best", () => {
+    const base = newGame(6, "Gap");
+    const under = stateFor(6, 50, 10, 5000, (id) => contentById(id)?.kind === "mission");
+    const geared = stateFor(6, 50, 200, 5000, (id) => contentById(id)?.kind === "mission");
+    expect(rewardContext(under).gearGap).toBeGreaterThan(rewardContext(geared).gearGap);
+    expect(rewardContext(geared).lootWeight).toBeLessThan(rewardContext(under).lootWeight);
+    expect(rewardContext(base).nextWall?.kind).toBe("raid");
   });
 });
 

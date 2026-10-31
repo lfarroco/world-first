@@ -507,6 +507,28 @@ Renown (the second currency) is **prestige, not spending power**: +1 per dungeon
 
 The design also wanted renown to open better tavern candidates and gate facilities. Neither is wired up yet: the tavern level comes from the Tavern facility, and facilities are gated by gold only. That is an open gap, not current behaviour.
 
+### 5.4 How the AI prices a night
+
+The planner no longer scores every content as `xp + gold / 8`. `src/sim/ai/reward.ts` builds one `RewardContext` per day and prices a night in XP-equivalent:
+
+```
+value = xp × uncapped heroes × xpWeight
+      + partyGold / 8 × goldWeight
+      + lootValue × lootWeight
+```
+
+| Need | Input | Weight |
+|---|---|---|
+| Purse | `gold` vs `min(2, weeksLeft) × wageBill`; arrears | 1 → 32; 0.15 when rich |
+| Level gate | the next wall's `minLevel` vs the raid party's average level | 1 while short, 0.4 once met |
+| Gear | the next wall's `recommendedIlvl` vs the raid party's average iLvl | 1 + 2 × gap/25, capped at 12 |
+
+Farm gold is per hero, so it is multiplied by the party size; mission gold is paid once. `lootValue` measures the loot band against the party's worst-equipped hero, so a band below the party is worth zero. The next wall is the first uncleared raid, or the first uncleared dungeon before raiding. The clear-chance bonus is capped at 1.2; a 300% clear is not three times as good as a 120% clear.
+
+The per-hero term matters: `gainXp` discards XP at level 60, so a capped hero contributes no XP value. The purse is a buffer, not the remaining payroll: `weeksLeft` shrinks the target near the deadline, so a day-78 guild with one payday covered is rich.
+
+The weights are data in `PLANNER_VALUE` (`content/tuning.ts`). The measured effect, the three arms and the per-personality cost are in [progression-report.md](progression-report.md) §3.5. The rivals run the same planner, so the race tightens rather than the player gaining a private edge.
+
 ---
 
 ## 6. Rival guilds — simulated, not scripted
@@ -538,7 +560,7 @@ The leaderboard reads each rival's own state: `rivalRaidsCleared`, the cached `a
 
 A same-day third-raid clear goes to the player: the player's resolution runs before `tickRivals`. Show the rule in a `Rules` popover on the Raid screen. Ambiguous tie-breaks are the fastest way to lose a competitive audience.
 
-**Cost:** the full world run is ~0.84 s for 84 days (~10 ms/day), against ~0.1 s for the player's guild alone. The unit tests use the player-only `aiRun`; the race is tested by three world runs. `sim --runs 20` takes ~50 s.
+**Cost:** the full world run is ~1.1 s for 84 days (~13 ms/day) on a quiet host, against ~0.1 s for the player's guild alone. The unit tests use the player-only `aiRun`; the race is tested by three world runs. `sim --runs 20` takes ~65 s.
 
 ---
 

@@ -10,14 +10,15 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 93 tests, `resolveDay` clones its input |
+| Simulation core | Done — deterministic, 102 tests, `resolveDay` clones its input |
 | Progression ladder | Done — 3 heroes → 3 farms, 6 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
-| AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities |
+| AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities; prices the purse, the next wall's level gate and the gear gap |
 | Rivals | Done — three full guilds run the same planner and the same `resolveDay`. Each has a roster, gold, facilities and a score; the leaderboard has a real rank |
 | Contract board | Done — two open missions are posted at full pay each day; every other mission pays 25% after its first clear. The AI skips token repeats; the Drowned Mill fell from 26.4 to 13.75 clears/run |
+| Reward-aware planner | Done — a purse target, the next wall's level gate and the raid party's gear gap weight XP, gold and loot. The Quartermaster is 24,520 and the Gambler 21,549; the Tyrant stall is 7/20 against the 6/20 target |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
-| Balance | Provisional — 20 seeds per personality; the contract board costs ~2.5% of score and 0.15 raids, and the average rank is 2.10–2.80 of 4 (see [progression-report.md](progression-report.md) §3.4) |
+| Balance | Provisional — 20 seeds per personality; Steward 23,087, Quartermaster 24,520, Gambler 21,549; full clears 13/15/12; average rank 2.25–2.80. The Tyrant stalls 7/20 against the 6/20 target (see [progression-report.md](progression-report.md) §3.5) |
 | UI | **None** |
 | Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
 | Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
@@ -64,6 +65,8 @@ Everything else — rivals, UI, facilities — amplifies a loop that must first 
 
 **Shipped after Phase 2:** the contract board (O7). Two of the guild's open missions are posted at full pay each day; every other mission pays 25% after its first clear, and the AI will not spend a night on a token repeat. The Drowned Mill fell from 26.4 to 13.75 clears/run; the three personalities lost at most 2.5% of score and 0.15 raids, and the Steward lost three full clears (15/20 → 12/20). Measurement and rejected alternatives in [progression-report.md](progression-report.md) §3.4.
 
+**Shipped after the contract board:** the reward-aware planner (§3.5). The AI now prices the purse, the next wall's level gate and the raid party's gear gap; the Quartermaster returns as the clear winner, the Gambler recovers, and the total full clears return to the pre-board 40/60. The attribution caveat and the three measured arms are in the report.
+
 **Kill criterion:** if a 30-day human playtest produces no moment the player wants to retell, stop and rethink the loop before any UI work.
 
 ### Phase 2 — Rivals on the planner ✅ *shipped*
@@ -74,7 +77,7 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 
 **Measured (2026-10-31, 20 seeds per personality, `RIVAL.pace = 0.9`):** the player's documented line holds — Steward 23,515 / 2.75 raids / World First 3/20 / average rank 2.90; Quartermaster 24,293 / 2.75 / 6/20 / 2.35; Gambler 20,814 / 2.50 / 3/20 / 2.75. The rivals average 23.4–23.9k and 2.67 raids. Full table in [progression-report.md](progression-report.md) §3.2.
 
-**The cost:** a full world run takes ~0.84 s instead of ~0.1 s, because three rival guilds plan 84 days each. The unit tests use the player-only `aiRun`; the race has its own three world tests. `sim --runs 20` now takes ~50 s.
+**The cost:** a full world run takes ~1.1 s instead of ~0.1 s, because three rival guilds plan 84 days each. The unit tests use the player-only `aiRun`; the race has its own three world tests. `sim --runs 20` now takes ~65 s.
 
 ### Phase 3 — UI vertical slice *(the product)*
 

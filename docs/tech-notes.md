@@ -83,7 +83,7 @@ src/
     rivals.ts             the three rival definitions, scores and standings
     world.ts              tickRivals, advanceDay, runWorld
     events.ts             event + attention derivation
-    ai/                   personalities.ts · planner.ts · turn.ts (aiTurn, aiRun)
+    ai/                   personalities.ts · planner.ts · reward.ts · turn.ts (aiTurn, aiRun)
     game.ts               newGame, hiring, assigning, advancing
     index.ts              the public surface
   app/                    ← Vite entry, routing, providers
@@ -170,8 +170,8 @@ The `perfect` policy is a small search/greedy bot. It's the single most valuable
 Measured 2026-10-31 on the shipped build:
 
 - **One guild day:** ~1 ms (`resolveDay`, 84 days in ~0.10 s).
-- **One world day:** ~10 ms, because `tickRivals` gives three full guilds an `aiTurn`. A full 84-day world run is ~0.84 s.
-- **`sim --runs 20`** (60 world runs) is ~50 s. The unit tests use the player-only `aiRun`; three world runs cover the race.
+- **One world day:** ~13 ms at the board build, because `tickRivals` gives three full guilds an `aiTurn`. A full 84-day world run was 1.1 s over a 30-run sample on a quiet host; the first measurement on an earlier build was 0.84 s. The reward context adds one `bestPartyFor` per day; the current build was not re-measured on a quiet host.
+- **`sim --runs 20`** (60 world runs) is ~65 s at the board build. The unit tests use the player-only `aiRun`; three world runs cover the race.
 - The roster table is ≤ 22 rows. No virtualisation needed. Tavern is ≤ 3.
 - The expensive thing will be **re-rendering the projection strip on every drag**. Compute projections in a `useMemo` keyed by `(party, stance, boss)` and keep the math pure — it's already a pure function, so memoisation is free.
 - A 10,000-day batch is ~12 s with `aiRun` (player only, ~119 full runs) and ~100 s with the world attached. Optimise the rival planner first if that becomes the bottleneck; do not cut the race out of the sweep.

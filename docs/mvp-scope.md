@@ -55,7 +55,7 @@ These are **acceptance tests**, not aspirations. The sim should be able to prove
 |---|---|---|
 | 1 | A new player loses on the first raid night no more than once | Onboarding must not punish |
 | 2 | The AI clears Gatewarden by day 45–55 | An early win, before the wall |
-| 3 | The Tyrant stalls the average run: 6/20 Steward seeds stop at two raids, none lower — **the contract board measures 8/20**; see [progression-report.md](progression-report.md) §3.4 | The wall that teaches gearing |
+| 3 | The Tyrant stalls the average run: 6/20 Steward seeds stop at two raids, none lower — **the shipped build measures 7/20**; see [progression-report.md](progression-report.md) §3.5 | The wall that teaches gearing |
 | 4 | A good bot clears 2–3 of the 3 raids; a great run clears all three | The ladder must be winnable but tight |
 | 5 | A do-nothing bot never clears a dungeon | Actions must matter |
 | 6 | A two-raid run scores ~16k; a full clear 23–30k; max ~31k | The score must have headroom |

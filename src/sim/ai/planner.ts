@@ -10,20 +10,15 @@ import { rosterCapFor, wageBudgetFor, nextCost, buyFacility, FACILITIES, type Fa
 import { rolesForClass } from "../content/roles";
 import type { Personality } from "./personalities";
 import { effectiveReward, postedContractIds } from "../board";
-
-const KIND_BONUS: Record<string, number> = {
-  raid: 320,
-  dungeon: 220,
-  mission: 120,
-  farm: 0,
-};
+import { rewardContext, rewardValue, type RewardContext } from "./reward";
 
 export type AiChoice = {
   readonly content: ContentDef;
   readonly party: Hero[];
   readonly stance: Stance;
   readonly ratio: number;
-  readonly reason: string;
+  /** The value the planner compared, in XP-equivalent. */
+  readonly score: number;
 };
 
 const persona = (ratio: number, personality: Personality): Stance => {
@@ -44,6 +39,7 @@ const scoreContent = (
   pool: readonly Hero[],
   personality: Personality,
   posted: ReadonlySet<string>,
+  valueCtx: RewardContext,
 ): AiChoice | null => {
   if (pool.length < content.minHeroes) return null;
 
@@ -66,7 +62,11 @@ const scoreContent = (
   const cleared = state.progress.find((p) => p.contentId === content.id)?.clears ?? 0;
 
   if (content.kind === "farm") {
-    return { content, party, stance: "steady", ratio, reason: "1" };
+    // A farm is a real choice, not a floor. The old constant "1" meant the main
+    // loop always took Emberwood and `fallbackFarm` never compared gold farms.
+    const farmReward = effectiveReward(state, content, posted);
+    const farmValue = rewardValue(state, content, party, farmReward, valueCtx);
+    return { content, party, stance: "steady", ratio, score: farmValue };
   }
 
   // The bot will not spend a night on a token repeat. A human may: the token is
@@ -77,14 +77,18 @@ const scoreContent = (
 
   // Value is mostly XP and gold, at today's contract pay.
   const reward = effectiveReward(state, content, posted);
-  const value = reward.xp + reward.gold / 8;
+  const value = rewardValue(state, content, party, reward, valueCtx);
+  // A clear chance above 100% is not extra reward. The uncapped term made the
+  // easiest cleared mission beat the gold run the guild needed, because a
+  // maxed party's ratio is 3–5 rather than 1.
+  const ratioBonus = 30 * Math.min(ratio, 1.2);
   const priority =
     cleared === 0
-      ? 5000 + content.tier * 200 + value + ratio * 30
-      : content.tier * 200 + value * 0.45 + ratio * 30;
+      ? 5000 + content.tier * 200 + value + ratioBonus
+      : content.tier * 200 + value * 0.45 + ratioBonus;
 
   if (ratio >= tolerable) {
-    return { content, party, stance: stanceFor(ratio, personality), ratio, reason: priority.toFixed(0) };
+    return { content, party, stance: stanceFor(ratio, personality), ratio, score: priority };
   }
 
   // Not clearable, but a training attempt still earns XP and mastery.
@@ -95,7 +99,7 @@ const scoreContent = (
       party,
       stance: persona(ratio, personality),
       ratio,
-      reason: (priority * 0.35).toFixed(0),
+      score: priority * 0.35,
     };
   }
 
@@ -111,6 +115,8 @@ const fallbackFarm = (
   state: GameState,
   pool: readonly Hero[],
   usedContent: ReadonlySet<string>,
+  posted: ReadonlySet<string>,
+  valueCtx: RewardContext,
 ): AiChoice | null => {
   let bestContent: ContentDef | null = null;
   let bestParty: Hero[] = [];
@@ -123,15 +129,15 @@ const fallbackFarm = (
     }
     const party = bestPartyFor(state, content, pool);
     if (party.length < content.minHeroes || !levelOk(content, party)) continue;
-    // Farm gold is per hero; value is per hero too, so the comparison is fair.
-    const value = content.xp + content.gold / 8;
+    const reward = effectiveReward(state, content, posted);
+    const value = rewardValue(state, content, party, reward, valueCtx);
     if (value > bestValue) {
       bestValue = value;
       bestContent = content;
       bestParty = party;
     }
   }
-  return bestContent ? { content: bestContent, party: bestParty, stance: "steady", ratio: 1, reason: "farm" } : null;
+  return bestContent ? { content: bestContent, party: bestParty, stance: "steady", ratio: 1, score: bestValue } : null;
 };
 
 /**
@@ -152,6 +158,7 @@ export const planDay = (
   const choices: AiChoice[] = [];
   const candidates = availableContent(state);
   const posted = postedContractIds(state, candidates);
+  const valueCtx = rewardContext(state);
   const resting = new Set<string>();
   const daysLeft = RUN_DAYS - state.day;
 
@@ -211,14 +218,14 @@ export const planDay = (
       // One party per content per day. Two parties on the same dungeon
       // double-dips loot, XP and mastery, and a human cannot do it.
       if (usedContent.has(content.id)) continue;
-      const pick = scoreContent(state, content, pool, personality, posted);
+      const pick = scoreContent(state, content, pool, personality, posted, valueCtx);
       if (!pick) continue;
-      if (!best || Number(pick.reason) > Number(best.reason)) best = pick;
+      if (!best || pick.score > best.score) best = pick;
     }
 
     if (!best) {
       // Nothing viable: farm with whoever is left, in a zone nobody is using.
-      const farm = fallbackFarm(state, pool, usedContent);
+      const farm = fallbackFarm(state, pool, usedContent, posted, valueCtx);
       if (!farm) break;
       best = farm;
     }
@@ -230,7 +237,7 @@ export const planDay = (
       stance: best.stance,
     });
     if (projection && projection.minRatio < 0.75 && best.content.kind !== "farm") {
-      const farm = fallbackFarm(state, pool, usedContent);
+      const farm = fallbackFarm(state, pool, usedContent, posted, valueCtx);
       if (!farm) break;
       best = farm;
     }
@@ -255,7 +262,7 @@ export const planDay = (
   if (exhausted.length > 0) notes.push(`${exhausted.length} heroes resting`);
   const lightTired = light;
   if (lightTired.length > 0 && parties.length < MAX_PARTIES) {
-    const zone = fallbackFarm(state, lightTired, usedContent);
+    const zone = fallbackFarm(state, lightTired, usedContent, posted, valueCtx);
     if (zone && zone.party.length >= zone.content.minHeroes) {
       parties.push({ contentId: zone.content.id, heroes: zone.party.map((h) => h.id), stance: "steady" });
       usedContent.add(zone.content.id);

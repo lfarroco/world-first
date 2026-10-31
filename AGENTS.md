@@ -81,7 +81,7 @@ Before you call anything done:
 
 ```bash
 npm run typecheck     # tsc --noEmit
-npm test              # 93 tests: determinism, invariants, balance, content data
+npm test              # 102 tests: determinism, invariants, balance, content data
 npm run docs:check    # links + stale vocabulary
 ```
 

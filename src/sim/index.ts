@@ -19,6 +19,7 @@ export * from "./content/traits";
 export { blockingAttention as blockedItems } from "./events";
 export * from "./ai/personalities";
 export * from "./ai/planner";
+export * from "./ai/reward";
 export * from "./ai/cards";
 export * from "./ai/turn";
 export { CONTENT, RAIDS, DUNGEONS, MISSIONS, FARMS, contentById, KIND_LABEL } from "./content/content";
