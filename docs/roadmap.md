@@ -89,7 +89,7 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 
 **Goal:** a stranger plays a week without asking what a number means.
 
-- Vite + React + Zustand (see ADR 0002 — **this decision blocks the phase**).
+- Vite + React + Zustand. [ADR 0002](adr/0002-ui-framework.md) accepted React + Vite on 2026-10-30; the gate is closed, not pending.
 - Three screens: **Roster + hero drawer**, **War Room** (parties, stance, projection strip), **Report** (day digest and wipe report).
 - Then the attention modal.
 - Empty states, keyboard `Space` to advance, one number per row.
@@ -112,7 +112,7 @@ The first week is a natural tutorial: one concept per day, delivered by the stew
 
 | When | Decision | Blocks |
 |---|---|---|
-| Before Phase 3 | **React or Angular** ([ADR 0002](adr/0002-ui-framework.md)) | The whole UI |
+| Before Phase 3 | **React or Angular** ([ADR 0002](adr/0002-ui-framework.md)) | **Resolved 2026-10-30:** React + Vite. No longer blocks the phase |
 | After Phase 1 playtest | **84 days or 56** | Balance of everything after |
 | Before Phase 3 | **Art direction**: type, colour, spacing | Every screen's feel |
 | Before any public surface | **Name** ("World First" is a working title) | Domain, store page |

@@ -565,7 +565,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 
 ## 8. What to do next
 
-1. **The vertical-slice UI.** The non-UI backlog is done: the role reviewer, the contract board, the reward-aware planner, loot assignment, the mitigation mission (§3.7) and the contract/promise half (§7.1a) all ship. What is left is the decision gate (React or Angular, ADR 0002) and the screen that makes the queue playable.
-2. **The wall is still the balance item.** The Quartermaster clears 19/20 with the bridge; the day-40 ten is 46–55 iLvl against 65. The next non-UI lever, if the UI waits, is the gear rate or the wall-change re-pick (§3.6), not another mission.
+1. **The vertical-slice UI.** The non-UI backlog is done: the role reviewer, the contract board, the reward-aware planner, loot assignment, the mitigation mission (§3.7) and the contract/promise half (§3.8) all ship. [ADR 0002](adr/0002-ui-framework.md) accepted React + Vite on 2026-10-30, so the framework gate is closed; what is left is the screen that makes the queue playable.
+2. **The wall is still the balance item.** The Quartermaster clears 18/20 on the shipped build (19/20 with the bridge alone); the day-40 ten is 46–55 iLvl against 65. The next non-UI lever, if the UI waits, is the gear rate or the wall-change re-pick (§3.6), not another mission.
 
 The role reviewer and the check readout are done; the affinity table stays 1.15 until a party-level mechanic is designed.
