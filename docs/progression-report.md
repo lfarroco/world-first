@@ -108,19 +108,21 @@ Standard world sweep: base seed 1, step 17, `npm run cli -- sim --runs 20` (thre
 
 | Personality | Avg score | Median | Raids cleared | Full clears | Dungeons (of 4) | World First | Arrears days | Avg rank |
 |---|---|---|---|---|---|---|---|---|
-| **The Steward** (balanced) | 23,515 | 25,384 | 2.75 / 3 | 15/20 | 4.00 | 3/20 | 18 | 2.90 |
-| **The Quartermaster** (cautious, thrifty) | 24,293 | 25,713 | 2.75 / 3 | 15/20 | 4.00 | 6/20 | 6 | 2.35 |
-| **The Gambler** (reckless) | 20,814 | 24,404 | 2.50 / 3 | 10/20 | 4.00 | 3/20 | 37 | 2.75 |
+| **The Steward** (balanced) | 22,938 | 25,430 | 2.60 / 3 | 12/20 | 4.00 | 6/20 | 6 | 2.35 |
+| **The Quartermaster** (cautious, thrifty) | 23,658 | 25,873 | 2.65 / 3 | 13/20 | 4.00 | 7/20 | 3 | 2.10 |
+| **The Gambler** (reckless) | 20,686 | 17,573 | 2.45 / 3 | 9/20 | 4.00 | 3/20 | 18 | 2.80 |
 
-The player's own numbers are unchanged by the rivals — a rival's day cannot touch the player's checks. The only coupling is World First, and the Gambler gained one (2/20 → 3/20) when the rivals moved off the compressed model. The rank is the new column: score, then the earlier final-boss kill, then raids, then table order. With three rivals the midpoint is 2.5, so the Steward and Gambler sit slightly behind the field and the Quartermaster slightly ahead of it.
+The current build is the contract board (§3.4). Against the pre-board table, scores are 2.5%, 2.6% and 0.6% lower; raids are 0.15, 0.10 and 0.05 lower; full clears are 3, 2 and 1 lower; arrears fall by 12, 3 and 19. The board trades a little ceiling for a better economy and a daily decision.
 
-**The caution split survives.** The Gambler scores 3,479 below the Quartermaster and takes 3/20 World First against 6/20. It runs 37 arrears-days across 20 seeds against 6 for the Quartermaster: a reckless planner renews and hires into a wage bill it cannot carry, then cannot cover the 400g a rival's offer demands. Thrift now pays twice (§5.4).
+The rank column is score, then the earlier final-boss kill, then raids, then table order. With three rivals the midpoint is 2.5; the Steward and Gambler sit slightly behind the field and the Quartermaster ahead of it. World First rose to 6/20 and 7/20 for the two careful personalities because the rivals lose more of their smaller rosters to the board; that is a relative gain, not a player buff.
 
-**The ladder still stalls at the Tyrant.** Across 20 Steward seeds, 15 clear all three raids, 5 clear two, and none stall at one or zero. That is the target in [mvp-scope.md](mvp-scope.md) §3, and it is the check to re-run after any content change.
+**The caution split survives.** The Gambler scores 2,972 below the Quartermaster and takes 3/20 World First against 7/20. It runs 18 arrears-days across 20 seeds against 3 for the Quartermaster: a reckless planner renews and hires into a wage bill it cannot carry, then cannot cover the 400g a rival's offer demands. Thrift now pays twice (§5.4).
+
+**The Tyrant stall moved, and it missed the target.** Across 20 Steward seeds, 12 clear all three raids, 8 clear two, and none stall at one or zero. The pre-board build was 15/20; [mvp-scope.md](mvp-scope.md) §3 targets 6/20. The board costs about three full clears. That is the trade measured in §3.4, not a Tyrant change; do not move the Tyrant in the same pass. A fresh 20-seed sweep decides whether 8/20 is acceptable or whether the content needs a compensation pass.
 
 **A do-nothing guild** clears zero dungeons and scores ~0. **The ladder is beatable** by a mediocre bot in ~84 days, which is the right bar for a first playable version.
 
-**The top is in the target band.** The Steward clears 2.75 raids. The 2026-10-30 content pass raised the Tyrant from 650 / 538 / 725 to 750 / 620 / 835 (+15%) to absorb the new ceiling (§1.1). Do not raise it again without a fresh 20-seed sweep.
+**The top is in the target band.** The Steward clears 2.60 raids. The 2026-10-30 content pass raised the Tyrant from 650 / 538 / 725 to 750 / 620 / 835 (+15%) to absorb the new ceiling (§1.1). Do not raise it again without a fresh 20-seed sweep.
 
 ### 3.3 The economy-and-queue pass (2026-10-30)
 
@@ -162,7 +164,7 @@ The shipped model is the player's. Each rival is a full `GameState` — three st
 
 Rival difficulty is **`RIVAL.pace`, the multiplier on XP a rival earns**: 0.9. It is the only dial. There is no growth rate or burnout date left; a rival that falls behind falls behind because of its own plan and purse.
 
-**Measured 2026-10-31, 20 seeds per personality, `RIVAL.pace = 0.9`.** The player's line is the same as §3 because rivals cannot touch a player's check; only World First moves.
+**Measured 2026-10-31, 20 seeds per personality, `RIVAL.pace = 0.9`, before the contract board (§3.4).** This is the rival-model baseline: with no board, rivals cannot touch a player's check, so only World First moves. The current player line, after the board, is §3.
 
 | Personality | Player avg score | Player WF | Avg rank | Rival avg score | Rival raids/run |
 |---|---|---|---|---|---|
@@ -177,6 +179,35 @@ The field is tight: rivals average 23.4–23.9k against the player's 20.8–24.3
 **Cost.** Three rival guilds planning and resolving 84 days takes ~0.84 s per run, against ~0.10 s for the player's guild. That is ~10 ms per day. `sim --runs 20` takes ~50 s. The unit tests call `aiRun` (player only); three world tests cover the race. If this becomes the bottleneck, the next lever is a cheaper rival planner, not a return to the one-number model.
 
 The old `RIVAL_LADDER`, `attemptGrowth`, `farmGrowth`, `clearGrowth` and the burnout constants are gone. The World First bug that survived the old model — `raidsCleared >= 3` included the three dungeon stages — cannot recur: a rival is awarded World First only by `tickRivals`, only after `rivalRaidsCleared(rival) === RAIDS.length`.
+
+### 3.4 The contract board (2026-10-31)
+
+The spare party had one good three-hero job. The Drowned Mill was cleared 26.4 times per run; a flat repeat decay was measured twice and rejected because the bot kept taking the Mill ([open-questions.md](open-questions.md) O7). The shipped rule is a **daily contract board**: two of the guild's open missions are posted at full pay, and every other mission pays 25% of its gold and XP after its first clear. First clears stay full; loot and mastery are untouched.
+
+The board is derived from `(seed, day, available content)`, so it has no save field. The AI will not spend a night on a token repeat; a human may. That is the difference between a price and a lock, and it is the thing a flat decay did not have: the bot reads the board and picks a different full-pay job or a farm.
+
+| | Steward | Quartermaster | Gambler |
+|---|---|---|---|
+| Score | 23,515 → 22,938 | 24,293 → 23,658 | 20,814 → 20,686 |
+| Raids | 2.75 → 2.60 | 2.75 → 2.65 | 2.50 → 2.45 |
+| Full clears | 15/20 → 12/20 | 15/20 → 13/20 | 10/20 → 9/20 |
+| World First | 3/20 → 6/20 | 6/20 → 7/20 | 3/20 → 3/20 |
+| Average rank | 2.90 → 2.35 | 2.35 → 2.10 | 2.75 → 2.80 |
+| Arrears days | 18 → 6 | 6 → 3 | 37 → 18 |
+| Drowned Mill clears/run | 26.4 → 14.10 | 26.4 → 12.70 | 26.4 → 14.45 |
+
+Mission nights are spread instead of concentrated: Mill 13.75, Warrens 14.27, Wolf Den 11.05, Bandit Road 10.08, Toll House 5.60, Plundered Vault 1.47 per run (pooled across the 60 runs). The spare party farms more on the days the board is bad, which is why the economy improves while the ceiling falls.
+
+The cost is real. The Steward loses three full clears and 0.15 raids; the Tyrant stall moves from 5/20 to 8/20 against the 6/20 target in [mvp-scope.md](mvp-scope.md) §3. The rank and World First gains are relative: the rivals lose more of their smaller rosters to the board. Do not bank them as player skill, and do not compensate by moving the Tyrant in the same pass.
+
+**Rejected alternatives** (all measured):
+
+1. **One XP + one prize contract.** It gave the spare party an easy full-pay job every day. 10 seeds at token 0.3: Steward 24,231 (+5.9%), raids 2.70, Mill 18.9, World First 5/10. Additive, not a trade.
+2. **Token-only, no AI gating.** A price on its own did not move the bot off the Mill: the planner's priority floor kept unposted missions above farms, and the Mill still ran 18–20 times in the earlier one-XP + one-prize board. The posting rule, not the price, does the work.
+3. **Three posted contracts.** 10 seeds: Steward 24,695, Quartermaster 27,656, Gambler 18,023; Mill 20.0 / 16.0 / 17.9. It over-buffs the cautious personalities and collapses the Gambler. Two is the better trade.
+4. **A flat repeat decay.** 26.4 → 28.5 → 27.6 Mill clears; the pick never moved. See §7 and O7.
+
+Do not reopen this with a smaller token or a third contract. The next lever, if the Tyrant stall is judged too harsh, is a measured content pass (the posted alternatives' XP or the Tyrant's requirement), one dial at a time.
 
 ---
 
@@ -403,7 +434,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 - **The world run costs ~8× the guild run.** Three rivals × 84 planner turns is 0.84 s per run; `sim --runs 20` is ~50 s. The race is real, not free.
 - **No loot choice** — drops are auto-assigned to the lowest-geared hero. A named drop is a name printed on a gear number, not an item entity; there is no "who gets the axe?" decision. In the AI trace this shows as a gear funnel that rotates with the party: seed 777 cleared Gatewarden 8 times, then stalled on the Tyrant at 30% with iLvl 148–183 against a 225 recommendation.
 - **The AI does not choose by need.** `xp + gold/8` means the gold farm and the gold mission are never picked once cleared, even when the purse is the constraint. The options are meaningful to a player and invisible to the bot.
-- **Repeatable missions are an XP faucet, and a reward decay is not the fix.** Measured 2026-10-31: 1,585 Drowned Mill clears over 60 runs (26.4 per run). A repeat reward of 100% → 85% → 70% left the pick unchanged (28.5 Mill clears per run) and cost the Steward 3.4% of score (23,051 → 22,271, raids 2.70 → 2.65). A harsh 100% → 60% → 30% also left the pick unchanged (27.6 per run) and took the Steward to 17,693, 2.20 raids, 7/20 full clears and 0/20 World First. The bot keeps choosing the Mill at its worst value (78 XP for three heroes) because the farm floor is lower (Whispering Glade: 66 XP for three) and the spare party has no other three-hero job. The fix is a substitute job, not a tax. See [open-questions.md](open-questions.md) O7.
+- **Repeatable missions are capped by the contract board, not by a decay.** The Drowned Mill is 26.4 → 13.75 clears/run; the board costs ~2.5% of score and three Steward full clears (§3.4). The remaining gap is the check, not the pay: four of six missions are mechanics, and a new three-hero activity with a different check is still the better long-term addition. See [open-questions.md](open-questions.md) O7.
 - **No stable raid roster** — the planner picks the best ten each day, so loot and mastery spread across 16 heroes instead of concentrating on the next wall.
 - **Role assignment is sim-only** — `role <hero> <role>` sets the role and the fit multiplier applies to every check. The planner re-specs on 3.5% of days for no measurable gain; the hero sheet has no chips yet.
 - **Promises are a debt now, with a hole at the end.** The ledger writes a due day, counts starts, and settles kept/broken (§7.1a). Two pieces are still missing: the planner never reads `contract.status`, so it cannot plan around a promise, and a broken promise has no transfer request behind it — only morale.
@@ -414,7 +445,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 
 ## 8. What to do next
 
-1. **A second three-hero job**, or a rotating contract board. The measured answer to the repeat faucet (§7): the spare party needs somewhere else to go, not a smaller purse.
-2. **Reward-aware content choice.** Give the planner a purse and a gear target so it can pick the gold run and the loot run, not only the XP run. The options exist; the bot ignores them.
-3. **Manual loot assignment**, then **teach the planner to reassign roles** — the two missing levers from Phase 0.
+1. **Reward-aware content choice.** Give the planner a purse and a gear target so it can pick the gold run and the loot run, not only the XP run. The options exist; the bot ignores them.
+2. **Manual loot assignment**, then **teach the planner to reassign roles** — the two missing levers from Phase 0.
+3. **A new three-hero activity with a non-mechanics check.** The board rotates pay and level, not the check; four of six missions are mechanics.
 4. Then the vertical-slice UI, unchanged: Roster → War Room → Report.

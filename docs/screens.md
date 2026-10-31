@@ -54,6 +54,7 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 - **World First** — top 4 guilds, boss count, best pull %, with your row highlighted. Click → Raid screen.
 - **Score so far** — a small strip under the ticker: `Score 8,450 · rank 2 of 4`. The score must be visible early and often, or the deadline feels arbitrary. No breakdown here; the breakdown lives on the Raid screen and at the Run End.
 - **The Week** — 7 day-cells: activity density (▓ raided / ░ farmed / blank rested), plus the RESET marker on day 7. This is the "one glance" answer to "when do I get paid / when does the market refresh".
+- **Contract board** — one line: `Contracts: The Wolf Den (XP) · The Toll House (gold) — full pay. Others 25% after the first clear.` It sits under the score strip, because it changes what tonight is worth.
 
 **Empty state (day 0):** replaced by a single card — *"Set your first raid. 10 heroes, one dungeon, and 6 days until Echoes arrives."* → War Room.
 
@@ -195,7 +196,9 @@ This screen is the whole game, so its details matter:
 - **Split-run toggle** on the farm party with a "funnel gear to X" target.
 - **Flasks** as a small chip row: `2 flasks · +4% each · 120g` — one click to apply, with the gold cost shown, because "preparation is the game" needs at least one prep purchase.
 
-**Content picker (the target list).** The dropdown behind each party slot lists **only what the guild can field** — prerequisite cleared, enough heroes, average level met. Columns: `name · kind · level · party · gold · xp · loot · projected · status`. Status is `new` (never attempted), `open` (attempted, not cleared) or `cleared ×N`. Locked and not-yet-fieldable areas are hidden; a footer may say `4 areas not open yet`, never a name. Opening one fires a single digest line: `New area open: The Old Quarry — Farm, level 5, 1-5 heroes.` The list must never show a row the party command would refuse: the projected column is the best legal party's best pull, the same number the War Room strip shows.
+**Content picker (the target list).** The dropdown behind each party slot lists **only what the guild can field** — prerequisite cleared, enough heroes, average level met. Columns: `name · kind · level · party · gold · xp · loot · pay · projected · status`. Pay is `full` for a posted contract or a first clear, `25%` for a token repeat, `—` for farms, dungeons and raids. Status is `new` (never attempted), `open` (attempted, not cleared) or `cleared ×N`. Locked and not-yet-fieldable areas are hidden; a footer may say `4 areas not open yet`, never a name. Opening one fires a single digest line: `New area open: The Old Quarry — Farm, level 5, 1-5 heroes.` The list must never show a row the party command would refuse: the projected column is the best legal party's best pull, the same number the War Room strip shows.
+
+**Contract board (the daily price).** A strip above the party slots names the two posted missions: `CONTRACTS: The Wolf Den (XP) · The Toll House (gold) — full pay. Others 25%.` A planned party on an unposted repeat shows `not posted — pays 25%` in amber, with the posted alternative in the same line. The board is the reason to read the picker before the party: a target that was right yesterday can be a token night today. First clears are always full, so a new area is never punished.
 
 **Inspect (the area sheet).** Selecting an area opens a read-only sheet before the party is committed:
 

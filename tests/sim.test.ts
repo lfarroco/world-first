@@ -5,6 +5,12 @@ import {
   LEVEL_CAP,
   RAIDS,
   rivalRaidsCleared,
+  contractBoard,
+  postedContractIds,
+  isPosted,
+  payScaleFor,
+  effectiveReward,
+  CONTRACT_BOARD,
   standings,
   playerRank,
   runWorld,
@@ -183,6 +189,170 @@ describe("content data", () => {
     expect(mill.xp).toBeGreaterThan(road.xp);
     expect(mill.gold).toBeLessThan(road.gold);
     expect(mill.loot.count).toBeLessThan(road.loot.count);
+  });
+});
+
+describe("contract board", () => {
+  const maxed = (h: Hero): Hero => ({
+    ...h,
+    level: LEVEL_CAP,
+    attrs: {
+      might: 20, agility: 20, vitality: 20, endurance: 20,
+      focus: 20, discipline: 20, awareness: 20, composure: 20,
+    },
+    gear: { weapon: 150, chest: 150, helm: 150, trinket: 150 },
+    traits: [],
+    fatigue: 0,
+    sharpness: 60,
+    morale: 60,
+    health: 100,
+    contract: { ...h.contract, daysLeft: 30 },
+  });
+
+  it("tags every mission, and posts one XP contract and one prize contract", () => {
+    const missions = CONTENT.filter((c) => c.kind === "mission");
+    expect(missions.length).toBeGreaterThan(1);
+    for (const mission of missions) expect(mission.contractColumn).toBeDefined();
+
+    for (const mission of missions) {
+      expect(mission.minHeroes).toBe(3);
+      expect(mission.maxHeroes).toBe(3);
+      expect(["xp", "gold", "loot"]).toContain(mission.contractColumn);
+    }
+
+    const state = newGame(1, "Board");
+    const board = contractBoard(state);
+    expect(board.contracts).toHaveLength(2);
+    expect(board.contracts.every((c) => c.kind === "mission")).toBe(true);
+    expect(new Set(board.contracts.map((c) => c.id)).size).toBe(2);
+    const open = new Set(availableContent(state).map((c) => c.id));
+    for (const id of postedContractIds(state)) expect(open.has(id)).toBe(true);
+  });
+
+  it("derives the same board from the same state, and rotates over days", () => {
+    const base = newGame(7, "Rotate");
+    const roster = base.roster.map(maxed);
+    const stateAt = (day: number): GameState => ({
+      ...base,
+      day,
+      roster,
+      progress: base.progress.map((p) => ({ ...p, attempts: 1 })),
+    });
+    expect(contractBoard(stateAt(12))).toEqual(contractBoard(stateAt(12)));
+    const boards = new Set(
+      Array.from({ length: 20 }, (_, i) => {
+        const board = contractBoard(stateAt(i + 1));
+        return board.contracts.map((c) => c.id).join("/");
+      }),
+    );
+    expect(boards.size).toBeGreaterThan(1);
+  });
+
+  it("pays full for a posted mission and a first clear, and the token for an unposted repeat", () => {
+    const base = newGame(1, "Pay");
+    const mill = contentById("drowned-mill")!;
+    const roster = base.roster.map(maxed);
+    const progress = base.progress.map((p) => ({
+      ...p,
+      clears: p.contentId === "drowned-mill" ? 5 : 0,
+    }));
+    const stateAt = (day: number): GameState => ({
+      ...base,
+      day,
+      gold: 0,
+      roster,
+      progress,
+      plan: { parties: [{ contentId: "drowned-mill", heroes: roster.map((h) => h.id), stance: "steady" }] },
+      pendingEvent: null,
+      attention: [],
+    });
+
+    const days = Array.from({ length: 60 }, (_, i) => i + 1).filter((d) => d % 7 !== 0);
+    const postedDay = days.find((d) => payScaleFor(stateAt(d), mill) === 1)!;
+    const tokenDay = days.find((d) => payScaleFor(stateAt(d), mill) < 1)!;
+
+    const full = resolveDay(stateAt(postedDay));
+    const token = resolveDay(stateAt(tokenDay));
+    expect(full.lastEncounter?.xp).toBe(mill.xp);
+    expect(full.lastEncounter?.gold).toBe(mill.gold);
+    expect(full.lastEncounter?.payScale).toBe(1);
+    expect(token.lastEncounter?.xp).toBe(Math.round(mill.xp * CONTRACT_BOARD.tokenPay));
+    expect(token.lastEncounter?.gold).toBe(Math.round(mill.gold * CONTRACT_BOARD.tokenPay));
+    expect(token.lastEncounter?.payScale).toBe(CONTRACT_BOARD.tokenPay);
+
+    // The first clear is never taxed, even on a day the contract is not posted.
+    const first = stateAt(tokenDay);
+    first.progress = first.progress.map((p) =>
+      p.contentId === "drowned-mill" ? { ...p, clears: 0 } : p,
+    );
+    expect(payScaleFor(first, mill)).toBe(1);
+    expect(effectiveReward(first, mill)).toEqual({ gold: mill.gold, xp: mill.xp });
+  });
+
+  it("leaves farms, dungeons and raids at full pay every day", () => {
+    const base = newGame(4, "Kinds");
+    const kinds = CONTENT.filter((c) => c.kind !== "mission");
+    for (const day of [1, 2, 5, 10, 20, 40, 80]) {
+      const state: GameState = { ...base, day };
+      for (const content of kinds) expect(payScaleFor(state, content)).toBe(1);
+    }
+  });
+
+  it("does not add a field to the state or mutate the board input", () => {
+    const base = newGame(5, "Purity");
+    const keys = Object.keys(base);
+    const first = contractBoard(base);
+    const second = contractBoard(base);
+    expect(first).toEqual(second);
+    expect(Object.keys(base)).toEqual(keys);
+    const next = resolveDay(base);
+    expect(Object.keys(next).sort()).toEqual([...keys].sort());
+  });
+
+  it("pays a first clear full even on a token day, through resolveDay", () => {
+    const base = newGame(1, "First");
+    const mill = contentById("drowned-mill")!;
+    const roster = base.roster.map(maxed);
+    const progress = base.progress.map((p) => ({ ...p, clears: 0, attempts: 0 }));
+    const stateAt = (day: number): GameState => ({
+      ...base,
+      day,
+      gold: 0,
+      roster,
+      progress,
+      plan: { parties: [{ contentId: "drowned-mill", heroes: roster.map((h) => h.id), stance: "steady" }] },
+      pendingEvent: null,
+      attention: [],
+    });
+    const tokenDay = Array.from({ length: 60 }, (_, i) => i + 1)
+      .filter((d) => d % 7 !== 0)
+      .find((d) => payScaleFor(stateAt(d), mill) < 1)!;
+    const next = resolveDay(stateAt(tokenDay));
+    expect(next.progress.find((p) => p.contentId === "drowned-mill")?.clears).toBe(1);
+    expect(next.lastEncounter?.xp).toBe(mill.xp);
+    expect(next.lastEncounter?.gold).toBe(mill.gold);
+    expect(next.lastEncounter?.payScale).toBe(1);
+  });
+
+  it("the planner prefers a posted contract over an unposted repeat", () => {
+    const base = newGame(1, "Pick");
+    const roster = base.roster.map(maxed);
+    const progress = base.progress.map((p) => ({ ...p, clears: 5, attempts: 5 }));
+    const mill = contentById("drowned-mill")!;
+    const day = Array.from({ length: 40 }, (_, i) => i + 1).find((d) => {
+      const state: GameState = { ...base, day: d, roster, progress };
+      return !isPosted(state, mill);
+    })!;
+    const state: GameState = {
+      ...base,
+      day,
+      roster,
+      progress,
+      plan: { parties: [] },
+    };
+    const { plan } = planDay(state, STEWARD);
+    expect(plan.parties.some((p) => p.contentId === "drowned-mill")).toBe(false);
+    expect(plan.parties.length).toBeGreaterThan(0);
   });
 });
 

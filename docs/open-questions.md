@@ -85,23 +85,30 @@ Recommendation: widen the signatures as a measured pass. Do not move the fit on 
 ### O6. How does a hero earn a third trait?
 The cap is three; heroes roll two. The third slot is reserved. Options: a level milestone (40), the first clear of a raid, or a training slot that costs days. Earned traits would give the 84-day run a character arc and a reason to keep a veteran, and they need a rule that stops the pool becoming a checklist. Not blocking v0.1.
 
-### O7. Should a cleared mission pay full XP on repeat?
+### O7. Should a cleared mission pay full XP on repeat? — **Resolved 2026-10-31**
 
-**Measured 2026-10-31; the decay was rejected.** The Drowned Mill is cleared 26.4 times per run (1,585 clears over 60 runs): a 3-man XP mission at 0.86 difficulty is the best spare-party value. Two repeat schedules were built and swept on the standard 20 seeds:
+**Resolved by a daily contract board, not a decay.** Two of the guild's open missions are posted at full pay each day; every other mission pays 25% of its gold and XP after its first clear. First clears stay full; loot and mastery are untouched. The AI will not spend a night on a token repeat; a human may. The board is derived from `(seed, day, open content)`, so no save field.
+
+The flat decay failed because it taxed the only job the spare party had. The measured schedules:
 
 | Repeat pay | Steward score | Raids | Full clears | Drowned Mill clears/run |
 |---|---|---|---|---|
-| Full (current) | 23,051 | 2.70 | 14/20 | 26.4 |
+| Full (before) | 23,051 | 2.70 | 14/20 | 26.4 |
 | 100% → 85% → 70% | 22,271 | 2.65 | 13/20 | 28.5 |
 | 100% → 60% → 30% | 17,693 | 2.20 | 7/20 | 27.6 |
 
-Neither schedule changed the pick. At the harsh one the Mill still pays 78 XP for three heroes against 66 from the best farm, so the bot keeps going. The decay taxed the ladder — the Tyrant became unreachable, World First 0/20 — without producing a different night.
+The board changes the pick instead of taxing it. Measured on 20 seeds per personality:
 
-**Why:** the spare party has exactly one three-hero job. Farms pay less, dungeons and raids need four to ten, and missions are the only middle. A reward rule cannot create a choice the content does not offer.
+| | Steward | Quartermaster | Gambler |
+|---|---|---|---|
+| Score before → after | 23,515 → 22,938 | 24,293 → 23,658 | 20,814 → 20,686 |
+| Raids before → after | 2.75 → 2.60 | 2.75 → 2.65 | 2.50 → 2.45 |
+| World First after | 6/20 | 7/20 | 3/20 |
+| Average rank after | 2.35 | 2.10 | 2.80 |
+| Drowned Mill clears/run | 26.4 → 14.10 | 26.4 → 12.70 | 26.4 → 14.45 |
 
-**Two exits, in order of preference:**
+Mission nights spread across all six three-hero missions (Mill 13.75, Warrens 14.27, Wolf Den 11.05, Bandit Road 10.08, Toll House 5.60, Plundered Vault 1.47). The cost is the spare party's XP: at most 2.5% of score and 0.15 raids. World First and rank improve because the rivals lose more of their smaller rosters; do not bank that as player skill.
 
-1. **A second three-hero activity with a different shape** — a check the missions do not use, a different reward column, or a rotating contract board where two missions are "posted" each day at full pay and the rest pay a token. That changes the pick every day, caps the faucet without starving the ladder, and gives the day a reason to read the board first.
-2. **Accept the faucet** and spend the effort on the mid-game elsewhere. It is not a correctness bug: the player can repeat the Mill 26 times too, and the run still ends with three raids and a score.
+**Rejected:** both flat schedules above; a one-XP + one-prize board (it handed the spare party an easy full-pay job every day: +6% score on 10 seeds and the Mill still at 18.9/run); a token-only board with no AI gating (the planner's priority floor kept unposted missions above farms at 0.3 and 0.2, so the Mill ran 18–20 times). Do not reopen this with a smaller token; the posting rule, not the price, does the work. Measurement and the full table are in [progression-report.md](progression-report.md) §3.4.
 
-Recommendation: build (1) now. The rival/planner phase shipped without it (2026-10-31), so this is the next item in the build order. Measure it against the 20-seed Tyrant stall and the Mill clears/run, then close this question. Do not ship a flat decay.
+**Still better long-term:** a new three-hero activity with a check the missions do not use. The board rotates pay and level, not the check; four of the six missions are mechanics. That is a content addition, not a rework.

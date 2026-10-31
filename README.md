@@ -2,7 +2,7 @@
 
 *A management game where you run a raiding guild: **Football Manager** for a WoW-style Race to World First.*
 
-**Status:** the simulation is playable end to end — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer the AI prices and answers, a promises ledger, four upgradable facilities, level-priced wages, a personality-driven AI that plays it, three rival guilds on the same planner with a real leaderboard rank, and a CLI. No UI yet.
+**Status:** the simulation is playable end to end — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer the AI prices and answers, a promises ledger, four upgradable facilities, level-priced wages, a personality-driven AI that plays it, three rival guilds on the same planner with a real leaderboard rank, a daily contract board, and a CLI. No UI yet.
 
 ```bash
 npm install
@@ -74,8 +74,8 @@ If you read nothing else, these are the differences between the current draft GD
 
 ## Where it stands
 
-The sim is deterministic, tested (86 tests) and playable from a terminal. A run is 84 days: three level-1 heroes, a farm, missions, four dungeons, three raids. Sixteen areas, each with a bestiary and a named drop table the player can inspect before committing a party. Twenty traits (counters, bonds, craft, flaws, specialists) give heroes a second layer, and two boss threats can be answered or eaten. An AI plays it end to end — including the ten event cards, which it prices instead of taking the first option. Three rival guilds are full simulations of their own: rosters, gold, facilities and promises, played by the same planner. They score with the same formula, so the run ends with a real rank among four. Three personalities produce three different games: the cautious Quartermaster scores highest and takes the most World Firsts, while the Gambler spends into arrears and pays for it.
+The sim is deterministic, tested (93 tests) and playable from a terminal. A run is 84 days: three level-1 heroes, a farm, missions, four dungeons, three raids. Sixteen areas, each with a bestiary and a named drop table the player can inspect before committing a party. Twenty traits (counters, bonds, craft, flaws, specialists) give heroes a second layer, and two boss threats can be answered or eaten. An AI plays it end to end — including the ten event cards, which it prices instead of taking the first option. Three rival guilds are full simulations of their own: rosters, gold, facilities and promises, played by the same planner. They score with the same formula, so the run ends with a real rank among four. Missions sit on a daily contract board: two are posted at full pay, the rest pay 25% of their gold and XP after the first clear, and the AI will not spend a night on a token repeat. Three personalities produce three different games: the cautious Quartermaster scores highest and takes the most World Firsts, while the Gambler spends into arrears and pays for it.
 
 See [progression-report.md](docs/progression-report.md) for the numbers and the lessons.
 
-**Next:** add a second three-hero job so the Drowned Mill stops being the only spare-party night (the measured answer to the repeat faucet, [open-questions.md](docs/open-questions.md) O7), then manual loot assignment and a role-affinity pass (the alternate roles are dominated) before the vertical-slice UI. The rivals are done; a full world run costs ~0.84 s against ~0.10 s for the player's guild, which is the price of simulating the race.
+**Next:** teach the planner to choose by need (purse and gear, not only XP), then manual loot assignment and a role-affinity pass (the alternate roles are dominated) before the vertical-slice UI. The rivals and the contract board are done; a full world run costs ~0.84 s against ~0.10 s for the player's guild, which is the price of simulating the race.

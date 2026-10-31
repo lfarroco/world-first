@@ -402,6 +402,7 @@ A content is a record in `src/sim/content/content.ts`. The fields the player mee
 | `gold` / `xp` | Farm gold is **per hero**; every other kind pays the party a flat sum. XP is per hero for every kind. |
 | `loot` | `count` guaranteed items from an iLvl band. A clear pays exactly this many. |
 | `requires` | Content ids that must be cleared first. |
+| `contractColumn` | Missions only: `xp`, `gold` or `loot`. The daily board shows the column; a mission without a tag can never be posted. |
 | `firstClearRecruit` | Dungeons default to a free recruit on the first clear; `false` on a side dungeon. |
 | `mobs` / `drops` | The bestiary and the named drop table. `inspect <id>` prints both. |
 
@@ -409,7 +410,11 @@ A content is a record in `src/sim/content/content.ts`. The fields the player mee
 
 **Rewards are a choice, not a stack.** Each band carries more than one job. The XP run pays no loot, the gold run pays no XP, and the loot run pays neither. The shipped numbers and the measured effect are in [progression-report.md](progression-report.md) §1.1; the rule is that a new option must take something away, or it is free progression.
 
-**A mission pays its bounty on every clear.** A repeat-reward schedule was measured and rejected: 100% → 85% → 70% left the pick unchanged and cost the Steward 3.4% of score, and 100% → 60% → 30% made the Tyrant unreachable (0/20 World First) while the bot still ran the same mission. The spare party has no other three-hero job, and no purse rule invents one. Details in [progression-report.md](progression-report.md) §7 and [open-questions.md](open-questions.md) O7.
+**Missions are on a daily contract board.** Two of the guild's open missions are posted at full pay. Every other mission still exists, but a repeated clear pays `CONTRACT_BOARD.tokenPay` (25%) of its gold and XP. First clears are always full, and loot and mastery are untouched: the board is a pay rule, not a drop rule.
+
+The board is derived from `(seed, day)` and the guild's open missions. Nothing is stored, so there is no save migration; a hire or release before Advance can change which two are posted, and the screen warns when a planned party is on a token mission. `payScaleFor` is the only place the rate lives; `resolveDay` reads it before `progress.clears` moves, which is why the first clear is never taxed.
+
+The AI will not spend a night on a token repeat. That is the difference between the board and a flat decay: a decay taxes the job the bot would have chosen, and the bot keeps choosing it; the board gives it a different full-pay job or a farm. Measured on the 20-seed sweep, the Drowned Mill fell from 26.4 to 13.75 clears/run, the three personality scores moved 23,515 / 24,293 / 20,814 → 22,938 / 23,658 / 20,686, and raids 2.75 / 2.75 / 2.50 → 2.60 / 2.65 / 2.45. The cost is three Steward full clears (15/20 → 12/20); the Tyrant stall is 8/20 against the 6/20 target. `CONTRACT_BOARD.postedCount` is 2; a three-contract board was measured and rejected (it over-buffs the cautious personalities and collapses the Gambler). Full table and the rejected alternatives are in [progression-report.md](progression-report.md) §3.4.
 
 **Named drops are one roll, not a table per item.** `rollNamedDrop` rolls once per clear against the content's `drops`, whose `chance` values sum to at most 1. At most one named item drops, and it replaces one of the guaranteed items, so the item count never changes. Its iLvl is fixed, then the forge and the Scavenger trait add to it like any other drop. That is why `inspect` can print "18% per clear" and mean it.
 

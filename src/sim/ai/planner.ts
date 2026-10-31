@@ -9,6 +9,7 @@ import { wageBill } from "../economy";
 import { rosterCapFor, wageBudgetFor, nextCost, buyFacility, FACILITIES, type FacilityId } from "../facilities";
 import { rolesForClass } from "../content/roles";
 import type { Personality } from "./personalities";
+import { effectiveReward, postedContractIds } from "../board";
 
 const KIND_BONUS: Record<string, number> = {
   raid: 320,
@@ -42,6 +43,7 @@ const scoreContent = (
   content: ContentDef,
   pool: readonly Hero[],
   personality: Personality,
+  posted: ReadonlySet<string>,
 ): AiChoice | null => {
   if (pool.length < content.minHeroes) return null;
 
@@ -67,8 +69,15 @@ const scoreContent = (
     return { content, party, stance: "steady", ratio, reason: "1" };
   }
 
-  // Value is mostly XP and gold: the AI should climb, not camp a low dungeon.
-  const value = content.xp + content.gold / 8;
+  // The bot will not spend a night on a token repeat. A human may: the token is
+  // a price, and the planner is the test harness for "the board changes the
+  // pick". First clears are still full pay, so learning a new area is never
+  // taxed.
+  if (cleared > 0 && content.kind === "mission" && !posted.has(content.id)) return null;
+
+  // Value is mostly XP and gold, at today's contract pay.
+  const reward = effectiveReward(state, content, posted);
+  const value = reward.xp + reward.gold / 8;
   const priority =
     cleared === 0
       ? 5000 + content.tier * 200 + value + ratio * 30
@@ -80,7 +89,7 @@ const scoreContent = (
 
   // Not clearable, but a training attempt still earns XP and mastery.
   // Better to fail on a mission than to farm forever at level 1.
-  if (ratio >= 0.62 && content.xp > 20) {
+  if (ratio >= 0.62 && reward.xp > 20) {
     return {
       content,
       party,
@@ -142,6 +151,7 @@ export const planDay = (
   const usedContent = new Set<string>();
   const choices: AiChoice[] = [];
   const candidates = availableContent(state);
+  const posted = postedContractIds(state, candidates);
   const resting = new Set<string>();
   const daysLeft = RUN_DAYS - state.day;
 
@@ -201,7 +211,7 @@ export const planDay = (
       // One party per content per day. Two parties on the same dungeon
       // double-dips loot, XP and mastery, and a human cannot do it.
       if (usedContent.has(content.id)) continue;
-      const pick = scoreContent(state, content, pool, personality);
+      const pick = scoreContent(state, content, pool, personality, posted);
       if (!pick) continue;
       if (!best || Number(pick.reason) > Number(best.reason)) best = pick;
     }

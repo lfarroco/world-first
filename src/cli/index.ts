@@ -25,6 +25,10 @@ import {
   RUN_DAYS,
   runWorld,
   advanceDay,
+  boardLine,
+  CONTRACT_BOARD,
+  isPosted,
+  payScaleFor,
   playTurn,
   playerRank,
   standings,
@@ -129,6 +133,22 @@ const planWarnings = (state: GameState): void => {
   if (problems.length === 0) return;
   console.log(color("\nThis plan will not run as written:", "yellow"));
   for (const problem of problems) console.log(color(`  • party ${problem.index + 1}: ${problem.message}`, "yellow"));
+};
+
+/** A planned mission that is not on today's board is legal but pays the token. */
+const boardWarnings = (state: GameState): void => {
+  for (const party of state.plan.parties) {
+    const content = contentById(party.contentId);
+    if (!content || content.kind !== "mission") continue;
+    const scale = payScaleFor(state, content);
+    if (scale === 1) continue;
+    console.log(
+      color(
+        `  ${content.name} is not posted today — pays ${Math.round(scale * 100)}% of its gold and XP.`,
+        "yellow",
+      ),
+    );
+  }
 };
 
 /**
@@ -247,6 +267,12 @@ const cmdStatus = (): void => {
   if (state.plan.parties.length === 0) {
     console.log(color("\nNo parties assigned. Run: auto, or ai --days 1", "yellow"));
   } else {
+    console.log(
+      color(
+        `\nContracts posted: ${boardLine(state)} — unposted repeats pay ${Math.round(CONTRACT_BOARD.tokenPay * 100)}%.`,
+        "dim",
+      ),
+    );
     console.log(color("\nToday", "dim"));
     table(
       ["#", "content", "heroes", "stance", "projected", "form", "weakest"],
@@ -267,6 +293,7 @@ const cmdStatus = (): void => {
       }),
     );
     planWarnings(state);
+    boardWarnings(state);
   }
 
   console.log(color("\nRace", "dim"));
@@ -322,6 +349,13 @@ const cmdToday = (): void => {
     console.log();
   }
 
+  console.log(
+    color(
+      `Contracts posted: ${boardLine(state)} — unposted repeats pay ${Math.round(CONTRACT_BOARD.tokenPay * 100)}%.`,
+      "dim",
+    ),
+  );
+  console.log();
   if (state.plan.parties.length === 0) {
     console.log(color("No parties assigned. Run: auto, or `party --content <id> --heroes 1,2,3`", "yellow"));
   } else {
@@ -357,6 +391,7 @@ const cmdToday = (): void => {
       ),
     );
     planWarnings(state);
+    boardWarnings(state);
     threatWarnings(state);
   }
   console.log();
@@ -456,13 +491,20 @@ const cmdContent = (): void => {
   }
 
   console.log();
+  console.log(
+    color(
+      `Contracts posted: ${boardLine(state)} — unposted missions pay ${Math.round(CONTRACT_BOARD.tokenPay * 100)}% of their gold and XP after the first clear.`,
+      "cyan",
+    ),
+  );
   table(
-    ["content", "id", "kind", "avg lvl", "party", "gold", "xp", "loot", "projected", "status"],
+    ["content", "id", "kind", "avg lvl", "party", "gold", "xp", "loot", "pay", "projected", "status"],
     open.map((c) => {
       const progress = state.progress.find((p) => p.contentId === c.id);
       const clears = progress?.clears ?? 0;
       const attempts = progress?.attempts ?? 0;
       const projected = projectionFor(state, c);
+      const pay = c.kind === "mission" ? payScaleFor(state, c) : 1;
       const status =
         clears > 0
           ? color(`cleared ×${clears}`, "green")
@@ -478,11 +520,12 @@ const cmdContent = (): void => {
         c.kind === "farm" ? `${c.gold}g/hero` : `${c.gold}g`,
         String(c.xp),
         c.loot.count === 0 ? "—" : `${c.loot.count} · ${c.loot.ilvlMin}-${c.loot.ilvlMax}`,
+        c.kind !== "mission" ? "—" : pay < 1 ? color(`${Math.round(pay * 100)}%`, "yellow") : "full",
         c.kind === "farm" ? color("auto", "dim") : projected ? `${Math.round(projected.projection.estimatedBestPull * 100)}%` : "—",
         status,
       ];
     }),
-    ["l", "l", "l", "r", "r", "r", "r", "l", "r", "l"],
+    ["l", "l", "l", "r", "r", "r", "r", "l", "r", "r", "l"],
   );
   console.log(
     color(
@@ -537,6 +580,19 @@ const cmdInspect = (): void => {
   console.log(
     `\nRewards   ${content.kind === "farm" ? `${content.gold}g and ${content.xp} xp per hero` : `${content.gold}g · ${content.xp} xp per hero`}${content.loot.count === 0 ? " · no drops" : ` · ${content.loot.count} item${content.loot.count === 1 ? "" : "s"} from the iLvl ${content.loot.ilvlMin}-${content.loot.ilvlMax} band`}`,
   );
+  if (content.kind === "mission") {
+    const scale = payScaleFor(state, content);
+    const posted = isPosted(state, content);
+    const label =
+      scale < 1
+        ? `not posted today — pays ${Math.round(scale * 100)}% of its gold and XP`
+        : posted
+          ? "posted today — full pay"
+          : clears === 0
+            ? "not posted — first clear, full pay"
+            : "full pay";
+    console.log(color(`Contract   ${label}`, scale < 1 ? "yellow" : "dim"));
+  }
 
   console.log(color("\nPhases", "dim"));
   if (content.phases.length === 0) {
@@ -935,6 +991,10 @@ const cmdReport = (): void => {
   console.log(
     log.cleared ? color(`CLEARED`, "green") : color(`WIPE — best ${Math.round(log.bestPull * 100)}%`, "red"),
   );
+  const pay = log.payScale ?? 1;
+  if (log.contentKind === "mission" && pay < 1) {
+    console.log(color(`Contract   not posted — paid ${Math.round(pay * 100)}% of its gold and XP`, "yellow"));
+  }
   // A clear must show the pull that killed the boss. Showing the last failed
   // pull under a CLEARED banner teaches the wrong lesson about a fight that is
   // over — and it was the row the player read after every first clear.
@@ -1091,6 +1151,7 @@ const cmdSim = (): void => {
     ? [personalityById(flag("personality")!)]
     : [...PERSONALITIES.slice(0, 3)];
   const baseSeed = Number(flag("seed") ?? 1);
+  const clearTotals = new Map<string, number>();
 
   console.log();
   table(
@@ -1108,6 +1169,11 @@ const cmdSim = (): void => {
         dungeons += final.progress.filter((x) => contentById(x.contentId)?.kind === "dungeon" && x.clears > 0).length;
         if (final.worldFirstDay !== null) wins += 1;
         rank += playerRank(final);
+        for (const progress of final.progress) {
+          if (progress.clears > 0) {
+            clearTotals.set(progress.contentId, (clearTotals.get(progress.contentId) ?? 0) + progress.clears);
+          }
+        }
       }
       const sorted = [...scores].sort((a, b) => a - b);
       const avg = Math.round(scores.reduce((a, b) => a + b, 0) / Math.max(1, runs));
@@ -1123,6 +1189,17 @@ const cmdSim = (): void => {
     }),
     ["l", "r", "r", "r", "r", "r", "r"],
   );
+  if (args.includes("--clears")) {
+    const totalRuns = runs * personalities.length;
+    table(
+      ["content", "kind", "clears/run"],
+      CONTENT.filter((c) => (clearTotals.get(c.id) ?? 0) > 0).map((c) => [
+        c.name,
+        KIND_LABEL[c.kind],
+        ((clearTotals.get(c.id) ?? 0) / totalRuns).toFixed(2),
+      ]),
+    );
+  }
   console.log();
 };
 

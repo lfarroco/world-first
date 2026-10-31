@@ -66,6 +66,24 @@ export const ECONOMY = {
   partialMultiplier: 0.4,
 } as const;
 
+/**
+ * The daily contract board. Two of the guild's open missions are posted at
+ * full pay; every other mission pays this fraction of its gold and XP after
+ * its first clear. First clears are always full, so the board taxes the repeat
+ * faucet, not learning a new area.
+ *
+ * The AI will not spend a night on a token repeat (`ai/planner.ts`); a human
+ * may. The 0.25 is the human price: a token, not a lock. The Drowned Mill's
+ * value break-even against the best farm is ~0.086, so a human who ignores
+ * the board still gets a real but poor night. The measured effect is in
+ * progression-report.md §3.4.
+ */
+export const CONTRACT_BOARD = {
+  tokenPay: 0.25,
+  /** How many open missions the daily board posts at full pay. */
+  postedCount: 2,
+} as const;
+
 export const CONTRACT = {
   daysMin: 14,
   daysMax: 28,

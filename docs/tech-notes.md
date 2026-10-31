@@ -79,6 +79,7 @@ src/
     day.ts                the day pipeline for one guild
     economy.ts
     founding.ts           the state every guild starts from (no rivals)
+    board.ts              the daily contract board and the token pay rule
     rivals.ts             the three rival definitions, scores and standings
     world.ts              tickRivals, advanceDay, runWorld
     events.ts             event + attention derivation
@@ -155,7 +156,7 @@ The CLI is not a developer toy — it is the **primary test harness**. If a wipe
 | Layer | Approach |
 |---|---|
 | Sim invariants | property tests: fatigue ∈ [0,100], power ≥ 0, no NaN, day always resolves |
-| Determinism | resolve the same day twice, assert deep equality; an AI run reproduces its score and raid count from the seed |
+| Determinism | resolve the same day twice, assert deep equality; an AI run reproduces its score and raid count from the seed; the contract board is a pure function of the state |
 | Balance | `npm run cli -- sim --runs N` across personalities; the AI is the test harness |
 | Balance | `guild sim --policy {idle, random, greedy, perfect}` — assert the MVP targets in [mvp-scope.md](mvp-scope.md) §3 |
 | UI | visual smoke tests on the table + drawer; no snapshot-everything |

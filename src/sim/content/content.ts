@@ -87,6 +87,7 @@ export const CONTENT: ContentDef[] = [
   // ── Tier 1: missions ───────────────────────────────────────────────────────
   {
     id: "warrens",
+    contractColumn: "loot",
     name: "The Warrens",
     kind: "mission",
     tier: 1,
@@ -111,6 +112,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     id: "wolf-den",
+    contractColumn: "xp",
     name: "The Wolf Den",
     kind: "mission",
     tier: 1,
@@ -135,6 +137,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     id: "drowned-mill",
+    contractColumn: "xp",
     name: "The Drowned Mill",
     kind: "mission",
     tier: 1,
@@ -159,6 +162,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     id: "bandit-road",
+    contractColumn: "gold",
     name: "The Bandit Road",
     kind: "mission",
     tier: 1,
@@ -185,6 +189,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     id: "toll-house",
+    contractColumn: "gold",
     name: "The Toll House",
     kind: "mission",
     tier: 1,
@@ -206,6 +211,7 @@ export const CONTENT: ContentDef[] = [
   },
   {
     id: "plundered-vault",
+    contractColumn: "loot",
     name: "The Plundered Vault",
     kind: "mission",
     tier: 1,

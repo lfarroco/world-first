@@ -6,6 +6,7 @@ export * from "./plan";
 export * from "./encounter";
 export * from "./economy";
 export * from "./rivals";
+export * from "./board";
 export * from "./score";
 export * from "./events";
 export * from "./day";

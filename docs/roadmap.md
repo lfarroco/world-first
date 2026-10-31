@@ -10,13 +10,14 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 86 tests, `resolveDay` clones its input |
+| Simulation core | Done — deterministic, 93 tests, `resolveDay` clones its input |
 | Progression ladder | Done — 3 heroes → 3 farms, 6 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities |
 | Rivals | Done — three full guilds run the same planner and the same `resolveDay`. Each has a roster, gold, facilities and a score; the leaderboard has a real rank |
+| Contract board | Done — two open missions are posted at full pay each day; every other mission pays 25% after its first clear. The AI skips token repeats; the Drowned Mill fell from 26.4 to 13.75 clears/run |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
-| Balance | Provisional — 20 seeds per personality; the player's documented line holds and the average rank is 2.35–2.90 of 4 (see [progression-report.md](progression-report.md) §3.2) |
+| Balance | Provisional — 20 seeds per personality; the contract board costs ~2.5% of score and 0.15 raids, and the average rank is 2.10–2.80 of 4 (see [progression-report.md](progression-report.md) §3.4) |
 | UI | **None** |
 | Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
 | Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
@@ -60,6 +61,8 @@ Everything else — rivals, UI, facilities — amplifies a loop that must first 
 **Still open from this phase:** the kill criterion. A 30-day human playtest is the only test that can pass or fail it, and it has not been run.
 
 **Shipped after the phase's own report:** the AI now prices every card option and picks, so events are played and not only presented ([progression-report.md](progression-report.md) §5.4). The same pass fixed four card bugs the trace exposed: a "hurt a hero" option that hurt nobody, a "rest him" option that wounded him, a strictly-dominant taunt, and a rival offer that ended a young guild's run.
+
+**Shipped after Phase 2:** the contract board (O7). Two of the guild's open missions are posted at full pay each day; every other mission pays 25% after its first clear, and the AI will not spend a night on a token repeat. The Drowned Mill fell from 26.4 to 13.75 clears/run; the three personalities lost at most 2.5% of score and 0.15 raids, and the Steward lost three full clears (15/20 → 12/20). Measurement and rejected alternatives in [progression-report.md](progression-report.md) §3.4.
 
 **Kill criterion:** if a 30-day human playtest produces no moment the player wants to retell, stop and rethink the loop before any UI work.
 

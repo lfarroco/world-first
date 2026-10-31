@@ -17,6 +17,7 @@ import { assignedIds, partyOf, pruneUnavailable, sanitizePlan } from "./plan";
 import { computeScore } from "./score";
 import { CONTENT, contentById } from "./content/content";
 import { rngStream } from "./rng";
+import { payScaleFor } from "./board";
 import { healthRecoveryFor, injuryDaysFor, recruitLevelFactor } from "./facilities";
 import { rollEvent } from "./world-events";
 
@@ -97,7 +98,11 @@ export const resolveDay = (input: GameState): GameState => {
 
     const stance: Stance = assignment.stance;
     const economy = result.economy;
-    state.gold += Math.round(result.gold * (1 + economy.goldPct));
+    // The day's contract board decides the pay for a repeated mission. The
+    // first clear is always full; the scale is read before `progress.clears`
+    // moves below, so the night that clears an area is never taxed.
+    const pay = payScaleFor(state, content);
+    state.gold += Math.round(result.gold * (1 + economy.goldPct) * pay);
     const lowestId = [...party].sort((a, b) => a.level - b.level)[0]?.id;
 
     for (const hero of party) {
@@ -105,7 +110,8 @@ export const resolveDay = (input: GameState): GameState => {
       const xp = Math.round(
         result.xp *
           (1 + economy.xpPct + (hero.id === lowestId ? economy.mentorPct : 0)) *
-          (state.rewardScale ?? 1),
+          (state.rewardScale ?? 1) *
+          pay,
       );
       const grown = gainXp(hero, xp, xpRng);
       hero.level = grown.hero.level;
@@ -249,8 +255,9 @@ export const resolveDay = (input: GameState): GameState => {
         bestPull: result.bestPull,
         injured: result.injured.map((i) => i.name),
         stance,
-        xp: result.xp,
-        gold: result.gold,
+        xp: Math.round(result.xp * pay),
+        gold: Math.round(result.gold * pay),
+        payScale: pay,
       };
     }
   }

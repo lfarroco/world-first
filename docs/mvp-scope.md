@@ -35,10 +35,11 @@ If those three are fun with no art, the game is real. Everything else is amplifi
 | Economy | gold in/out · weekly wages vs budget · **arrears instead of game over** |
 | Recruitment | Tavern: 3 candidates, refresh on day 7 · signing modal (wage / length / squad status) · potential fog |
 | Rivals | 3 NPC guilds, deterministic per seed, each a full guild run by the same planner and `resolveDay`; scored with the same formula so the rank is real |
+| Contract board | Two open missions are posted at full pay each day; every other mission pays 25% of its gold and XP after the first clear. First clears and loot are unaffected; the AI skips token repeats |
 | Run | **84-day deadline** · 3 raids · World First · **final score, band and rank** |
 | Retention | morale deltas · transfer requests · contract expiry · squad-status promises |
 | Persistence | localStorage save, versioned, deterministic from seed + action log |
-| Dev tooling | headless CLI: `new`, `content`, `inspect <id>`, `party`, `advance`, `ai`, `sim --runs N`, `status` · **AI planner** (`src/sim/ai`) with personalities |
+| Dev tooling | headless CLI: `new`, `content`, `inspect <id>`, `party`, `advance`, `ai`, `sim --runs N [--clears]`, `status` · **AI planner** (`src/sim/ai`) with personalities |
 
 ### Out (v0.1, explicitly)
 
@@ -54,7 +55,7 @@ These are **acceptance tests**, not aspirations. The sim should be able to prove
 |---|---|---|
 | 1 | A new player loses on the first raid night no more than once | Onboarding must not punish |
 | 2 | The AI clears Gatewarden by day 45–55 | An early win, before the wall |
-| 3 | The Tyrant stalls the average run: 6/20 Steward seeds stop at two raids, none lower | The wall that teaches gearing |
+| 3 | The Tyrant stalls the average run: 6/20 Steward seeds stop at two raids, none lower — **the contract board measures 8/20**; see [progression-report.md](progression-report.md) §3.4 | The wall that teaches gearing |
 | 4 | A good bot clears 2–3 of the 3 raids; a great run clears all three | The ladder must be winnable but tight |
 | 5 | A do-nothing bot never clears a dungeon | Actions must matter |
 | 6 | A two-raid run scores ~16k; a full clear 23–30k; max ~31k | The score must have headroom |

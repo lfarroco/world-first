@@ -134,6 +134,8 @@ export type ContentDrop = {
   chance: number;
 };
 
+export type ContractColumn = "xp" | "gold" | "loot";
+
 export type ContentDef = {
   id: string;
   name: string;
@@ -151,6 +153,12 @@ export type ContentDef = {
   loot: { count: number; ilvlMin: number; ilvlMax: number };
   /** Content ids that must be cleared first. */
   requires: string[];
+  /**
+   * Missions sit on the daily contract board. Two open missions are posted at
+   * full pay; the tag is the reward column the board line shows. An unposted
+   * mission pays the token rate after its first clear. Other kinds have none.
+   */
+  contractColumn?: ContractColumn;
   /**
    * Dungeons hand over a free recruit on the first clear unless this is false.
    * Side dungeons pay in gear, not in bodies: the three ladder dungeons are
@@ -311,6 +319,8 @@ export type EncounterLog = {
   stance: Stance;
   xp: number;
   gold: number;
+  /** 1 for full pay; the board's token rate when this mission was not posted. */
+  payScale?: number;
 };
 
 export type ScoreLine = {
