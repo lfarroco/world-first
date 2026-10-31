@@ -34,7 +34,7 @@ If those three are fun with no art, the game is real. Everything else is amplifi
 | Progression | level gates + prerequisite clears · locked content hidden · free recruits on the three ladder dungeons (55% of your best; side dungeon excluded) · tavern recruits ≈ 62–80% of your best |
 | Economy | gold in/out · weekly wages vs budget · **arrears instead of game over** |
 | Recruitment | Tavern: 3 candidates, refresh on day 7 · signing modal (wage / length / squad status) · potential fog |
-| Rivals | 3 NPC guilds, deterministic per seed, walking the same ladder with a compressed power model |
+| Rivals | 3 NPC guilds, deterministic per seed, each a full guild run by the same planner and `resolveDay`; scored with the same formula so the rank is real |
 | Run | **84-day deadline** · 3 raids · World First · **final score, band and rank** |
 | Retention | morale deltas · transfer requests · contract expiry · squad-status promises |
 | Persistence | localStorage save, versioned, deterministic from seed + action log |
@@ -94,7 +94,7 @@ Contract negotiation with counter-offers → poaching → scouting fog expansion
 | Risk | Why it's real | Mitigation |
 |---|---|---|
 | **The numbers aren't legible** | 8 attributes × 8 roles × 4 checks is still a lot of surface for a new player | The projection strip *is* the mitigation: show the result of every change immediately. Test with someone who has never played FM. |
-| **The race feels fake** | Rivals are code | Simulate them with the same functions; show their activity, not just their score |
+| **The race feels fake** | Rivals are code | They *are* the same functions now: a full roster, purse and plan. Show their activity, not just their score |
 | **Attention items become noise** | FM's inbox failure | Hard cap 3 blocking items; delete any item with a dominant answer |
 | **Mid-game grind** | Days 8–21 are repetitive by design | Split runs + mastery + the wage crisis are the three spikes that carry the middle |
 | **Scope creep into "real FM"** | Temptation is constant | The In/Out table above is the contract; adding requires removing |

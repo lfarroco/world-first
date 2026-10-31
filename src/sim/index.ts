@@ -10,6 +10,7 @@ export * from "./score";
 export * from "./events";
 export * from "./day";
 export * from "./game";
+export * from "./world";
 export * from "./facilities";
 export * from "./world-events";
 export * from "./content/events";

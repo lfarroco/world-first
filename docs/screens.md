@@ -41,10 +41,10 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 │ FYI (4) ▸                 │  [full report]                                 │
 ├───────────────────────────┼───────────────────────────────────────────────┤
 │ WORLD FIRST               │  THE WEEK                                      │
-│ 1 Echoes      4/5 · 62%   │  Mon Tue Wed THU Fri Sat Sun                   │
-│ 2 YOU         3/5 · 41%   │  ▓▓  ▓▓  ░   ▓▓  ▓▓  ░  ★RESET                │
-│ 3 Methodical  3/5 · 28%   │  ▓ raid  ░ farm  ★ wages + market refresh      │
-│ 4 Ravensguard 2/5         │  [plan tomorrow →]                             │
+│ 1 Echoes      2/3 · 62%   │  Mon Tue Wed THU Fri Sat Sun                   │
+│ 2 YOU         2/3 · 41%   │  ▓▓  ▓▓  ░   ▓▓  ▓▓  ░  ★RESET                │
+│ 3 Methodical  2/3 · 28%   │  ▓ raid  ░ farm  ★ wages + market refresh      │
+│ 4 Ravensguard 1/3         │  [plan tomorrow →]                             │
 └───────────────────────────┴───────────────────────────────────────────────┘
 ```
 
@@ -220,18 +220,18 @@ This is the screen that answers "what is in there, and is it worth tonight?" wit
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│ THE OBSIDIAN CITADEL · TIER 1 · DAY 12/28                                      │
-│ 1  Echoes       4/5  Boss 5 at 62%   ████████░░  "8 pulls on Boss 5"           │
-│ 2  YOU          3/5  Boss 4 at 41%   ██████░░░░                               │
-│ 3  Methodical   3/5  Boss 4 at 28%   █████░░░░░  "farming"                     │
-│ 4  Ravensguard  2/5  Boss 3 killed                                           │
+│ THE OBSIDIAN CITADEL · TIER 1 · DAY 12/84                                      │
+│ 1  Echoes       1/3  The Tyrant at 62%  ████████░░  "8 pulls on the Tyrant"    │
+│ 2  YOU          1/3  Twin Covens at 41% ██████░░░░                            │
+│ 3  Methodical   1/3  Twin Covens at 28% █████░░░░░  "farming"                 │
+│ 4  Ravensguard  0/3  Gatewarden killed                                        │
 ├───────────────────────────────┬────────────────────────────────────────────────┤
-│ BOSS MAP                      │  PULL LOG — Boss 3                             │
-│ ① Oros ✓ killed day 5         │  #14  41%  P3 enrage 412/470  ✗                 │
-│ ② Covens ✓ killed day 9       │  #13  41%  P3 enrage 405/470  ✗                 │
-│ ③ Vael ◀ 41%                  │  #12  38%  P2 sustain 0.96 ~                    │
-│ ④ Korrath 🔒 (kill ③)         │  #11  41%  P3 enrage 390/470  ✗                 │
-│ ⑤ Tyrant 🔒                   │  [analysis]                                     │
+│ RAID MAP                      │  PULL LOG — Twin Covens                        │
+│ ① Gatewarden ✓ killed day 45  │  #14  41%  P3 enrage 412/470  ✗                 │
+│ ② Twin Covens ◀ 41%           │  #13  41%  P3 enrage 405/470  ✗                 │
+│ ③ The Tyrant 🔒 (kill ②)      │  #12  38%  P2 sustain 0.96 ~                    │
+│                               │  #11  41%  P3 enrage 390/470  ✗                 │
+│                               │  [analysis]                                     │
 └───────────────────────────────┴────────────────────────────────────────────────┘
 ```
 
@@ -252,7 +252,7 @@ This is the screen that answers "what is in there, and is it worth tonight?" wit
 
 ---
 
-## 8. Run End (day 28) — the ranking screen
+## 8. Run End (day 84) — the ranking screen
 
 **Purpose:** close the loop with a verdict and a story, then get the player into another run. Full-screen takeover, not a modal — this is the game's ending and it should feel like one.
 
@@ -261,25 +261,26 @@ This is the screen that answers "what is in there, and is it worth tonight?" wit
 │                    THE OBSIDIAN CITADEL — RUN COMPLETE                       │
 │                                                                              │
 │                         RANK 2 of 4        BAND  A                          │
-│                             20,840                                          │
+│                             22,690                                          │
 │                                                                              │
-│  Bosses     16,000  ████████████████████████  all five down                  │
-│  World First     0  ────────────────────────  Echoes got there on day 26     │
+│  Raids      18,000  ████████████████████████  all three down                 │
+│  Dungeons      800  ███░░░░░░░░░░░░░░░░░░░░░  4 cleared                      │
+│  World First     0  ────────────────────────  Echoes got there on day 81     │
 │  Wealth      1,240  ████░░░░░░░░░░░░░░░░░░░░  12,400g                        │
-│  Strength    2,850  ██████████░░░░░░░░░░░░░░  squad power 950                │
+│  Strength    1,900  ██████████░░░░░░░░░░░░░░  squad power 950                │
 │  Renown        750  ████░░░░░░░░░░░░░░░░░░░░  tier 3                         │
 │  Arrears         0  ✓                                                        │
-│  TOTAL      20,840                                                           │
+│  TOTAL      22,690                                                           │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│  1  Echoes       22,400    World First — killed the Tyrant on day 26          │
-│  2  YOU          20,840    stalled on the Tyrant at 41% for 6 days           │
-│  3  Methodical   14,500    4 bosses                                          │
-│  4  Ravensguard   5,850    2 bosses                                          │
+│  1  Echoes       24,400    World First — killed the Tyrant on day 81          │
+│  2  YOU          22,690    stalled on the Tyrant at 41% for 6 days           │
+│  3  Methodical   14,500    two raids                                         │
+│  4  Ravensguard   5,850    one raid                                          │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  THREE MOMENTS THAT MATTERED                                                 │
 │  • Day 11 — you benched Varis for six days; he asked to leave on day 19      │
 │  • Day 17 — the wage bill went over budget and you cut Ottilie; morale -14   │
-│  • Day 24 — first pull on the Tyrant at 41%, never improved                  │
+│  • Day 80 — first pull on the Tyrant at 41%, never improved                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │        [ NEW RUN — SAME SEED ]   [ NEW RUN — NEW SEED ]   [ TITLE ]          │
 └──────────────────────────────────────────────────────────────────────────────┘

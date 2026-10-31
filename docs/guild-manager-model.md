@@ -30,6 +30,8 @@ resolveDay(state, plan, rng) -> { state', events[], attention[] }
 
 Raid resolves *before* other activity so that a hard raid night isn't double-taxed by the same day's farming. Farming fatigue still lands tomorrow — that's the trade-off.
 
+**The world tick lives outside `resolveDay`.** `resolveDay` is one guild: clone it, resolve its parties, rest, promises, upkeep and queue. `advanceDay` is `resolveDay` plus `tickRivals`, and `runWorld` loops `advanceDay`. Keeping the step out of `resolveDay` is what lets a rival's own day resolve without recursing into the world; see §6.
+
 ---
 
 ## 2. The hero
@@ -504,34 +506,34 @@ The design also wanted renown to open better tavern candidates and gate faciliti
 
 ## 6. Rival guilds — simulated, not scripted
 
-**This is non-negotiable if the race is to feel real.** The three rivals run the *same* `heroPower`, `check`, `mastery`, and `fatigue` functions. What differs is strategy and roster composition.
+**This is non-negotiable if the race is to feel real.** Each rival is a full `GameState`: three starting heroes, gold, a tavern, facilities, promises, an event log and a `Personality`. `tickRivals` gives it one `aiTurn` per player day, through the same planner and the same `resolveDay` the player uses. There is no compressed power number left.
 
 | Guild | Personality | Behaviour |
 |---|---|---|
-| **Echoes** | the meta chasers | Raids every day, buys veterans early, burns out late (fatigue penalties in week 4) |
-| **Methodical** | the grinder | Farms 2 days per raid day; slow week 1, strongest week 3–4 |
-| **Ravensguard** | the opportunists | Balanced; poaches heroes (post-MVP), exploits weaker players |
+| **Echoes** | reckless, ambition 0.85 | Raids early and often; spends into the next tier |
+| **Methodical** | careful, thrift 0.6 | Farms before the wall |
+| **Ravensguard** | steady, ambition 0.6 | Balanced; takes the attempt when the odds are good |
 
-Their daily loop is 20 lines of code: choose activity by policy → resolve with the same check functions → update progression. They need **no UI at all**, only:
-- progress state (boss index, best pull %, kills),
-- a visible "what they're doing" line on the RWF screen ("Echoes: 8 pulls on Boss 4 — best 62%"),
-- and a *reason* the player can infer (their gear/growth curve is visible as a rating trend).
+The world tick is deliberately outside `resolveDay`. `resolveDay` resolves one guild; `advanceDay` resolves the player then calls `tickRivals`; `runWorld` repeats that for a full run. A rival guild's own `rivals` array is empty, so its `resolveDay` cannot recurse into the world.
 
-Rival difficulty is a **tuning dial** (`RIVAL.pace` in `src/sim/content/tuning.ts`), so the game can ship with a "cosy/casual" and a "brutal" setting from one number. The measured baseline is 1.0; see [progression-report.md](progression-report.md) §3.2.
+Rival difficulty is one dial: **`RIVAL.pace`, the multiplier on XP a rival earns**. It is 0.9 — a rival levels about one step slower than the player. 0.9 reproduces the player's documented 20-seed line; 1.0 is the "brutal" setting, where the 10-seed sweep puts the rivals at 25.3–26.2k and 2.83 raids and the player's average rank at 2.60–3.60 ([progression-report.md](progression-report.md) §3.2).
 
-**Determinism beats surprise.** The rivals are seeded per season, so the same save replays identically — and, crucially, so that a rival's progress is a *pace* the player can learn rather than a dice roll they can resent. Exposing their *activity* (not their roster) is what makes the pace legible.
+The leaderboard reads each rival's own state: `rivalRaidsCleared`, the cached `activity` line ("The Tyrant — best 62%", "resting", "cleared Gatewarden"), and `computeScore(rival.guild)`. `standings` scores all four guilds and sorts them; `playerRank` returns the player's position.
 
-**Publish the tie-breakers.** If two guilds kill the final boss on the same day, the leaderboard must resolve it by a documented order the player can plan around:
+**Determinism beats surprise.** Rival guilds are seeded from the player's seed with an odd multiplier per guild, so the same save replays identically — and a rival's progress is a *pace* the player can learn rather than a dice roll they can resent. Only their activity and score are exposed; their roster stays hidden.
+
+**Publish the tie-breakers.** The code implements a shorter order than the design first proposed, and the doc has to say what the code does:
 
 ```
-1. earliest final-boss kill timestamp
-2. fewest total attempts used
-3. most bosses killed
-4. head-to-head (direct comparison of best pull % on the final boss)
-5. lower seed
+1. higher final score
+2. earlier final-boss kill (World First)
+3. more raids cleared
+4. table order (player first, then Echoes, Methodical, Ravensguard)
 ```
 
-Show this in a `Rules` popover on the Raid screen. FM has a Rules page for exactly this reason, and ambiguous tie-breaks are the fastest way to lose a competitive audience.
+A same-day third-raid clear goes to the player: the player's resolution runs before `tickRivals`. Show the rule in a `Rules` popover on the Raid screen. Ambiguous tie-breaks are the fastest way to lose a competitive audience.
+
+**Cost:** the full world run is ~0.84 s for 84 days (~10 ms/day), against ~0.1 s for the player's guild alone. The unit tests use the player-only `aiRun`; the race is tested by three world runs. `sim --runs 20` takes ~50 s.
 
 ---
 
@@ -610,11 +612,11 @@ Raids dominate the score on purpose (18k of the ~30k). Everything else is a tieb
 
 Plus a **position among the 4 guilds** (you + 3 rivals, each scored by the same formula). The two together — band and position — are the run's headline.
 
-**Band is built; position is not.** Rivals have no score of their own, so the CLI shows their raid count, not a rank. Scoring the rivals is part of putting them on the planner.
+**Both are built.** The rivals are full guilds, so `computeScore` runs on each; `standings` sorts the four and `playerRank` returns the position. The CLI prints the rank on `today`, the race table on `status`, and the full table at the end of a run. Measured average rank on 20 seeds: 2.90 (Steward), 2.35 (Quartermaster), 2.75 (Gambler).
 
 ### 8.3 The summary screen
 
-**Not built.** The CLI prints the score lines and band. The screen below is the target.
+**Partly built.** The CLI prints the score lines, band and rank table. The three moments and the per-boss record are still design.
 
 The run ends with a screen that is *about the story*, not the number:
 

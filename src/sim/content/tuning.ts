@@ -113,27 +113,17 @@ export const RENOWN = {
 
 export const RIVAL = {
   /**
-   * Growth on a day the rival attempts a boss, relative to the base growth.
-   * At 0.5 (the first pass) the grinder out-grew the raider, so every rival
-   * finished the tier after the player and World First was automatic. An
-   * attempt is practice plus gear, so it should be close to a farm day.
+   * Global difficulty dial for the race: the multiplier on XP a rival guild
+   * earns. 1 makes a rival exactly as fast as the player; 0.9 makes it level
+   * about one step slower. The rivals now run the planner, so the dial is no
+   * longer a growth rate in a compressed model — it is the player's own reward
+   * pipeline, scaled. Measured 2026-10-31 on the standard 20 seeds per
+   * personality: with 3 rivals the player holds its documented line (23,515 /
+   * 24,293 / 20,814; World First 3/20, 6/20, 3/20), the rivals average
+   * 23.4–23.9k, and the player's average rank is 2.35–2.90 of 4. See
+   * progression-report.md §3.2.
    */
-  attemptGrowth: 0.9,
-  /** Growth on a farm day. */
-  farmGrowth: 0.9,
-  /** Growth on the day a rival clears a stage: consolidation, not a spike. */
-  clearGrowth: 0.6,
-  /**
-   * Global difficulty dial for the race. 1 = the pre-content-pass baseline.
-   * The 2026-10-30 content pass added side jobs and moved the Tyrant's
-   * requirement up 15%; at 1.0 the player's Tyrant kill landed after every
-   * rival, so World First was 0/10 on all three personalities. 0.85 puts the
-   * rivals back at days 74-79 and restores the split (3/10, 1/10, 4/10).
-   */
-  pace: 0.85,
-  /** Echoes burns out after this day. */
-  burnoutDay: 60,
-  burnoutFactor: 0.35,
+  pace: 0.9,
 } as const;
 
 /**

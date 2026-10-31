@@ -7,14 +7,16 @@ Short, opinionated, and only about things that constrain the design. No code yet
 ## 1. The one architectural rule
 
 ```
-resolveDay(state: GameState, plan: DayPlan, rng: Rng) -> { state: GameState, events: Event[], attention: Attention[] }
+resolveDay(state: GameState) -> GameState
+advanceDay(state: GameState) -> GameState        // resolveDay + tickRivals
+runWorld(state, personality) -> GameState        // advanceDay until the run ends
 ```
 
-- **Pure.** No IO, no `Date.now()`, no `Math.random()`. Everything in, everything out.
+- **Pure per guild.** No IO, no `Date.now()`, no `Math.random()`. Everything in, everything out.
 - **Deterministic.** Same `(state, plan, seed)` → identical output, forever.
 - **Total.** Every consequence is expressed as `events` and `attention` — never as a side effect the UI has to guess at.
 
-Everything else in the app is a shell around this function. That gives us, for free:
+Everything else in the app is a shell around these functions. That gives us, for free:
 
 | Benefit | Why it matters here |
 |---|---|
@@ -37,7 +39,7 @@ The language and FP approach are settled in [ADR 0001](adr/0001-functional-ts.md
 | Language | **TypeScript** (strict, `noUncheckedIndexedAccess`) | The sim is arithmetic; types catch the class of bug that ruins balance |
 | Approach | **Functional core / imperative shell** — see [ADR 0001](adr/0001-functional-ts.md) | The sim is pure and deterministic; the UI is a normal React app |
 | Build | **Vite** | The game is 100% client-side; no SSR to buy, faster HMR and a simpler mental model than Next |
-| UI | **React** + **Zustand** (per [ADR 0002](adr/0002-ui-framework.md), deferred until Phase 0) | Boring and well-supported; the store holds the action log and calls `resolveDay` |
+| UI | **React** + **Zustand** (per [ADR 0002](adr/0002-ui-framework.md), deferred until Phase 0) | Boring and well-supported; the store holds the action log and calls `advanceDay` |
 | Styling | **Tailwind** + a small design-token layer | Density requires tight control of spacing/size |
 | Data | **localStorage** behind a `SaveStore` interface | See [open-questions.md](open-questions.md) D6 |
 | CLI | plain Node + a table printer | Must not depend on the web app |
@@ -57,7 +59,7 @@ The language and FP approach are settled in [ADR 0001](adr/0001-functional-ts.md
 
 The sim is implemented and tested; see [phase-0-report.md](phase-0-report.md). Two deviations from the rules above, both deliberate and both worth knowing:
 
-1. **`readonly` was dropped from the state types.** Spread-based updates fought the type system on every nested change (24 compile errors in the first draft). Instead, `resolveDay` deep-clones its input with `structuredClone` and mutates the clone locally. The guarantee is behavioural — callers can never observe mutation, and a test asserts the input is untouched — rather than type-level. This is the pragmatic version of "immutable data", and it is honestly the one that ships.
+1. **`readonly` was dropped from the state types.** Spread-based updates fought the type system on every nested change (24 compile errors in the first draft). Instead, `resolveDay` deep-clones the guild and mutates the clone locally. The world's rival array is attached by reference, because the day only reads their World First flag and `tickRivals` copies each rival before writing. The guarantee is behavioural — callers can never observe mutation, and a test asserts the input is untouched — rather than type-level. This is the pragmatic version of "immutable data", and it is honestly the one that ships.
 2. **Event ids are hashed from their text, not counted.** A module-level counter made two calls to `resolveDay` produce different ids, which the determinism test caught immediately. That test is now the guard against an entire class of bug.
 
 ---
@@ -74,11 +76,13 @@ src/
     hero.ts               attributes → roleScore → power; XP and levelling
     plan.ts               parties, unlocks, validation
     encounter.ts          phase resolution + projections for any content
-    day.ts                the day pipeline
+    day.ts                the day pipeline for one guild
     economy.ts
-    rivals.ts             compressed rival ladder (to be replaced by ai/)
+    founding.ts           the state every guild starts from (no rivals)
+    rivals.ts             the three rival definitions, scores and standings
+    world.ts              tickRivals, advanceDay, runWorld
     events.ts             event + attention derivation
-    ai/                   personalities.ts · planner.ts · turn.ts
+    ai/                   personalities.ts · planner.ts · turn.ts (aiTurn, aiRun)
     game.ts               newGame, hiring, assigning, advancing
     index.ts              the public surface
   app/                    ← Vite entry, routing, providers
@@ -162,12 +166,14 @@ The `perfect` policy is a small search/greedy bot. It's the single most valuable
 
 ## 8. Performance
 
-Not a real concern at this scale, but the design has limits worth knowing:
+Measured 2026-10-31 on the shipped build:
 
-- A day is O(heroes + bosses + rivals) ≈ a few hundred operations → microseconds.
-- The roster table is ≤ 26 rows. No virtualisation needed. Tavern is ≤ 12.
+- **One guild day:** ~1 ms (`resolveDay`, 84 days in ~0.10 s).
+- **One world day:** ~10 ms, because `tickRivals` gives three full guilds an `aiTurn`. A full 84-day world run is ~0.84 s.
+- **`sim --runs 20`** (60 world runs) is ~50 s. The unit tests use the player-only `aiRun`; three world runs cover the race.
+- The roster table is ≤ 22 rows. No virtualisation needed. Tavern is ≤ 3.
 - The expensive thing will be **re-rendering the projection strip on every drag**. Compute projections in a `useMemo` keyed by `(party, stance, boss)` and keep the math pure — it's already a pure function, so memoisation is free.
-- Batch sim of 10,000 days should stay under a few seconds; if it doesn't, the per-day function is doing something silly (allocation in a loop is the usual culprit).
+- A 10,000-day batch is ~12 s with `aiRun` (player only, ~119 full runs) and ~100 s with the world attached. Optimise the rival planner first if that becomes the bottleneck; do not cut the race out of the sweep.
 
 ---
 

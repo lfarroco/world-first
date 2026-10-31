@@ -14,7 +14,6 @@ import { deriveAttention, announceUnlocks, event, push } from "./events";
 import { bestLevel, makeCandidate } from "./content/heroes";
 import { gainXp } from "./hero";
 import { assignedIds, partyOf, pruneUnavailable, sanitizePlan } from "./plan";
-import { tickRivals } from "./rivals";
 import { computeScore } from "./score";
 import { CONTENT, contentById } from "./content/content";
 import { rngStream } from "./rng";
@@ -45,7 +44,13 @@ const heroById = (state: GameState, id: string): Hero | undefined =>
  * mutable for readability.
  */
 export const resolveDay = (input: GameState): GameState => {
-  const state = structuredClone(input);
+  // The world's guilds are not part of the guild's day. Clone the guild, then
+  // attach the rivals by reference: the day only reads their World First flag,
+  // and `tickRivals` copies each rival before it touches one. Cloning three
+  // growing 84-day states on every day of every sweep was 12 ms/day on its own.
+  const { rivals, ...guild } = input;
+  const state = structuredClone(guild) as GameState;
+  state.rivals = rivals;
   const today = state.day;
 
   // A save written before an area existed has no progress row for it. Add the
@@ -97,7 +102,11 @@ export const resolveDay = (input: GameState): GameState => {
 
     for (const hero of party) {
       const xpRng = rngStream(state.seed, "xp", today, hero.id);
-      const xp = Math.round(result.xp * (1 + economy.xpPct + (hero.id === lowestId ? economy.mentorPct : 0)));
+      const xp = Math.round(
+        result.xp *
+          (1 + economy.xpPct + (hero.id === lowestId ? economy.mentorPct : 0)) *
+          (state.rewardScale ?? 1),
+      );
       const grown = gainXp(hero, xp, xpRng);
       hero.level = grown.hero.level;
       hero.xp = grown.hero.xp;
@@ -200,7 +209,12 @@ export const resolveDay = (input: GameState): GameState => {
             const raidsDone = state.progress.filter(
               (p) => contentById(p.contentId)?.kind === "raid" && p.clears > 0,
             ).length;
-            const rivalsAlive = state.rivals.every((r) => r.worldFirstDay === null);
+            // A rival guild has no rivals of its own. The world tick is what
+            // awards World First to a rival; a guild resolving on its own must
+            // not hand itself one just because its `rivals` array is empty.
+            const rivalsAlive =
+              state.rivals.length > 0 &&
+              state.rivals.every((r) => r.guild.worldFirstDay === null);
             if (raidsDone >= 3 && rivalsAlive && state.worldFirstDay === null) {
               state.worldFirstDay = today;
               push(state, event(today, "run", "good", "WORLD FIRST. The Obsidian Tyrant falls before any rival guild."));
@@ -294,15 +308,7 @@ export const resolveDay = (input: GameState): GameState => {
     }
   }
 
-  // ── 3. WORLD ───────────────────────────────────────────────────────────────
-  tickRivals(state);
-  for (const rival of state.rivals) {
-    if (rival.worldFirstDay === today) {
-      push(state, event(today, "rival", "bad", `${rival.name} cleared a raid.`));
-    }
-  }
-
-  // ── 4. UPKEEP ──────────────────────────────────────────────────────────────
+  // ── 3. UPKEEP ──────────────────────────────────────────────────────────────
   for (const hero of state.roster) hero.contract.daysLeft -= 1;
 
   const leaving = state.roster.filter((h) => h.contract.daysLeft <= 0);
@@ -339,7 +345,7 @@ export const resolveDay = (input: GameState): GameState => {
     for (const hero of state.roster) hero.morale = clamp(hero.morale - 2, 1, 100);
   }
 
-  // ── 5. NEXT DAY ────────────────────────────────────────────────────────────
+  // ── 4. NEXT DAY ────────────────────────────────────────────────────────────
   // An area opens when the roster can field it: a level crossed tonight, a
   // fourth hero, a prerequisite cleared. The content list hides closed areas,
   // so this event is how the player learns about it.

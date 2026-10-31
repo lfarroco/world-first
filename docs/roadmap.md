@@ -2,7 +2,7 @@
 
 Where the project is, what could kill it, and the order I'd build in.
 
-Last updated: 2026-10-30. Update this file when a phase ships or the order changes.
+Last updated: 2026-10-31. Update this file when a phase ships or the order changes.
 
 ---
 
@@ -10,12 +10,13 @@ Last updated: 2026-10-30. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 80 tests, `resolveDay` is pure |
+| Simulation core | Done — deterministic, 86 tests, `resolveDay` clones its input |
 | Progression ladder | Done — 3 heroes → 3 farms, 6 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities |
+| Rivals | Done — three full guilds run the same planner and the same `resolveDay`. Each has a roster, gold, facilities and a score; the leaderboard has a real rank |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
-| Balance | Provisional — 10 seeds per personality; the Tyrant stalls 6/20 Steward seeds and World First is 3/10, 4/10 and 1/10 (see [progression-report.md](progression-report.md) §1.1) |
+| Balance | Provisional — 20 seeds per personality; the player's documented line holds and the average rank is 2.35–2.90 of 4 (see [progression-report.md](progression-report.md) §3.2) |
 | UI | **None** |
 | Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
 | Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
@@ -62,13 +63,15 @@ Everything else — rivals, UI, facilities — amplifies a loop that must first 
 
 **Kill criterion:** if a 30-day human playtest produces no moment the player wants to retell, stop and rethink the loop before any UI work.
 
-### Phase 2 — Rivals on the planner
+### Phase 2 — Rivals on the planner ✅ *shipped*
 
 **Goal:** the race is simulated, not paced.
 
-Delete the rivals' compressed one-number model and run `aiTurn` for three rival guilds each day, each with a personality. Benefits: the leaderboard becomes explicable ("Echoes over-geared and stalled on the Tyrant"), poaching becomes possible later, and we delete more code than we add.
+The compressed one-number model is gone. Each rival is a full `GameState` with its own roster, gold, facilities, promises and event log, played each day by the same `aiTurn` the player's bot uses. `resolveDay` resolves one guild; `tickRivals` resolves the world; `runWorld` is the product-level run and `aiRun` is the fast, player-only balance harness. The leaderboard is now scored with `computeScore` for all four guilds, so `rank` is real (closing open question D3).
 
-Cheap because the planner only reads `GameState` and a `Personality`.
+**Measured (2026-10-31, 20 seeds per personality, `RIVAL.pace = 0.9`):** the player's documented line holds — Steward 23,515 / 2.75 raids / World First 3/20 / average rank 2.90; Quartermaster 24,293 / 2.75 / 6/20 / 2.35; Gambler 20,814 / 2.50 / 3/20 / 2.75. The rivals average 23.4–23.9k and 2.67 raids. Full table in [progression-report.md](progression-report.md) §3.2.
+
+**The cost:** a full world run takes ~0.84 s instead of ~0.1 s, because three rival guilds plan 84 days each. The unit tests use the player-only `aiRun`; the race has its own three world tests. `sim --runs 20` now takes ~50 s.
 
 ### Phase 3 — UI vertical slice *(the product)*
 

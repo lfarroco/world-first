@@ -23,8 +23,11 @@ import {
   PROMISE,
   RAIDS,
   RUN_DAYS,
-  aiRun,
-  aiTurn,
+  runWorld,
+  advanceDay,
+  playTurn,
+  playerRank,
+  standings,
   assignParty,
   attemptsFor,
   bestLevel,
@@ -41,7 +44,7 @@ import {
   personalityById,
   projectAssignment,
   resolveAttention,
-  resolveDay,
+  startingRivals,
   squadRating,
   validatePlan,
   wageBill,
@@ -67,7 +70,6 @@ import { FACILITIES, facilityById, facilitySummary, nextCost, buyFacility, roste
 import { blockingAttention, hasBlocking } from "../sim/events";
 import { heroPower } from "../sim/hero";
 import { planDay } from "../sim/ai/planner";
-import { rivalRaidsCleared } from "../sim/rivals";
 
 const SAVE = resolve(process.cwd(), ".save.json");
 
@@ -105,7 +107,15 @@ const load = (): GameState => {
     console.error(color("No save. Run: npm run cli -- new --seed 1234", "yellow"));
     process.exit(1);
   }
-  return JSON.parse(readFileSync(SAVE, "utf8")) as GameState;
+  const state = JSON.parse(readFileSync(SAVE, "utf8")) as GameState;
+  // A save written before the rivals were guilds has an old one-number shape.
+  // There is no honest way to rebuild a roster the old model never had; keep
+  // the player's run and give the race a fresh start.
+  const first = state.rivals[0];
+  if (first && !("guild" in first)) {
+    state.rivals = startingRivals(state.seed);
+  }
+  return state;
 };
 const save = (s: GameState): void => {
   writeFileSync(SAVE, JSON.stringify(s, null, 2));
@@ -259,13 +269,22 @@ const cmdStatus = (): void => {
     planWarnings(state);
   }
 
-  console.log(color("\nRivals", "dim"));
+  console.log(color("\nRace", "dim"));
+  const board = standings(state);
+  const activity = new Map(state.rivals.map((r) => [r.name, r.activity]));
   table(
-    ["guild", "raids", "doing"],
-    [
-      ...state.rivals.map((r) => [r.name, `${rivalRaidsCleared(r)}/${RAIDS.length}`, r.activity]),
-      [color(state.guildName, "cyan"), `${raids}/${RAIDS.length}`, "you"],
-    ],
+    ["#", "guild", "score", "raids", "doing"],
+    board.map((row, i) => [
+      String(i + 1),
+      row.isPlayer ? color(row.name, "cyan") : row.name,
+      String(row.score),
+      `${row.raids}/${RAIDS.length}`,
+      row.isPlayer
+        ? state.worldFirstDay
+          ? "world first"
+          : "you"
+        : activity.get(row.name) ?? "",
+    ]),
   );
   console.log();
 };
@@ -275,7 +294,7 @@ const cmdToday = (): void => {
   const raids = state.progress.filter((p) => contentById(p.contentId)?.kind === "raid" && p.clears > 0).length;
   console.log();
   const title = state.finished ? "Run complete" : `Day ${state.day}`;
-  console.log(`${color(title, "bold")}  ${Math.round(state.gold)}g  renown ${state.renown}  ${state.roster.length} heroes  best lvl ${bestLevel(state.roster)}  raids ${raids}/${RAIDS.length}`);
+  console.log(`${color(title, "bold")}  ${Math.round(state.gold)}g  renown ${state.renown}  ${state.roster.length} heroes  best lvl ${bestLevel(state.roster)}  raids ${raids}/${RAIDS.length}  rank ${playerRank(state)}/${state.rivals.length + 1}`);
   if (state.finished) {
     console.log(color(`SCORE ${state.score} · band ${state.band}`, "bold"));
   }
@@ -852,7 +871,7 @@ const cmdAdvance = (): void => {
       save(state);
     }
     const before = state.day;
-    const next = resolveDay(state);
+    const next = advanceDay(state);
     printDigest(next, before);
     state = next;
     save(state);
@@ -882,12 +901,23 @@ const printRunEnd = (state: GameState): void => {
   console.log();
   console.log(color("════ RUN COMPLETE ════", "bold"));
   console.log(
-    `${color(`SCORE ${state.score}`, "bold")}  band ${color(state.band ?? "-", "magenta")}  ${state.worldFirstDay ? color("WORLD FIRST", "green") : ""}`,
+    `${color(`SCORE ${state.score}`, "bold")}  band ${color(state.band ?? "-", "magenta")}  ${state.worldFirstDay ? color("WORLD FIRST", "green") : ""}  rank ${color(`${playerRank(state)}/${state.rivals.length + 1}`, "bold")}`,
   );
   for (const line of state.scoreLines ?? []) {
     const sign = line.value >= 0 ? "+" : "";
     console.log(`  ${pad(line.label, 12)} ${pad(`${sign}${line.value}`, 8, "r")}  ${color(line.detail, "dim")}`);
   }
+  console.log();
+  table(
+    ["#", "guild", "score", "raids", "world first"],
+    standings(state).map((row, i) => [
+      String(i + 1),
+      row.isPlayer ? color(row.name, "cyan") : row.name,
+      String(row.score),
+      `${row.raids}/${RAIDS.length}`,
+      row.worldFirstDay === null ? "-" : `day ${row.worldFirstDay}`,
+    ]),
+  );
   console.log();
 };
 
@@ -1037,7 +1067,7 @@ const cmdAi = (): void => {
 
   console.log(color(`${p.name} — ${p.blurb}`, "dim"));
   for (let i = 0; i < days && !state.finished; i += 1) {
-    const turn = aiTurn(state, p);
+    const turn = playTurn(state, p);
     state = turn.state;
     if (verbose) {
       const day = state.day - 1;
@@ -1064,18 +1094,20 @@ const cmdSim = (): void => {
 
   console.log();
   table(
-    ["personality", "avg score", "median", "raids", "dungeons", "wins"],
+    ["personality", "avg score", "median", "raids", "dungeons", "wins", "rank"],
     personalities.map((p) => {
       const scores: number[] = [];
       let raids = 0;
       let dungeons = 0;
       let wins = 0;
+      let rank = 0;
       for (let i = 0; i < runs; i += 1) {
-        const final = aiRun(newGame(baseSeed + i * 17, "Sim"), p, 400);
+        const final = runWorld(newGame(baseSeed + i * 17, "Sim"), p, 400);
         scores.push(final.score ?? 0);
         raids += final.progress.filter((x) => contentById(x.contentId)?.kind === "raid" && x.clears > 0).length;
         dungeons += final.progress.filter((x) => contentById(x.contentId)?.kind === "dungeon" && x.clears > 0).length;
         if (final.worldFirstDay !== null) wins += 1;
+        rank += playerRank(final);
       }
       const sorted = [...scores].sort((a, b) => a - b);
       const avg = Math.round(scores.reduce((a, b) => a + b, 0) / Math.max(1, runs));
@@ -1086,9 +1118,10 @@ const cmdSim = (): void => {
         (raids / runs).toFixed(2),
         (dungeons / runs).toFixed(2),
         `${wins}/${runs}`,
+        (rank / runs).toFixed(2),
       ];
     }),
-    ["l", "r", "r", "r", "r", "r"],
+    ["l", "r", "r", "r", "r", "r", "r"],
   );
   console.log();
 };

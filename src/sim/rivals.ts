@@ -1,106 +1,81 @@
-import { clamp } from "./prelude";
 import type { GameState, Rival, RivalDef } from "./types";
-import { RAIDS, contentById } from "./content/content";
-import { MASTERY, RIVAL } from "./content/tuning";
-import { rngStream } from "./rng";
+import { contentById } from "./content/content";
+import { RIVAL } from "./content/tuning";
+import { foundGuild } from "./founding";
+import { computeScore } from "./score";
 
 export const RIVALS: readonly RivalDef[] = [
-  { id: "echoes", name: "Echoes", raidAppetite: 0.95, growth: 0.048, note: "raids every night; burns out late" },
-  { id: "methodical", name: "Methodical", raidAppetite: 0.55, growth: 0.053, note: "farms two days for every raid day" },
-  { id: "ravensguard", name: "Ravensguard", raidAppetite: 0.75, growth: 0.050, note: "balanced; waits for others to stumble" },
+  { id: "echoes", name: "Echoes", personality: "echoes", note: "raids early and often; spends into the next tier" },
+  { id: "methodical", name: "Methodical", personality: "methodical", note: "farms two days for every raid day" },
+  { id: "ravensguard", name: "Ravensguard", personality: "ravensguard", note: "balanced; takes the attempt when the odds are good" },
 ];
 
-/** The order a rival walks the same ladder the player does. */
-export const RIVAL_LADDER = [
-  "hollow-crypt",
-  "sunken-temple",
-  "ashen-spire",
-  "raid-gatewarden",
-  "raid-covens",
-  "raid-tyrant",
-] as const;
+/**
+ * The rivals are founded from their own seeds. Multiplying rather than adding
+ * keeps neighbouring player seeds from handing three guilds the same roster;
+ * the multiplier is odd so it stays a permutation modulo 2^32.
+ */
+export const rivalSeed = (seed: number, index: number): number =>
+  (seed * 2654435761 + (index + 1) * 40503) >>> 0;
 
 export const startingRivals = (seed: number): Rival[] =>
-  RIVALS.map((def, i) => ({
-    id: def.id,
-    name: def.name,
-    power: 30 + i * 4 + rngStream(seed, "rivalStart", def.id)() * 8,
-    raidsCleared: 0,
-    bestPull: 0,
-    pulls: 0,
-    activity: "levelling",
-    worldFirstDay: null,
-  }));
+  RIVALS.map((def, i) => {
+    const guild = foundGuild(rivalSeed(seed, i), def.name);
+    // The global pace dial is an XP multiplier. The player's guild keeps 1.0;
+    // a rival at 0.9 levels about one step slower over 84 days, which is the
+    // difference between finishing the tier before the player and after.
+    guild.rewardScale = RIVAL.pace;
+    return {
+      id: def.id,
+      name: def.name,
+      personality: def.personality,
+      guild,
+      activity: "levelling",
+    };
+  });
 
-/**
- * Rivals run the same content rules as the player, compressed to one power
- * number. Personality changes appetite and growth, not the rules.
- */
-export const tickRivals = (state: GameState): void => {
-  for (const rival of state.rivals) {
-    const def = RIVALS.find((r) => r.id === rival.id);
-    if (!def) continue;
-
-    const rng = rngStream(state.seed, "rival", state.day, rival.id);
-    const burnOut =
-      rival.id === "echoes" && state.day > RIVAL.burnoutDay ? RIVAL.burnoutFactor : 1;
-    const growth = def.growth * RIVAL.pace * burnOut;
-    const stageId = RIVAL_LADDER[rival.raidsCleared];
-    const stage = stageId ? contentById(stageId) : undefined;
-
-    if (!stage) {
-      rival.activity = "finished the tier";
-      continue;
-    }
-
-    const requirement = Math.max(...stage.phases.map((p) => p.requirement), 1);
-    const wantsAttempt = rng() < def.raidAppetite || rival.bestPull > 0.5;
-    const mastery = clamp(rival.pulls * MASTERY.perPull, 0, MASTERY.cap);
-
-    if (!wantsAttempt) {
-      rival.power *= 1 + growth * RIVAL.farmGrowth;
-      rival.activity = "farming";
-      continue;
-    }
-
-    rival.pulls += 1;
-    rival.activity = `attempting ${stage.name}`;
-    const value = rival.power * (1 + mastery);
-
-    if (value >= requirement) {
-      rival.raidsCleared += 1;
-      rival.bestPull = 0;
-      rival.pulls = 0;
-      rival.power *= 1 + growth * RIVAL.clearGrowth;
-      rival.activity = `cleared ${stage.name}`;
-      // `raidsCleared` counts every stage of RIVAL_LADDER, including the three
-      // dungeons. World First is the *final* raid, so it only fires when the
-      // whole ladder is behind them. The old `>= 3` check fired on the first
-      // raid (after three dungeon clears) and handed rivals a World First they
-      // had not earned.
-      if (
-        stage.kind === "raid" &&
-        rival.raidsCleared === RIVAL_LADDER.length &&
-        rival.worldFirstDay === null
-      ) {
-        rival.worldFirstDay = state.day;
-      }
-    } else {
-      rival.bestPull = Math.max(rival.bestPull, clamp(value / requirement, 0, 0.99));
-      rival.power *= 1 + growth * RIVAL.attemptGrowth;
-    }
-  }
-};
-
-export const rivalProgressLabel = (rival: Rival): string => {
-  const stageId = RIVAL_LADDER[rival.raidsCleared];
-  if (!stageId) return "finished the tier";
-  const def = contentById(stageId);
-  return `${def?.name ?? stageId} — ${Math.round(rival.bestPull * 100)}%`;
-};
-
-/** Raids (not dungeon stages) cleared, for a label that compares with the player's 0/3. */
+/** Raids cleared, for a label that compares with the player's 0/3. */
 export const rivalRaidsCleared = (rival: Rival): number =>
-  RIVAL_LADDER.slice(0, rival.raidsCleared).filter((id) => contentById(id)?.kind === "raid").length;
+  rival.guild.progress.filter(
+    (p) => contentById(p.contentId)?.kind === "raid" && p.clears > 0,
+  ).length;
 
-export const raidCount = RAIDS.length;
+export const playerRaidsCleared = (state: GameState): number =>
+  state.progress.filter((p) => contentById(p.contentId)?.kind === "raid" && p.clears > 0).length;
+
+/** Every guild scored by the same formula, highest first. */
+export type Standing = {
+  name: string;
+  score: number;
+  raids: number;
+  isPlayer: boolean;
+  worldFirstDay: number | null;
+};
+
+export const standings = (state: GameState): Standing[] => {
+  const rows: Standing[] = [
+    {
+      name: state.guildName,
+      score: state.score ?? computeScore(state).total,
+      raids: playerRaidsCleared(state),
+      isPlayer: true,
+      worldFirstDay: state.worldFirstDay,
+    },
+    ...state.rivals.map((rival) => ({
+      name: rival.name,
+      score: rival.guild.score ?? computeScore(rival.guild).total,
+      raids: rivalRaidsCleared(rival),
+      isPlayer: false,
+      worldFirstDay: rival.guild.worldFirstDay,
+    })),
+  ];
+  // Score is the ranking. Ties break on the earlier final-boss kill, then on
+  // the guild that is already further up the raid ladder, then on table order.
+  const killDay = (row: Standing): number => row.worldFirstDay ?? Number.MAX_SAFE_INTEGER;
+  return rows.sort(
+    (a, b) => b.score - a.score || killDay(a) - killDay(b) || b.raids - a.raids,
+  );
+};
+
+export const playerRank = (state: GameState): number =>
+  standings(state).findIndex((row) => row.isPlayer) + 1;

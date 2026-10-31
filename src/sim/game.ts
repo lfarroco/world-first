@@ -1,65 +1,22 @@
 import { clamp } from "./prelude";
-import type { Assignment, AttentionItem, Candidate, GameState, Hero, Plan, RoleId } from "./types";
-import { CONTENT, contentById } from "./content/content";
-import { CONTRACT, ECONOMY, MAX_PARTIES, PROMISE, ROSTER_CAP, RUN_DAYS, TAVERN } from "./content/tuning";
-import { bestLevel, makeCandidate, startingRoster } from "./content/heroes";
+import type { Assignment, AttentionItem, Candidate, GameState, Hero, RoleId } from "./types";
+import { contentById } from "./content/content";
+import { CONTRACT, MAX_PARTIES, PROMISE, ROSTER_CAP, RUN_DAYS } from "./content/tuning";
 import { renewalWage } from "./economy";
-import { resolveDay } from "./day";
-import { attentionKey, announceUnlocks, blockingAttention, deriveAttention, event, hasBlocking, push } from "./events";
+import { attentionKey, announceUnlocks, deriveAttention, event, push } from "./events";
 import { heroPower } from "./hero";
 import { partyOf, pruneUnavailable } from "./plan";
 import { startingRivals } from "./rivals";
-import { emptyFacilities, rosterCapFor, wageBudgetFor } from "./facilities";
+import { rosterCapFor, wageBudgetFor } from "./facilities";
 import { resolveEvent } from "./world-events";
 import { computeScore } from "./score";
 import { ROLES } from "./content/roles";
+import { foundGuild } from "./founding";
 
 export const newGame = (seed: number, guildName = "Ironbound Order"): GameState => {
-  const roster = startingRoster(seed);
-  const plan: Plan = {
-    parties: [{ contentId: "emberwood", heroes: roster.map((h) => h.id), stance: "steady" }],
-  };
-
-  const state: GameState = {
-    seed,
-    guildName,
-    day: 1,
-    gold: ECONOMY.startGold,
-    renown: 0,
-    roster,
-    plan,
-    progress: CONTENT.map((c) => ({
-      contentId: c.id,
-      clears: 0,
-      clearedOnDay: null,
-      attempts: 0,
-      bestPull: 0,
-    })),
-    rivals: startingRivals(seed),
-    tavern: Array.from({ length: TAVERN.size }, (_, i) =>
-      makeCandidate(seed, 1, i, bestLevel(roster)),
-    ),
-    attention: [],
-    events: [
-      event(1, "run", "info", `${guildName} is founded: three adventurers, one wood, and 84 days.`),
-    ],
-    arrearsDays: 0,
-    worldFirstDay: null,
-    finished: false,
-    score: null,
-    scoreLines: null,
-    band: null,
-    lastEncounter: null,
-    facilities: emptyFacilities(),
-    pendingEvent: null,
-    eventLog: [],
-    attentionMutedUntil: {},
-    promises: [],
-  };
-
-  // The starting areas are open from day one; seed the ledger so the first
-  // digest does not announce the wood the guild already stands in.
-  announceUnlocks(state, 1);
+  const state = foundGuild(seed, guildName);
+  // The rivals are full guilds of their own, created by `startingRivals`.
+  state.rivals = startingRivals(seed);
   return state;
 };
 
@@ -324,27 +281,6 @@ export const resolveAttention = (
     attentionMutedUntil: deferred,
     attention: pruned.attention.filter((i) => i.id !== itemId),
   };
-};
-
-export type AdvanceResult = { state: GameState; stopped: string | null };
-
-export const advanceDays = (state: GameState, days = 1): AdvanceResult => {
-  let current = state;
-  for (let i = 0; i < days; i += 1) {
-    if (current.finished) return { state: current, stopped: "the run is over" };
-    if (hasBlocking(current)) {
-      const blocking = blockingAttention(current);
-      const first = blocking[0];
-      return {
-        state: current,
-        stopped: first
-          ? `${blocking.length} item(s) need you — starting with "${first.title}"`
-          : "attention required",
-      };
-    }
-    current = resolveDay(current);
-  }
-  return { state: current, stopped: null };
 };
 
 export const refreshAttention = (state: GameState): GameState => ({

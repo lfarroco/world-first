@@ -185,23 +185,25 @@ export type Plan = {
 
 export type RivalId = "echoes" | "methodical" | "ravensguard";
 
+/**
+ * A rival is a guild, not a number. `guild` is a full `GameState` (with an
+ * empty `rivals` array) played by the same planner the player's bot uses.
+ * Everything shown on the leaderboard is read from that state; only `activity`
+ * is cached, because a one-line summary is cheaper than re-reading a plan.
+ */
 export type Rival = {
   id: RivalId;
   name: string;
-  power: number;
-  /** Stages of `RIVAL_LADDER` cleared: 3 dungeons, then 3 raids (0..6). */
-  raidsCleared: number;
-  bestPull: number;
-  pulls: number;
+  /** Id in `PERSONALITIES`, so the same planner can play the rival's days. */
+  personality: string;
+  guild: GameState;
   activity: string;
-  worldFirstDay: number | null;
 };
 
 export type RivalDef = {
   id: RivalId;
   name: string;
-  raidAppetite: number;
-  growth: number;
+  personality: string;
   note: string;
 };
 
@@ -347,6 +349,12 @@ export type GameState = {
   day: number;
   gold: number;
   renown: number;
+  /**
+   * Multiplier on XP earned. The player's guild uses 1; a rival's guild uses
+   * `RIVAL.pace`. Optional so a save written before the field existed loads as
+   * the full rate.
+   */
+  rewardScale?: number;
   roster: Hero[];
   plan: Plan;
   progress: ContentProgress[];

@@ -4,7 +4,11 @@ import {
   CONTENT,
   LEVEL_CAP,
   RAIDS,
-  RIVAL_LADDER,
+  rivalRaidsCleared,
+  standings,
+  playerRank,
+  runWorld,
+  tickRivals,
   aiRun,
   aiTurn,
   assignParty,
@@ -26,6 +30,8 @@ import {
   rollNamedDrop,
   validatePlan,
   advanceDays,
+  advanceDay,
+  RIVAL,
   resolveAttention,
   buyFacility,
   rosterCapFor,
@@ -69,6 +75,13 @@ const STEWARD = personalityById("steady");
 
 const playAi = (seed: number, personality = STEWARD): GameState =>
   aiRun(newGame(seed, "Test"), personality, 400);
+
+/**
+ * A full run with the world attached: slower, because three rival guilds play
+ * their own 84 days. Only the race tests need it.
+ */
+const playWorld = (seed: number, personality = STEWARD): GameState =>
+  runWorld(newGame(seed, "Test"), personality, 400);
 
 /** A state far enough into a run that every card's `when` can pass. */
 const midRun = (seed: number, days: number): GameState => {
@@ -314,7 +327,7 @@ describe("balance", () => {
     const avg = runs.reduce((a, b) => a + b, 0) / runs.length;
     expect(avg).toBeGreaterThanOrEqual(2);
     expect(avg).toBeLessThanOrEqual(3);
-  });
+  }, 20_000);
 
   it("finishes with a score and a band", () => {
     const s = playAi(4);
@@ -752,14 +765,97 @@ describe("rewards and clear-ups", () => {
   });
 
   it("a rival only claims World First after the final raid", () => {
-    for (const seed of [1, 2, 3, 4, 5]) {
-      const s = playAi(seed);
-      for (const rival of s.rivals) {
-        if (rival.worldFirstDay !== null) {
-          expect(rival.raidsCleared).toBe(RIVAL_LADDER.length);
-        }
-      }
+    const base = newGame(11, "WorldFirst");
+    const raidIds = RAIDS.map((r) => r.id);
+    // Build a finished rival by hand: two raid clears must not earn World
+    // First, three must. The tick skips a finished guild's aiTurn, so the
+    // test costs one queue check rather than an 84-day race.
+    const rivalWithRaids = (index: number, cleared: readonly string[]) => {
+      const source = base.rivals[index]!;
+      const guild = structuredClone(source.guild);
+      guild.finished = true;
+      guild.worldFirstDay = null;
+      guild.plan = { parties: [] };
+      guild.progress = guild.progress.map((p) =>
+        cleared.includes(p.contentId) ? { ...p, clears: Math.max(1, p.clears) } : { ...p, clears: 0 },
+      );
+      return { ...source, guild };
+    };
+    const stateWith = (cleared: readonly string[]): GameState => ({
+      ...base,
+      day: 85,
+      worldFirstDay: null,
+      rivals: base.rivals.map((_, i) => rivalWithRaids(i, i === 0 ? cleared : [])),
+    });
+
+    const two = stateWith(raidIds.slice(0, 2));
+    tickRivals(two);
+    expect(two.rivals[0]!.guild.worldFirstDay).toBeNull();
+
+    const three = stateWith(raidIds);
+    tickRivals(three);
+    expect(three.rivals[0]!.guild.worldFirstDay).toBe(84);
+    expect(three.rivals.slice(1).every((r) => r.guild.worldFirstDay === null)).toBe(true);
+  });
+
+  it("the world reproduces exactly from the seed", () => {
+    const a = runWorld(newGame(9, "Test"), STEWARD, 10);
+    const b = runWorld(newGame(9, "Test"), STEWARD, 10);
+    expect(a.day).toBe(b.day);
+    expect(a.rivals.map((r) => r.guild.day)).toEqual(b.rivals.map((r) => r.guild.day));
+    expect(a.rivals.map((r) => r.guild.gold)).toEqual(b.rivals.map((r) => r.guild.gold));
+    expect(a.rivals.map((r) => r.guild.roster.map((h) => h.level))).toEqual(
+      b.rivals.map((r) => r.guild.roster.map((h) => h.level)),
+    );
+  }, 30_000);
+
+  it("a full world run finishes with every rival on day 85", () => {
+    const s = playWorld(1);
+    expect(s.finished).toBe(true);
+    for (const rival of s.rivals) {
+      expect(rival.guild.day).toBe(85);
+      expect(rival.guild.finished).toBe(true);
+      expect(rival.activity.length).toBeGreaterThan(0);
     }
+  }, 180_000);
+
+  it("a rival is a real guild and the world tick advances it exactly one day", () => {
+    const s = newGame(7, "Rivals");
+    expect(s.rivals).toHaveLength(3);
+    const before = s.rivals.map((r) => r.guild.day);
+    const next = advanceDay(s);
+    for (const [i, rival] of next.rivals.entries()) {
+      expect(rival.guild.day).toBe(before[i]! + 1);
+      expect(rival.guild.roster.length).toBeGreaterThan(0);
+      expect(rival.activity.length).toBeGreaterThan(0);
+      // A rival guild must not carry rivals of its own, or the world tick
+      // would recurse through `resolveDay`.
+      expect(rival.guild.rivals).toHaveLength(0);
+    }
+  });
+
+  it("the world tick does not mutate the state it is given", () => {
+    const s = newGame(8, "Copy");
+    const snapshot = structuredClone(s.rivals);
+    advanceDay(s);
+    expect(s.rivals).toEqual(snapshot);
+  });
+
+  it("applies the rival pace to rivals and not the player", () => {
+    const s = newGame(2, "Pace");
+    expect(s.rewardScale).toBe(1);
+    for (const rival of s.rivals) expect(rival.guild.rewardScale).toBe(RIVAL.pace);
+  });
+
+  it("scores every guild and ranks the player among four", () => {
+    const s = newGame(3, "Board");
+    const board = standings(s);
+    expect(board).toHaveLength(4);
+    expect(board.filter((row) => row.isPlayer)).toHaveLength(1);
+    const scores = board.map((row) => row.score);
+    expect(scores).toEqual([...scores].sort((a, b) => b - a));
+    expect(playerRank(s)).toBeGreaterThanOrEqual(1);
+    expect(playerRank(s)).toBeLessThanOrEqual(4);
   });
 });
 

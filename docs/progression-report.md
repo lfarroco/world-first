@@ -52,13 +52,13 @@ Four comments from a hand-played run drove this pass:
 | Before the pass (10 seeds) | 23,251 | 23,458 | 22,975 | 2.70 / 2.80 / 2.60 | 2/10 |
 | All rewards additive, no re-tune (10 seeds) | 28,313 | 27,388 | 27,674 | 3.00 / 3.00 / 2.90 | 6/10 |
 | Rewards specialised, Tyrant +15% (20 seeds) | 24,347 | 24,345 | 23,478 | 2.70 / 2.80 / 2.60 | 6/20 |
-| Plus rival pace 0.85 (20 seeds) | 24,347 | 24,345 | 23,478 | 2.70 / 2.80 / 2.60 | 6/20 |
+| Plus rival pace 0.85, **old compressed model** (20 seeds) | 24,347 | 24,345 | 23,478 | 2.70 / 2.80 / 2.60 | 6/20 |
 
-The last two rows have the same player numbers because rival pace only moves the rivals, and rivals never touch the player's simulation.
+The last two rows have the same player numbers because the old rival pace only moved the rivals. That model was retired on 2026-10-31; the shipped rival guilds are in §3.2.
 
 **The Tyrant moved, once, on a fresh sweep.** Side content raised the ceiling. At 19/20 Steward seeds clearing all three raids, the wall was gone. The three requirements went 650 / 538 / 725 → 750 / 620 / 835 (+15%). The 20-seed Steward distribution is now 14 clear all three, 6 stop at two, none lower — the target in [mvp-scope.md](mvp-scope.md) §3. Do not raise it again without a new 20-seed sweep.
 
-**The race was rescaled.** With the Tyrant at +15% and `RIVAL.pace = 1`, the player's Tyrant kill landed after every rival and World First was 0/10 on all three personalities. At `pace = 0.85` rivals finish on days 74–79 and World First returns as 6/20 (Steward), 2/20 (Gambler) and 6/20 (Quartermaster). The cautious split is back: the Gambler wins least, as designed. Player raids and score do not move, because the rival model is a separate one-number simulation.
+**The race was rescaled, then rebuilt.** With the old one-number model and the Tyrant at +15%, `RIVAL.pace = 1` put the player's Tyrant kill after every rival (World First 0/10); 0.85 restored it. Those numbers are historical — the rivals are now full guilds on the planner, and the current dial and its measurement are in §3.2.
 
 **Named drops are wired, not decorative.** Each content's `drops` table is rolled once per clear (`rollNamedDrop`): at most one named item drops, so every `chance` is the exact per-clear probability and a content's chances sum to at most 1. On a hit it replaces one generic item; the clear still pays exactly `loot.count` items. `inspect` prints the same table the sim rolls.
 
@@ -83,6 +83,8 @@ The last two rows have the same player numbers because rival pace only moves the
 personalities.ts   six personality records (caution, ambition, thrift)
 planner.ts         planDay(state, personality) → Plan; hireDecision(...)
 turn.ts            aiTurn = hire → plan → resolve → answer attention queue
+                   aiRun = the player-only 84-day harness
+world.ts           tickRivals = one aiTurn per rival; advanceDay; runWorld
 ```
 
 The planner is a **priority search over open content**, not a scripted build order:
@@ -96,27 +98,29 @@ The planner is a **priority search over open content**, not a scripted build ord
 
 Two behaviours are deliberately *not* hard-coded: which hero goes in which party (ranked by contribution to that content's checks) and when to spend gold (a reserve threshold scaled by thrift).
 
-**Why it's reusable for rivals:** the planner only reads `GameState` and a `Personality`. Nothing in it knows it is playing the player's guild. The rival guilds still use their compressed one-number model — swapping them onto this planner is the obvious next step, and it will make the race *simulated* rather than *paced*.
+**It plays the rivals too.** The planner only reads `GameState` and a `Personality`, so the three rival guilds run it unchanged. That is shipped; the race is now simulated rather than paced (§3.2).
 
 ---
 
 ## 3. Measured balance (20 seeds per personality)
 
-Standard sweep: base seed 1, step 17, `npm run cli -- sim --runs 20`. Last measured 2026-10-31, after the card-play pass (§5.4).
+Standard world sweep: base seed 1, step 17, `npm run cli -- sim --runs 20` (three rival guilds play every day). Last measured 2026-10-31, after the rival-planner pass (§3.2).
 
-| Personality | Avg score | Median | Raids cleared | Full clears | Dungeons (of 4) | World First | Arrears days |
-|---|---|---|---|---|---|---|---|
-| **The Steward** (balanced) | 23,515 | 25,384 | 2.75 / 3 | 15/20 | 4.00 | 3/20 | 18 |
-| **The Quartermaster** (cautious, thrifty) | 24,293 | 25,534 | 2.75 / 3 | 15/20 | 4.00 | 6/20 | 6 |
-| **The Gambler** (reckless) | 20,664 | 24,404 | 2.50 / 3 | 10/20 | 4.00 | 2/20 | 37 |
+| Personality | Avg score | Median | Raids cleared | Full clears | Dungeons (of 4) | World First | Arrears days | Avg rank |
+|---|---|---|---|---|---|---|---|---|
+| **The Steward** (balanced) | 23,515 | 25,384 | 2.75 / 3 | 15/20 | 4.00 | 3/20 | 18 | 2.90 |
+| **The Quartermaster** (cautious, thrifty) | 24,293 | 25,713 | 2.75 / 3 | 15/20 | 4.00 | 6/20 | 6 | 2.35 |
+| **The Gambler** (reckless) | 20,814 | 24,404 | 2.50 / 3 | 10/20 | 4.00 | 3/20 | 37 | 2.75 |
 
-**The caution split survives, and has widened.** The Gambler scores 3,629 below the Quartermaster and takes 2/20 World First against 6/20. It runs 37 arrears-days across 20 seeds against 6 for the Quartermaster: a reckless planner renews and hires into a wage bill it cannot carry, then cannot cover the 400g a rival's offer demands. Thrift now pays twice (§5.4).
+The player's own numbers are unchanged by the rivals — a rival's day cannot touch the player's checks. The only coupling is World First, and the Gambler gained one (2/20 → 3/20) when the rivals moved off the compressed model. The rank is the new column: score, then the earlier final-boss kill, then raids, then table order. With three rivals the midpoint is 2.5, so the Steward and Gambler sit slightly behind the field and the Quartermaster slightly ahead of it.
+
+**The caution split survives.** The Gambler scores 3,479 below the Quartermaster and takes 3/20 World First against 6/20. It runs 37 arrears-days across 20 seeds against 6 for the Quartermaster: a reckless planner renews and hires into a wage bill it cannot carry, then cannot cover the 400g a rival's offer demands. Thrift now pays twice (§5.4).
 
 **The ladder still stalls at the Tyrant.** Across 20 Steward seeds, 15 clear all three raids, 5 clear two, and none stall at one or zero. That is the target in [mvp-scope.md](mvp-scope.md) §3, and it is the check to re-run after any content change.
 
 **A do-nothing guild** clears zero dungeons and scores ~0. **The ladder is beatable** by a mediocre bot in ~84 days, which is the right bar for a first playable version.
 
-**The top is in the target band.** The Steward clears 2.75 raids and the rival pace finishes the tier on days 74–79. The 2026-10-30 content pass raised the Tyrant from 650 / 538 / 725 to 750 / 620 / 835 (+15%) to absorb the new ceiling (§1.1). Do not raise it again without a fresh 20-seed sweep.
+**The top is in the target band.** The Steward clears 2.75 raids. The 2026-10-30 content pass raised the Tyrant from 650 / 538 / 725 to 750 / 620 / 835 (+15%) to absorb the new ceiling (§1.1). Do not raise it again without a fresh 20-seed sweep.
 
 ### 3.3 The economy-and-queue pass (2026-10-30)
 
@@ -150,17 +154,29 @@ Two dials moved. Sharpness was widened from 18% to 26% (`0.78–1.04`), and fati
 
 The first attempt — `0.80–1.08`, keeping the start value — was rejected: it raised the sweep to 23,930–25,232 (+8%) because the bot keeps raiders sharp, and a higher ceiling is power creep. Moving the floor instead punishes rust without printing score (L56). The fatigue multiplier moves no aggregate number on its own (23,006–23,802 with it at 0), because injuries only roll on scrapes; it changes the individual decision and the World First split.
 
-### 3.2 Rival growth and the race
+### 3.2 Rivals are guilds now
 
-Rivals have one power number and two kinds of day: farm or attempt. The first pass grew a rival by 0.5× on an attempt day and 1.0× on a farm day, so the grinder out-grew the raider. Every rival finished after the player and World First was automatic (9/10).
+The first rival model was one power number with two kinds of day: farm or attempt. It was cheap and tunable, and it was not a simulation: a rival could not be poor, hire the wrong hero, lose a raid night to fatigue, or fail a card. The pace was legible because it was authored.
 
-The model uses **0.9× on an attempt day, 0.9× on a farm day, 0.6× on the day a stage is cleared**, all in `RIVAL` in `src/sim/content/tuning.ts`. `RIVAL.pace` is the single difficulty dial for the race; the other growth numbers are shape.
+The shipped model is the player's. Each rival is a full `GameState` — three starting heroes, gold, a tavern, facilities, promises, an event log, a `Personality` — and `tickRivals` gives it one `aiTurn` per player day. The guild's own `rivals` array is empty, so its `resolveDay` cannot recurse into the world. `resolveDay` resolves one guild; `advanceDay` resolves the player and then the world; `runWorld` loops that for the full run. The fast `aiRun` stays player-only and is the unit-balance harness.
 
-The content pass moved the dial. At `pace = 1` (the pre-pass baseline) the rivals finished on days 64–69, but the +15% Tyrant pushed the player's kill past them: World First was 0/10 on all three personalities. At `pace = 0.85` Methodical and Ravensguard finish at a median day 77, the player's Tyrant kill is a median day 82, and World First is 6/20 (Steward), 6/20 (Quartermaster) and 2/20 (Gambler). The 10-seed sample is 3/10, 4/10 and 1/10. Echoes never finishes the tier: it burns out after day 60 by design.
+Rival difficulty is **`RIVAL.pace`, the multiplier on XP a rival earns**: 0.9. It is the only dial. There is no growth rate or burnout date left; a rival that falls behind falls behind because of its own plan and purse.
 
-Player raids and score are identical at either pace. The rival model is a separate one-number simulation; it cannot change the player's checks. That is also why `pace` is safe to tune without re-running the content table.
+**Measured 2026-10-31, 20 seeds per personality, `RIVAL.pace = 0.9`.** The player's line is the same as §3 because rivals cannot touch a player's check; only World First moves.
 
-A condition bug came out of this work: the rival World First check fired when `raidsCleared >= 3`, but that counter includes the three dungeon stages, so a rival claimed World First after clearing the *first* raid. The check is now `raidsCleared === RIVAL_LADDER.length` — the final raid.
+| Personality | Player avg score | Player WF | Avg rank | Rival avg score | Rival raids/run |
+|---|---|---|---|---|---|
+| The Steward | 23,515 | 3/20 | 2.90 | 23,871 | 2.67 / 3 |
+| The Quartermaster | 24,293 | 6/20 | 2.35 | 23,371 | 2.67 / 3 |
+| The Gambler | 20,814 | 3/20 | 2.75 | 23,771 | 2.67 / 3 |
+
+The field is tight: rivals average 23.4–23.9k against the player's 20.8–24.3k, and all four guilds clear about the same number of raids. The rank therefore turns on World First (+3,000) and on the wealth and strength columns, not on a scripted pace. A full clear without World First is usually third or fourth; with it, first. That is the intended weight of the race, but it is also the number to re-check before shipping: an average rank of 2.35–2.90 means the bot is around the middle of its own field, and a human hand run (seed 1234, §Hand run) scored 30,294 and took first.
+
+**Why 0.9.** At 0.85 (10 seeds) World First rose to 5/10 on two personalities — the race got easier as the rivals got slower, which is the expected direction but too far. At 0.9 the player's 20-seed line matches the pre-rival baseline exactly on score and raids, and the World First split is 3/20, 6/20, 3/20. `RIVAL.pace = 1` was not shipped. On the same 10 seeds it puts the rivals at 25,268–26,168 and 2.83 raids against 2.67, the player's World First at 1/10, 4/10 and 0/10, and the average rank at 2.60–3.60. At equal XP the field is stronger than the bot, which is the wrong side of the floor. Do not move this dial without a fresh 20-seed sweep; the 10-seed sample is noisy enough that 0.85 and 0.9 swapped the World First ordering.
+
+**Cost.** Three rival guilds planning and resolving 84 days takes ~0.84 s per run, against ~0.10 s for the player's guild. That is ~10 ms per day. `sim --runs 20` takes ~50 s. The unit tests call `aiRun` (player only); three world tests cover the race. If this becomes the bottleneck, the next lever is a cheaper rival planner, not a return to the one-number model.
+
+The old `RIVAL_LADDER`, `attemptGrowth`, `farmGrowth`, `clearGrowth` and the burnout constants are gone. The World First bug that survived the old model — `raidsCleared >= 3` included the three dungeon stages — cannot recur: a rival is awarded World First only by `tickRivals`, only after `rivalRaidsCleared(rival) === RAIDS.length`.
 
 ---
 
@@ -173,7 +189,7 @@ A condition bug came out of this work: the rival World First check fired when `r
 5. **Personalities are a tuning instrument.** Three parameter records (caution/ambition/thrift) produced three genuinely different games, and the spread is a better difficulty dial than any single "AI strength" number.
 6. **More options are additive unless they trade something.** Giving every new content gold, XP and loot moved the Steward +5,062 score and +0.30 raids. Specialising each option (XP run has no loot, gold run has no XP, loot run has neither) put the ladder back on its measured line. The user's "each one meaningful" is a balance rule, not only a copy rule.
 7. **A list of what you cannot do is noise.** Availability is three gates (prerequisite, roster, average level), the list hides everything else, and one `unlock` event per area replaces the wall of "locked" rows. The old table showed nine locked entries out of ten and still called a level-6 farm "open" at level 1.
-8. **The wall has to move with the ceiling.** Side content made the raid party stronger; the Tyrant's requirements had to go up 15% to keep the 14/20 stall. When the wall moved, the rivals had to slow down (pace 0.85) or World First died. Content, difficulty and race are three measurements of one ladder, not three independent dials.
+8. **The wall has to move with the ceiling.** Side content made the raid party stronger; the Tyrant's requirements had to go up 15% to keep the 14/20 stall. When the wall moved, the rival dial had to move with it — 0.85 in the old compressed model, 0.9 as the XP multiplier on the planner-driven guilds. Content, difficulty and race are three measurements of one ladder, not three independent dials.
 9. **Show the check before the attempt.** The content list now prints the best legal party's projected best pull. The same number the War Room uses is on the choice screen, so "open" no longer means "probably a wipe".
 
 ---
@@ -384,7 +400,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 
 ## 7. Known gaps
 
-- **Rivals don't use the planner yet** — they walk a compressed ladder with one power number. The race is tunable but not yet *simulated to the same depth*.
+- **The world run costs ~8× the guild run.** Three rivals × 84 planner turns is 0.84 s per run; `sim --runs 20` is ~50 s. The race is real, not free.
 - **No loot choice** — drops are auto-assigned to the lowest-geared hero. A named drop is a name printed on a gear number, not an item entity; there is no "who gets the axe?" decision. In the AI trace this shows as a gear funnel that rotates with the party: seed 777 cleared Gatewarden 8 times, then stalled on the Tyrant at 30% with iLvl 148–183 against a 225 recommendation.
 - **The AI does not choose by need.** `xp + gold/8` means the gold farm and the gold mission are never picked once cleared, even when the purse is the constraint. The options are meaningful to a player and invisible to the bot.
 - **Repeatable missions are an XP faucet, and a reward decay is not the fix.** Measured 2026-10-31: 1,585 Drowned Mill clears over 60 runs (26.4 per run). A repeat reward of 100% → 85% → 70% left the pick unchanged (28.5 Mill clears per run) and cost the Steward 3.4% of score (23,051 → 22,271, raids 2.70 → 2.65). A harsh 100% → 60% → 30% also left the pick unchanged (27.6 per run) and took the Steward to 17,693, 2.20 raids, 7/20 full clears and 0/20 World First. The bot keeps choosing the Mill at its worst value (78 XP for three heroes) because the farm floor is lower (Whispering Glade: 66 XP for three) and the spare party has no other three-hero job. The fix is a substitute job, not a tax. See [open-questions.md](open-questions.md) O7.
@@ -398,8 +414,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 
 ## 8. What to do next
 
-1. **Rivals on the planner.** Delete their compressed model and run three `aiTurn`s per day. The race becomes real, and it costs less code than it removes.
-2. **A second three-hero job**, or a rotating contract board. The measured answer to the repeat faucet (§7): the spare party needs somewhere else to go, not a smaller purse.
-3. **Reward-aware content choice.** Give the planner a purse and a gear target so it can pick the gold run and the loot run, not only the XP run. The options exist; the bot ignores them.
-4. **Manual loot assignment**, then **teach the planner to reassign roles** — the two missing levers from Phase 0.
-5. Then the vertical-slice UI, unchanged: Roster → War Room → Report.
+1. **A second three-hero job**, or a rotating contract board. The measured answer to the repeat faucet (§7): the spare party needs somewhere else to go, not a smaller purse.
+2. **Reward-aware content choice.** Give the planner a purse and a gear target so it can pick the gold run and the loot run, not only the XP run. The options exist; the bot ignores them.
+3. **Manual loot assignment**, then **teach the planner to reassign roles** — the two missing levers from Phase 0.
+4. Then the vertical-slice UI, unchanged: Roster → War Room → Report.

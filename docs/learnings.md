@@ -416,3 +416,28 @@ Once refusal meant "he walks", "a rival comes calling" fired from day 3 on a thr
 **Evidence:** seed 1, Quartermaster: `rival-offer → refuse` on days 8, 29, 38, 51 and 71, every time with less than 400g; end roster 0, score 501. The same seed after the gate: roster 15, score 25,176.
 **Changes:** the card is gated on roster 8+ and best level 18+. Nobody poaches a level-8 adventurer, and an eight-body guild can survive the loss. A card whose only affordable option is the disaster is not a decision, it is a forced loss.
 **Verified:** the sweep's roster sizes never fall below 10 after the gate, and the 20-seed Quartermaster is at 24,293 with 15/20 full clears and 6/20 World First.
+
+## Rivals on the planner (2026-10-31)
+
+### L76. A rival that is one number cannot be scored, explained or beaten
+The compressed model walked six stages with a power value and a personality appetite. It was cheap, deterministic and tunable, and it had three holes the leaderboard exposed the moment a score was asked for: a rival could not be poor, could not be out-geared, and could not lose a night to its own bad plan. The design promised "rivals run the same simulation as you"; the code did not.
+**Evidence:** `Rival` was `{power, raidsCleared, bestPull, pulls}`. It had no gold, roster or facilities, so `computeScore` could not be called on it and D3's rank was unimplementable. The old `raidsCleared >= 3` World First check also counted the three dungeons, so a rival claimed World First after its first raid.
+**Changes:** each rival is a full `GameState` founded from its own seed (`founding.ts`), with an empty `rivals` array. `tickRivals` gives it one `aiTurn`; `rivals.ts` scores and sorts all four guilds; the CLI shows the race table and the player's rank. The compressed model's growth and burnout constants are deleted.
+**Verified:** 20 seeds per personality: player 23,515 / 24,293 / 20,814, World First 3/20 / 6/20 / 3/20, average rank 2.90 / 2.35 / 2.75; rivals average 23.4–23.9k and 2.67 raids. The player's score and raids match the pre-rival baseline, which is the control that the new system did not move the ladder.
+
+### L77. The world tick must not live inside the day resolution
+If `resolveDay` ticks the rivals, a rival's own `resolveDay` ticks a world it does not have — or worse, recurses. The fix was structural, not a guard flag: `resolveDay` resolves one guild; `advanceDay` adds `tickRivals`; `runWorld` loops it. A rival guild is founded with `rivals: []`, and `resolveDay` attaches the world's rival array by reference because it only reads their World First flag. `tickRivals` copies each rival before writing, so the caller's state is untouched.
+**Evidence:** the purity test and a new `advanceDay` test both failed if the rival array was mutated in place; the alternative — a `tickWorld` boolean threaded through every call — would have made the one pure function in the codebase conditional.
+**Verified:** `the world tick does not mutate the state it is given`; `resolveDay` on a rival guild never sets its own World First.
+
+### L78. A test harness that includes the race is eight times slower
+Putting three rival guilds on the planner made every `aiRun` an 84-day world run: 0.84 s against 0.10 s for the player's guild. The test suite went from 6.8 s (80 tests, before the rivals) to 395 s, and two tests hit their 5 s timeout. The suite is the pre-commit gate, so this was not a number to hide.
+**Evidence:** `vitest run` 395 s with world `aiRun`; 10.7 s after the split. A 20-seed sweep is ~50 s.
+**Changes:** `aiRun` stays player-only and is the unit harness; `runWorld` is the product run used by `sim`; `playTurn` is one world day. Three world tests cover determinism, World First and standings. The world tests carry 30 s timeouts. A rival's event log is trimmed to the last 120 entries and the player's `resolveDay` no longer clones three growing rival states, which took ~12 ms/day off the tick.
+**Verified:** 86 tests. The world tests are one full race (5.2 s on a loaded host), a 10-day determinism run, and a hand-built World First case; the earlier world-heavy suite timed out at 30 s.
+
+### L79. A rest day is not a handicap
+The first attempt at a rival handicap gave each rival a recovery day every seventh day (`RIVAL.pace = 0.85` as a rest cadence). Rivals got *stronger*: a full rest heals fatigue and health, and a skipped day also skips the event card, the hire and the wage decision. The sweep's rival average rose to 27.5k and the player's World First fell to 0/10 and 1/10 on two personalities.
+**Evidence:** 10 seeds per personality with the rest cadence: player 22,580 / 23,279 / 20,592, rival average 27,183–27,483, World First 0/10, 1/10, 0/10. The same sweep with no handicap had rivals at 26k and the player at rank 3.4.
+**Changes:** the handicap is now an XP multiplier on `rewardScale` (`RIVAL.pace = 0.9`), applied only to rival guilds. A rival levels about one step slower; nothing about its day is different.
+**Verified:** at 0.9 the 20-seed player line holds and the average rank is 2.35–2.90. Do not price difficulty with rest days — rest is a resource, not a penalty.

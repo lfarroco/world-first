@@ -28,7 +28,7 @@ The run is **84 days**, then it ends and is scored (the EU4/HOI4/Civ "limit date
 *Score:* `4000/6000/8000 per raid + 200 per dungeon + 3000 World First + min(1500, gold/10) + 2 × squadPower + 250 × renownTier − 250 × daysInArrears`
 (measured max ≈ 31k; a two-raid run lands ~16k, a full clear 23–30k.)
 
-Score and band are built. **Rank among the four guilds is not**: rivals have no score of their own yet.
+Score and band are built. **Rank among the four guilds is now built too:** the rivals are full guilds, `computeScore` runs on each, and `standings` / `playerRank` order the table. The ranking rule is score, then the earlier final-boss kill, then more raids, then table order. Measured average rank on 20 seeds: 2.90 (Steward), 2.35 (Quartermaster), 2.75 (Gambler).
 
 ### D4. Scope: simple MVP, FM loop only
 Implement the loop — *assess → plan → advance → digest → react* — in our setting. No subsystem that doesn't serve it.
@@ -104,4 +104,4 @@ Neither schedule changed the pick. At the harsh one the Mill still pays 78 XP fo
 1. **A second three-hero activity with a different shape** — a check the missions do not use, a different reward column, or a rotating contract board where two missions are "posted" each day at full pay and the rest pay a token. That changes the pick every day, caps the faucet without starving the ladder, and gives the day a reason to read the board first.
 2. **Accept the faucet** and spend the effort on the mid-game elsewhere. It is not a correctness bug: the player can repeat the Mill 26 times too, and the run still ends with three raids and a score.
 
-Recommendation: build (1) with the rival/planner phase, measure it against the 20-seed Tyrant stall, then close this question. Do not ship a flat decay.
+Recommendation: build (1) now. The rival/planner phase shipped without it (2026-10-31), so this is the next item in the build order. Measure it against the 20-seed Tyrant stall and the Mill clears/run, then close this question. Do not ship a flat decay.

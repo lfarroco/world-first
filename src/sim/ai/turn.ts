@@ -113,6 +113,11 @@ export const aiTurn = (state: GameState, personality: Personality): AiTurn => {
   return { state: next, notes, hired: hire?.hero.name ?? null };
 };
 
+/**
+ * A full run of the guild's own days. This does not tick the rivals: it is the
+ * unit-balance harness, and the player's checks do not depend on them. Use
+ * `runWorld` when the race (World First, rank) matters.
+ */
 export const aiRun = (
   state: GameState,
   personality: Personality,
