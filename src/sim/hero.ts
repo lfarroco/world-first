@@ -94,6 +94,20 @@ export const powerInRole = (hero: Hero, roleId: RoleId): number => {
   return roleScore(hero.attrs, roleId) * multiplier * gearFactor(hero) * formMod(hero) * 100;
 };
 
+/**
+ * The same contribution the encounter uses, for one check and an explicit role.
+ * `powerInRole` deliberately keeps its roleScore-only scale; this is the number
+ * that tells the player what a switch actually buys on the phase that matters.
+ */
+export const checkPowerInRole = (hero: Hero, roleId: RoleId, check: CheckType): number =>
+  checkAttributePower(hero, check) *
+  CLASS_CHECK_WEIGHT[hero.klass][check] *
+  roleAffinity(roleId, check) *
+  fitFor(hero, roleId).multiplier *
+  gearFactor(hero) *
+  formMod(hero) *
+  100;
+
 /** Raw attribute strength for a check type, on the same 0..1 scale as a role score. */
 export const checkAttributePower = (hero: Hero, check: CheckType): number => {
   const weights = CHECK_POWER_WEIGHTS[check];

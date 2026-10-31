@@ -74,13 +74,15 @@ The probe ships a check multiplier (×0.82/×0.85) and it is decorative: the bot
 
 Recommendation: try (2) and (3) on one boss each, measure with the same sweep, then choose. Do not tune the multiplier again without a fresh measurement.
 
-### O5. Role affinities are too flat for the fit cost
-A switch pays 0.88 fit, so it needs >13.6% affinity on the target check to gain anything. Only two directions in the current table clear +5%, and both cost ~20% elsewhere. That is why the planner re-specs on 3.5% of days and the ladder does not move ([progression-report.md](progression-report.md) §6.4).
+### O5. Role affinities are too flat for the fit cost — **Resolved 2026-10-31**
 
-- **Widen the signatures** — each role ~1.3 on its check, off-checks ~0.85. A real specialisation, but it is a balance pass: content requirements were calibrated on the 1.15 spread and must be re-measured.
-- **Lower the trained fit** to ~0.95. Cheap, but then role choice is a nudge, not a decision, and the 0.88 tier disappears.
+**Resolved by the reviewer and the check readout, not by widening the table.** The old review gate (party below 1.1, first improving alt) was the real cause of the 3.5% re-spec rate. A 1.30 signature table was measured three ways; it made the ladder volatile (10 seeds: 19/30 full clears with the old reviewer, 22/30 with a revert-if-not-crossing gate, 17/30 with the final gate; the Steward swung 10/20–20/20 and the Gambler 4/20–8/20). It was rejected. The 1.15 table stays.
 
-Recommendation: widen the signatures as a measured pass. Do not move the fit on its own.
+The shipped reviewer only touches a party projected below 1.0, accepts a gain of ≥0.015, picks the best alt, caps at two flips, stops at 1.0, and names the check and delta. At 1.15 it re-specs 8/7/5 days per 10 runs (about 1%), and the ladder is unchanged: 25,637 / 25,818 / 21,474, 42/60 full clears, World First 15/30 ([progression-report.md](progression-report.md) §6.4). `checkPowerInRole` and the `role` command now print the four check contributions before and after, so the hero sheet shows what a switch buys instead of a role-blind power number.
+
+**The affinity stays flat on purpose.** At 1.15 a trained switch pays only on the two directions O5 named; the role lever is a mission/dungeon tool (5–13% of a check for two flips) and a raid nudge (1.7–3% per flip). If roles must decide raids, the next lever is a party-level mechanic or 12 roles, not a bigger table; the 1.30 table was the bigger table, and it moved the ladder more than it moved the decision.
+
+**Rejected:** 1.30 signatures (the measured volatility above); trained fit 0.95 (with any 1.30 signature it makes the natural role stop paying); 12 roles (content, not tuning); per-check role bonuses; class-locked content; raising content requirements instead.
 
 ### O6. How does a hero earn a third trait?
 The cap is three; heroes roll two. The third slot is reserved. Options: a level milestone (40), the first clear of a raid, or a training slot that costs days. Earned traits would give the 84-day run a character arc and a reason to keep a veteran, and they need a rule that stops the pool becoming a checklist. Not blocking v0.1.

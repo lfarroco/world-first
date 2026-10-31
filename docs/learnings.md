@@ -434,7 +434,7 @@ If `resolveDay` ticks the rivals, a rival's own `resolveDay` ticks a world it do
 Putting three rival guilds on the planner made every `aiRun` an 84-day world run: 0.84 s against 0.10 s for the player's guild. The test suite went from 6.8 s (80 tests, before the rivals) to 395 s, and two tests hit their 5 s timeout. The suite is the pre-commit gate, so this was not a number to hide.
 **Evidence:** `vitest run` 395 s with world `aiRun`; 10.7 s after the split. A 20-seed sweep is ~50 s.
 **Changes:** `aiRun` stays player-only and is the unit harness; `runWorld` is the product run used by `sim`; `playTurn` is one world day. Three world tests cover determinism, World First and standings. The world tests carry 30 s timeouts. A rival's event log is trimmed to the last 120 entries and the player's `resolveDay` no longer clones three growing rival states, which took ~12 ms/day off the tick.
-**Verified:** 114 tests. The world tests are one full race (5.2 s on a loaded host), a 10-day determinism run, and a hand-built World First case; the earlier world-heavy suite timed out at 30 s.
+**Verified:** 118 tests. The world tests are one full race (5.2 s on a loaded host), a 10-day determinism run, and a hand-built World First case; the earlier world-heavy suite timed out at 30 s.
 
 ### L79. A rest day is not a handicap
 The first attempt at a rival handicap gave each rival a recovery day every seventh day (`RIVAL.pace = 0.85` as a rest cadence). Rivals got *stronger*: a full rest heals fatigue and health, and a skipped day also skips the event card, the hire and the wage decision. The sweep's rival average rose to 27.5k and the player's World First fell to 0/10 and 1/10 on two personalities.
@@ -490,3 +490,16 @@ The standing ten also has a cost: built at the first open raid, it is 1–4 iLvl
 **The destination is not the whole gap.** In 60 baseline runs at 59be992 (10 seeds × 6 personalities), the ten took 65.2% of items and was only 13.1 iLvl ahead of the bench (165.5 vs 152.4) at day 84; 0.57 heroes/run reached iLvl 205 and none had all four slots at 220. A one-pass counterfactual routing every drop to the best-gaining hero of a ten re-picked daily lifts the day-84 ten from 165.5 to 188.4 (+22.8, 38% of the 59.5-point gap to 225) and heroes at ≥205 from 0.57 to 3.68/run. It is still ~37 below the wall. The next levers are the loot rate and a measured wall-change re-pick, not a larger team bias.
 
 **Verified:** the conservative AI 42/60, the need pick 52/60, the starters 44/60; the Steward stall is 4/20 against the 6/20 target 3, so the wall is softer and is the next balance item. The Gambler's conservative 21.5k is below the 23k floor; the need pick is 23.0k.
+
+## Role review and the affinity table (2026-10-31)
+
+### L85. The table was not the lever; the reviewer was
+O5 said role affinities were too flat for the 0.88 fit, and the planner re-specced only 3.5% of days. I widened the table to 1.30 signatures and the re-spec rate went to **16.8%** with the reviewer untouched. The gate accepted any party below 1.1 and the first improving alt; it was re-speccing parties that already cleared and paying the fit on checks nobody needed. The table got blamed for a gate.
+
+**Evidence:** 10 seeds × 3 personalities, seeds 1+17i. The 1.15 table with the old reviewer: 25,337 / 25,513 / 21,474, 21/30 full clears, 13/30 World First, 3.1% re-spec days. The same reviewer on 1.30: 24,279 / 24,082 / 20,714, 19/30, 8/30, 16.8%. The shipped reviewer on 1.15: 25,637 / 25,818 / 21,474, 21/30, 15/30, 8/7/5 days per 10 runs (about 1%).
+
+**Changes:** the reviewer now only touches a party projected below 1.0, accepts a gain of ≥0.015, picks the best alt, caps at two flips, stops at 1.0, and names the check and delta. `checkPowerInRole` adds the affinity term to the role readout; the `role` command prints the four check deltas, and the hero sheet shows the check profile. `powerInRole` stays as the familiar headline but no longer argues against every switch.
+
+**Rejected:** the 1.30 table. It made the **decision** spread (the flips targeted Bulwark/Oracle/Lightbringer instead of only Vanguard/Trickster, and the median day-40 projection rose 1.32 → 1.48), but it made the **ladder** volatile: three gate variants produced 19/30, 22/30 and 17/30 full clears; the Steward swung 10/20–20/20 and the Gambler 4/20–8/20; the 1.15 build holds 21/30. The 1.25 fallback repeats the volatility without the decision gain. The 1.15 table stays.
+
+**The role lever is a short-content tool.** A flip moves one hero +8.9% on the switched check and −42.5% on the off-check; in a 10-hero raid that is 1.7–3% of a phase, while a 3-hero mission can move 13% of a check with two flips. No content collapsed (every non-Tyrant area stayed 100% entry/clear; the Tyrant entry rose 80 → 87–97%), and no requirement was bumped. If roles must decide raids, the next lever is a party-level mechanic, not a bigger table.

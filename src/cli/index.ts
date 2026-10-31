@@ -13,6 +13,7 @@ import {
   assignRole,
   fitFor,
   powerInRole,
+  checkPowerInRole,
   rolesForClass,
   countersAbility,
   traitById,
@@ -901,12 +902,20 @@ const cmdRole = (): void => {
     process.exit(1);
   }
   const before = powerInRole(hero, hero.role);
+  const checks = ["dps", "mitigation", "mechanics", "sustain"] as const;
+  const beforeChecks = checks.map((c) => Math.round(checkPowerInRole(hero, hero.role, c)));
   const next = assignRole(state, hero.id, role.id);
   const after = next.roster.find((h) => h.id === hero.id) ?? hero;
   const fit = fitFor(after, after.role);
   save(next);
   console.log(
     `${color(after.name, "bold")} → ${role.name} (${fit.fit})  in-role power ${Math.round(before)} → ${Math.round(powerInRole(after, after.role))}`,
+  );
+  console.log(
+    color(
+      checks.map((c, i) => `${CHECK_LABEL[c]} ${beforeChecks[i]} → ${Math.round(checkPowerInRole(after, after.role, c))}`).join(" · "),
+      "dim",
+    ),
   );
 };
 

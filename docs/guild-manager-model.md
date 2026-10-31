@@ -105,6 +105,19 @@ Roles are FM's role system: the same hero is a different tool depending on how y
 | Rogue | **Assassin** | AGI .45, MGT .25, CMP .20, FOC .10 | Single-target burst; kill the add |
 | Rogue | **Trickster** | AGI .35, AWR .30, CMP .20, FOC .15 | Debuffs, interrupts, mechanics |
 
+**Check affinity** is the role's real tool. The table tops out at 1.15, and that is deliberate: a trained switch (0.88) needs >13.6% on the target check just to break even, so only the two directions O5 named pay. A 1.30 table was measured and rejected: it made the role choice spread, but the ladder swung 17–22/30 full clears and the Steward 10/20–20/20 (see [progression-report.md](progression-report.md) §6.4).
+
+| Role | DPS | Mitigation | Mechanics | Sustain |
+|---|---:|---:|---:|---:|
+| Bulwark | 0.90 | **1.15** | 1.00 | 1.00 |
+| Vanguard | **1.10** | 1.05 | 0.95 | 0.90 |
+| Lightbringer | 0.85 | 1.00 | 0.95 | **1.15** |
+| Oracle | 0.95 | 0.95 | **1.10** | 1.05 |
+| Evoker | **1.15** | 0.85 | 1.00 | 0.90 |
+| Arcanist | **1.05** | 0.85 | 1.00 | 1.00 |
+| Assassin | **1.15** | 0.90 | 0.95 | 0.85 |
+| Trickster | 1.00 | 0.90 | **1.15** | 0.90 |
+
 **Role fit is not free** — and it works like FM's position familiarity: a tiered multiplier, not a single penalty. Four tiers:
 
 | Fit | Multiplier | Shown as | When |
@@ -125,9 +138,9 @@ Check contribution = checkAttributePower(check) × classWeight(check)
                    × gearFactor × formMod × consistency × 100
 ```
 
-A hero switched to the other role of their class pays 0.88 on every check, but may gain role affinity on the check that matters: a Bulwark as Vanguard drops mitigation 1.15 → 1.05 and raises DPS 0.90 → 1.10. That is the trade, and it is why the hero sheet shows **"Power 127 · in this role 91 ◐"** — the first number is the best role, the second is what the fight gets.
+A hero switched to the other role of their class pays 0.88 on every check, but may gain role affinity on the check that matters: a Bulwark as Vanguard drops mitigation 1.15 → 1.05 and raises DPS 0.90 → 1.10. That is the trade. `powerInRole` is the roleScore × fit headline; `checkPowerInRole` is the number the encounter actually uses, per check. The `role` command prints the four before/after values, and the hero sheet shows the check profile, not just `Power 127 · in this role 91`.
 
-Role is assignable and free: `role <hero> <role>` in the CLI, chips on the hero sheet. There is no training timer; the fit multiplier is the cost. The planner resets each hero to their natural role at the start of the day, then re-specs a party only when its projected check is below 1.1 — about 3.5% of days. It is a small lever because a switch must beat the 0.88 fit by 13.6% on the target check; the current affinity table rarely offers that (see [progression-report.md](progression-report.md) §6.4).
+Role is assignable and free: `role <hero> <role>` in the CLI, chips on the hero sheet. There is no training timer; the fit multiplier is the cost. The planner resets each hero to their natural role at the start of the day, then reviews a party only when it projects **below 1.0**; it accepts a gain of ≥0.015, picks the best alt, caps at two flips, stops at 1.0, and names the check and delta. At the 1.15 table that is 8/7/5 days per 10 runs (about 1%), and the ladder is unchanged. The old 1.1 gate was the churn: at 1.30 it re-specced 16.8% of days. The role lever is a short-content tool (5–13% of a check on a 3-hero mission) and a raid nudge (1.7–3% per flip); a party-level mechanic, not a bigger table, is the next lever if roles must decide raids.
 
 Recruiting a hero who *fits the role you need* becomes a real scouting question — the FM transfer-market frisson, translated.
 

@@ -1,5 +1,5 @@
 import { sum } from "../prelude";
-import type { Assignment, Candidate, ContentDef, GameState, Hero, Plan, Stance } from "../types";
+import type { Assignment, Candidate, ContentDef, GameState, Hero, Plan, RoleId, Stance } from "../types";
 import { contentById, FARMS } from "../content/content";
 import { MAX_PARTIES, REST, RUN_DAYS } from "../content/tuning";
 import { bestPartyFor, levelOk, sizeOk, availableContent, contentAvailability } from "../plan";
@@ -7,7 +7,7 @@ import { projectAssignment, withCounters } from "../encounter";
 import { heroPower, isAvailable } from "../hero";
 import { wageBill } from "../economy";
 import { rosterCapFor, wageBudgetFor, nextCost, buyFacility, FACILITIES, type FacilityId } from "../facilities";
-import { rolesForClass } from "../content/roles";
+import { roleById, rolesForClass } from "../content/roles";
 import type { Personality } from "./personalities";
 import { effectiveReward, postedContractIds } from "../board";
 import { rewardContext, rewardValue, type RewardContext } from "./reward";
@@ -340,11 +340,12 @@ export const resetRoles = (roster: readonly Hero[]): Hero[] => {
 /**
  * Give the planned parties their best roles before the night resolves.
  *
- * A role flip changes the hero's affinity for every check and costs 0.88 fit
- * when it leaves the natural role. The pass accepts a flip only when the
- * party's projected weakest check improves, so a warrior becomes a Vanguard on
- * a DPS night and a Bulwark on a mitigation night. One or two passes; the
- * decision is local and the fit cost is the brake.
+ * A wider affinity table made the old reviewer flip on 17-21% of days because
+ * it re-specced parties that already cleared, paying the 0.88 fit on checks
+ * nobody needed. The reviewer now only touches a party that projects below
+ * 1.0, picks the single best alt, allows at most two flips, and reverts the
+ * whole party's flips if they do not carry it across 1.0. The result is a
+ * small, legible role decision, not nightly churn.
  */
 export const reviewRoles = (
   state: GameState,
@@ -354,32 +355,55 @@ export const reviewRoles = (
   const notes: string[] = [];
   const changed = new Map<string, string>();
 
-  for (let pass = 0; pass < 2; pass += 1) {
-    let flipped = false;
-    for (const party of plan.parties) {
-      const content = contentById(party.contentId);
-      if (!content || content.phases.length === 0) continue;
+  for (const party of plan.parties) {
+    const content = contentById(party.contentId);
+    if (!content || content.phases.length === 0) continue;
 
-      let best = projectAssignment({ ...state, roster }, party)?.minRatio ?? 0;
-      // Only re-spec a party that is actually close. A comfortable clear does
-      // not need the fit cost, and flipping for a 0.01 gain adds variance.
-      if (best >= 1.1) continue;
+    let current = roster;
+    let flips = 0;
+    const partyNotes: { id: string; text: string }[] = [];
+
+    for (let pass = 0; pass < 2; pass += 1) {
+      const before = projectAssignment({ ...state, roster: current }, party);
+      const best = before?.minRatio ?? 0;
+      if (best >= 1.0) break;
+      const weakest = before?.phases.reduce((a, b) => (a.ratio <= b.ratio ? a : b));
+
+      // One best flip per pass, not the first one that helps: the reviewer is
+      // choosing the role that carries the party, not wandering through alts.
+      let pick: { heroId: string; roleId: RoleId; ratio: number } | null = null;
       for (const id of party.heroes) {
-        const hero = roster.find((h) => h.id === id);
+        const hero = current.find((h) => h.id === id);
         if (!hero) continue;
         for (const alt of rolesForClass(hero.klass)) {
           if (alt.id === hero.role) continue;
-          const trial = roster.map((h) => (h.id === id ? { ...h, role: alt.id } : h));
+          const trial = current.map((h) => (h.id === id ? { ...h, role: alt.id } : h));
           const ratio = projectAssignment({ ...state, roster: trial }, party)?.minRatio ?? 0;
-          if (ratio <= best + 0.01) continue;
-          roster = trial;
-          best = ratio;
-          flipped = true;
-          if (!changed.has(hero.id)) changed.set(hero.id, `${hero.name} → ${alt.name}`);
+          if (ratio <= best + 0.015) continue;
+          if (!pick || ratio > pick.ratio) pick = { heroId: id, roleId: alt.id, ratio };
         }
       }
+      if (!pick) break;
+
+      const hero = current.find((h) => h.id === pick!.heroId);
+      const roleName = roleById(pick.roleId).name;
+      current = current.map((h) => (h.id === pick!.heroId ? { ...h, role: pick!.roleId } : h));
+      flips += 1;
+      if (hero) {
+        partyNotes.push({
+          id: hero.id,
+          text: `${hero.name} → ${roleName} (${weakest?.checkLabel ?? "weakest"} ${best.toFixed(2)} → ${pick.ratio.toFixed(2)})`,
+        });
+      }
+      if (flips >= 2) break;
     }
-    if (!flipped) break;
+
+    if (flips > 0) {
+      roster = current;
+      for (const note of partyNotes) {
+        if (!changed.has(note.id)) changed.set(note.id, note.text);
+      }
+    }
   }
 
   if (changed.size === 0) return { state, notes };

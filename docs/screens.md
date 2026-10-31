@@ -108,9 +108,9 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 
 **Blocks (top → bottom):**
 
-1. **Identity** — portrait, name, level, class, current role, **Power 127** (large), status chips, and up to three trait chips (`Keen Eye`, `Steadfast`).
+1. **Identity** — portrait, name, level, class, current role, **Power 127** (large) and the four check contributions for the selected role, status chips, and up to three trait chips (`Keen Eye`, `Steadfast`).
 2. **Attributes** — 2 columns × 4 rows (**Body** | **Spirit**), colour-banded 1–20. No scrolling, no tabs. Every value has a tooltip; candidates show ranges (`12–16`) instead of numbers.
-3. **Role fit** — a row of 8 chips; each shows `Evoker 127` `Arcanist 118` `Bulwark 41`. The selected one is highlighted. Clicking *previews* the power change live before you commit.
+3. **Role fit** — a row of 8 chips; each shows `Evoker 127 · DPS ×1.15`. The selected one is highlighted, and the row below shows the four check contributions (`DPS 38 · Mit 52 · Mech 78 · Sus 46`) with the before → after delta. The chips use `checkPowerInRole`, not the role-blind power; clicking previews the check change live before you commit. The familiar `powerInRole` number stays beside the class line.
 4. **Gear** — 4 slots with iLvl + rarity colour. There is no bag; a clear's drops wait in the loot queue, and "who gets it?" opens the Gear Assign modal with deltas.
 5. **Condition** — fatigue bar, sharpness bar, health bar, morale icon, and a sentence: *"Output at 93%: condition and sharpness are both in the numbers. Two more raid nights before fatigue bites."*
 6. **Contract** — wage, days left, release clause, squad-status promise, market value. `Renew` / `Release` buttons.

@@ -10,7 +10,7 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 114 tests, `resolveDay` clones its input |
+| Simulation core | Done — deterministic, 118 tests, `resolveDay` clones its input |
 | Progression ladder | Done — 3 heroes → 3 farms, 6 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities; prices the purse, the next wall's level gate and the gear gap |
@@ -18,6 +18,7 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 | Contract board | Done — two open missions are posted at full pay each day; every other mission pays 25% after its first clear. The AI skips token repeats; the Drowned Mill fell from 26.4 to 13.75 clears/run |
 | Reward-aware planner | Done — a purse target, the next wall's level gate and the raid party's gear gap weight XP, gold and loot. The Quartermaster is 24,520 and the Gambler 21,549; the Tyrant stall is 7/20 against the 6/20 target |
 | Loot assignment & raid ten | Done — a clear queues drops; the player assigns any hero or takes the need suggestion, the AI keeps the old lowest-party pick (42/60 full clears). The standing ten is built at the first raid; day-40 team iLvl is 46–55 against the 65 target |
+| Role review | Done — the reviewer only re-specs a party below 1.0, caps at two flips, and stops at 1.0; the `role` command prints the four check deltas. The 1.30 affinity widening was measured and rejected (ladder volatility); the 1.15 table stays |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
 | Balance | Provisional — the pre-feature build is 20 seeds: Steward 23,087, Quartermaster 24,520, Gambler 21,549; full clears 13/15/12. The shipped conservative AI is 42/60; the player's need pick is 52/60; day-40 team iLvl is 46–55 against the 65 target (see [progression-report.md](progression-report.md) §3.6) |
 | UI | **None** |
@@ -95,7 +96,7 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 
 ### Phase 4 — The missing levers
 
-- **Role assignment** — the sim and CLI can switch a hero's role at the fit cost, and the planner re-specs on 3.5% of days. The lever is small until the affinity spread widens (O5); the hero sheet has no chips yet. This is the last missing Phase 0 lever.
+- **Role assignment** — shipped as the reviewer gate and the check readout. The 1.30 affinity widening was measured and rejected: it moved the ladder 17–22/30 and the Steward 10/20–20/20 (§6.4). The 1.15 table stays; the role lever is a short-content tool (5–13% of a check on a 3-hero mission). A party-level mechanic is the next lever if roles must decide raids.
 - **A new three-hero activity with a non-mechanics check** — the board rotates pay and level, not the check; four of six missions are mechanics. The check is still the better long-term addition.
 - **Contracts and promises** — the ledger ships (due day, kept/broken); what is missing is the counter-offer loop and a transfer request behind a broken promise.
 

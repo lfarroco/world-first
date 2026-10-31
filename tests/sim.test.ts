@@ -64,11 +64,13 @@ import {
   MAX_TRAITS,
   assignRole,
   checkContribution,
+  checkPowerInRole,
   fitFor,
   roleAffinity,
   planDay,
   reviewRoles,
   roleById,
+  ROLES,
   traitSelfFactor,
   traitPartyFactor,
   traitEconomy,
@@ -1583,6 +1585,32 @@ describe("role assignment", () => {
     expect(checkContribution(changed, "mitigation", 1) / before).toBeCloseTo(affinity * 0.88, 6);
   });
 
+  it("prints the check-specific power the encounter uses", () => {
+    const state = newGame(2, "Roles");
+    const hero = state.roster[0]!;
+    for (const check of ["dps", "mitigation", "mechanics", "sustain"] as const) {
+      expect(checkPowerInRole(hero, hero.role, check)).toBeCloseTo(checkContribution(hero, check, 1), 6);
+    }
+  });
+
+  it("treats a save without naturalRole as natural", () => {
+    const state = newGame(2, "Roles");
+    const hero = { ...state.roster[0]! };
+    delete (hero as { naturalRole?: string }).naturalRole;
+    expect(fitFor(hero, hero.role).fit).toBe("natural");
+  });
+
+  it("keeps every role's affinity bounded", () => {
+    const checks = ["dps", "mitigation", "mechanics", "sustain"] as const;
+    for (const role of ROLES) {
+      const values = checks.map((check) => roleAffinity(role.id, check));
+      expect(Math.max(...values)).toBeGreaterThanOrEqual(1.05);
+      expect(Math.min(...values)).toBeGreaterThanOrEqual(0.85);
+    }
+    expect(roleAffinity("arcanist", "dps")).toBe(1.05);
+    expect(roleAffinity("vanguard", "mitigation")).toBe(1.05);
+  });
+
   it("ignores an unknown role or hero", () => {
     const state = newGame(2, "Roles");
     const hero = state.roster[0]!;
@@ -1605,7 +1633,35 @@ describe("planner role review", () => {
       for (const hero of after.roster) {
         expect(roleById(hero.role).klass).toBe(hero.klass);
       }
+      const flips = after.roster.filter((h) => h.role !== (h.naturalRole ?? h.role)).length;
+      expect(flips).toBeLessThanOrEqual(plan.parties.length * 2);
     }
+  });
+
+  it("does not re-spec a party that already clears", () => {
+    const base = newGame(3, "Clear");
+    const heroes = Array.from({ length: 5 }, (_, i) => ({
+      ...makeHero(3, 900 + i, "warrior", 60),
+      attrs: {
+        might: 20, agility: 20, vitality: 20, endurance: 20,
+        focus: 20, discipline: 20, awareness: 20, composure: 20,
+      },
+      gear: { weapon: 140, chest: 140, helm: 140, trinket: 140 },
+      traits: [] as TraitId[],
+      fatigue: 0,
+      sharpness: 60,
+      morale: 60,
+      health: 100,
+      contract: { wage: 100, daysLeft: 30, status: "rotation" as const },
+    }));
+    const state: GameState = { ...base, roster: heroes };
+    const plan = {
+      parties: [{ contentId: "hollow-crypt", heroes: heroes.map((h) => h.id), stance: "steady" as const }],
+    };
+    expect(projectAssignment(state, plan.parties[0]!)!.minRatio).toBeGreaterThan(1);
+    const result = reviewRoles(state, plan);
+    expect(result.notes).toHaveLength(0);
+    expect(result.state).toBe(state);
   });
 });
 

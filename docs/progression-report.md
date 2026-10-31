@@ -69,7 +69,7 @@ The last two rows have the same player numbers because the old rival pace only m
 **Heroes grow three ways**, all of which matter:
 
 - **XP** from every activity (`xpToNext(L) = 40 + 16L`, cap 60). Farm gives 6–22, missions 40–200, dungeons 300–3000, raids 3000–4000.
-- **Gear** from loot, which is assigned to the *lowest-geared* hero in the party — so dungeons funnel gear into the raid team, exactly like split runs. A clear pays its listed item count; a named drop replaces one of those items rather than adding one.
+- **Gear** from loot, queued as drops and assigned to a hero (the player's choice, or the need suggestion; §3.6). The default is the largest actual slot upgrade, with a bias for the standing raid ten. A clear pays its listed item count; a named drop replaces one of those items rather than adding one.
 - **Recruits** arrive at ~68% of your best hero's level, so a guild of veterans attracts experienced adventurers. This is the mechanism that makes a 10-man raid reachable inside 84 days.
 - **Free recruits** join after your first clear of each of the three ladder dungeons at **55% of your best hero's level**. The side dungeon does not. Three free heroes is enough that a careful player reaches ten for the first raid without buying the whole roster. The first implementation passed `0.55 × best` into a function that multiplied by a recruit factor again, so they arrived at ~34%; fixed in §3.1.
 
@@ -460,20 +460,27 @@ At ×0.70 the ladder loses 0.2 raids on average and two seeds (18 and 154) lose 
 
 ---
 
-### 6.4 The planner re-specs roles
+### 6.4 The role reviewer and the affinity table (2026-10-31)
 
-The planner resets every hero to their natural role each morning, then gives a planned party its best roles for that night, accepting a switch only when the projected weakest check improves by 0.01 and the party is below 1.1.
+The planner resets every hero to their natural role each morning, picks the team, and then gives the planned parties their best roles for the night. The old reviewer accepted any party below 1.1 and the first improving alt. That gate, not the affinity table, was the cause of the 3.5% re-spec rate: it re-specced parties in the 1.0–1.1 band that already cleared and paid the 0.88 fit on checks nobody needed. With a 1.30 signature table the same gate re-specced **16.8% of days** (423/2,520), a five-fold increase.
 
-| World | Steward | Gambler | Quartermaster | World First |
-|---|---|---|---|---|
-| Natural roles only | 23,211 | 24,002 | 22,087 | 5/30 |
-| Planner re-specs | 23,248 | 24,009 | 22,087 | 5/30 |
+The shipped reviewer only touches a party projected **below 1.0**, accepts a gain of **≥0.015**, picks the **best** alt, caps at **two flips** per party, stops at 1.0, and records the check and delta in the note. It no longer re-specs a party that clears.
 
-It fires on **29 of 840 days** (3.5%), 30 switches across 10 runs. The ladder does not move.
+**Measured, 10 seeds per personality, seeds 1+17i.** The 1.15 row is the shipped build; the 1.30 rows are the rejected widening.
 
-The reason is arithmetic, not implementation. A switch pays the 0.88 fit, so it needs the new role's affinity to be more than `1 / 0.88 = 13.6%` higher on the target check. Of the eight role pairs, only two directions clear +5%: Bulwark → Vanguard on DPS (+7.6%) and Assassin → Trickster on mechanics (+6.5%). Both cost about 20% on the other checks, so the party's weakest phase usually gets worse and the switch is rejected.
+| Build | Steward | Quartermaster | Gambler | Full clears | World First | Flips |
+|---|---:|---:|---:|---:|---:|---:|
+| 1.15 table, old reviewer (869d993) | 25,337 | 25,513 | 21,474 | 21/30 | 13/30 | 3.1% of days |
+| 1.15 table, shipped reviewer | 25,637 | 25,818 | 21,474 | 21/30 | 15/30 | 8/7/5 days per 10 runs |
+| 1.30 table, old reviewer | 24,279 | 24,082 | 20,714 | 19/30 | 8/30 | 16.8% |
+| 1.30 table, gate with revert-if-not-crossing | 26,460 | 24,776 | 18,882 | 22/30 (Steward 20/20, Gambler 8/20) | 7/30 | 5% |
+| 1.30 table, gate with partial keep (the code) | 22,012 | 26,439 | 17,912 | 17/30 (Steward 10/20, Quartermaster 20/20, Gambler 4/20) | 6/30 | 14/11/7% |
 
----
+The 1.30 table does what O5 asked for the **decision**: re-specs rise five-fold, the targets spread from Vanguard/Trickster to Bulwark/Oracle/Lightbringer, and the median day-40 projection rises 1.32 → 1.48. It does not do it for the **ladder**: the full-clear total moves 17–22/30 depending on the reviewer's gate, the Steward swings 10/20–20/20 and the Gambler 4/20–8/20, and the score effect is inside the 10-seed noise (−1,083 ±6,888 on the old reviewer). The smaller 1.25 table repeats the volatility without the decision gain. The table stays **1.15**.
+
+**The role lever is a short-content tool, not a raid one.** A flip moves one hero by 8.9% on the switched check and −42.5% on the off-check; in a 10-hero raid that is 1.7–3% of a phase, while a 3-hero mission can move 13% of a check with two flips. The content did not collapse under any arm: every non-Tyrant area stayed 100% entry/clear, the Tyrant entry rose 80 → 87–97%, and the requirements were not bumped. The 1.15 table keeps the role choice flat on the ladder; the reviewer makes it legible, and `checkPowerInRole` plus the `role` command show the four check deltas so the chip row no longer argues against every switch.
+
+**Rejected:** the 1.30 signatures (the ladder volatility above); the 1.25 fallback (same volatility, no decision gain); trained fit 0.95; 12 roles; per-check bonuses; class-locked content. The next lever if roles must decide raids is a party-level mechanic, not a bigger table.
 
 ### 6.5 Twenty traits
 
@@ -501,7 +508,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 - **The need model is coarse.** The planner now prices the purse, the next wall's level gate and the raid party's gear gap (§3.5), and assignment prices the actual slot (§3.6), but the planner's `lootValue` still measures the band against the worst hero's average, named drops and forge `lootIlvl` are ignored, the purse has no facility/hire reserve, and the value does not price `traitEconomy` or the rival `rewardScale`. The gear gap is the sharp one: on the board-only build 129/129 Tyrant attempts were below the 225 recommendation (mean 151, −33%); the day-40 team is 46–55 against the 65 target. The purse is smaller: the mean run ended 2,509g short of its cheapest unbought facility tier. Both are gear-rate problems, not content-choice ones.
 - **Repeatable missions are capped by the contract board, not by a decay.** The Drowned Mill is 26.4 → 13.75 clears/run; the board costs ~2.5% of score and three Steward full clears (§3.4). The remaining gap is the check, not the pay: four of six missions are mechanics, and a new three-hero activity with a different check is still the better long-term addition. See [open-questions.md](open-questions.md) O7.
 - **The stable ten is fixed at the wall.** `raidTeam` is built at the first open raid and kept; it does not re-pick at a wall change. Day-40 team iLvl is 46–55 against the 65 target, and the shipped AI is 1–4 iLvl behind the nightly best ten it replaced. `raidteam auto` is the manual re-pick; a measured wall-change re-pick is the follow-up.
-- **Role assignment is sim-only** — `role <hero> <role>` sets the role and the fit multiplier applies to every check. The planner re-specs on 3.5% of days for no measurable gain; the hero sheet has no chips yet.
+- **Role assignment is legible, not a progression lever.** The reviewer only re-specs a party below 1.0 (8/7/5 days per 10 runs at 1.15), and `checkPowerInRole` plus the `role` command show the four check deltas. The 1.30 affinity table was measured and rejected (§6.4); the 1.15 table keeps the role choice flat on the ladder. The role lever is 5–13% of a check on a 3-hero mission and 1.7–3% per flip in a raid; if roles must decide raids, the next lever is a party-level mechanic, not a bigger table.
 - **Promises are a debt now, with a hole at the end.** The ledger writes a due day, counts starts, and settles kept/broken (§7.1a). Two pieces are still missing: the planner never reads `contract.status`, so it cannot plan around a promise, and a broken promise has no transfer request behind it — only morale.
 - **Facilities now compete with wages.** Before the re-pricing the AI maxed the tree by ~day 70 and ended with ~10k; now it ends with ~2k and one tier short. That is the intended tension, but the facility prices were set against the old, broken wage bill.
 - **No early-game pressure.** The first ten days are pleasant but consequence-free; there is no wage crisis until the roster is expensive.
@@ -510,6 +517,7 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 
 ## 8. What to do next
 
-1. **Teach the planner to reassign roles** — the last missing lever from Phase 0.
-2. **A new three-hero activity with a non-mechanics check.** The board rotates pay and level, not the check; four of six missions are mechanics.
-3. Then the vertical-slice UI, unchanged: Roster → War Room → Report.
+1. **A new three-hero activity with a non-mechanics check.** The board rotates pay and level, not the check; four of six missions are mechanics.
+2. Then the vertical-slice UI, unchanged: Roster → War Room → Report.
+
+The role reviewer and the check readout are done; the affinity table stays 1.15 until a party-level mechanic is designed.
