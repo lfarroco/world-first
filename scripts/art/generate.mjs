@@ -157,15 +157,30 @@ function parseResponse(json) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** `--force` overwrites the shipped file. Keep the old one, numbered, so a
- *  re-roll never quietly destroys a render someone liked. */
-async function archive(file, folder, id, ext) {
-  if (!existsSync(file)) return null;
-  let dest = join(RAW, folder, `${id}${ext}`);
-  for (let n = 2; existsSync(dest); n++) dest = join(RAW, folder, `${id}.${n}${ext}`);
-  await mkdir(dirname(dest), { recursive: true });
-  await rename(file, dest);
-  return dest.slice(ROOT.length + 1);
+/**
+ * `--force` overwrites the shipped file. Keep the old one, numbered, so a
+ * re-roll never quietly destroys a render someone liked.
+ *
+ * It archives *every* extension of the id, not just the one being written:
+ * the API returns PNG and `art:tidy` leaves JPEG behind, so a re-roll used to
+ * leave `salve.jpg` (old) next to `salve.png` (new) and the lookup served the
+ * old one forever.
+ */
+const SHIPPED = [".jpg", ".jpeg", ".png", ".webp"];
+
+async function archive(folder, id, keep) {
+  const moved = [];
+  for (const ext of SHIPPED) {
+    if (ext === keep) continue;
+    const file = join(ART, folder, `${id}${ext}`);
+    if (!existsSync(file)) continue;
+    let dest = join(RAW, folder, `${id}${ext}`);
+    for (let n = 2; existsSync(dest); n++) dest = join(RAW, folder, `${id}.${n}${ext}`);
+    await mkdir(dirname(dest), { recursive: true });
+    await rename(file, dest);
+    moved.push(dest.slice(ROOT.length + 1));
+  }
+  return moved;
 }
 
 async function generate(row) {
@@ -197,8 +212,8 @@ async function generate(row) {
       const buf = Buffer.from(data, "base64");
       const file = dest.replace(/\.jpg$/, ext);
       await mkdir(destDir, { recursive: true });
-      const kept = await archive(file, row.folder, row.id, ext);
-      if (kept) console.log(`      previous version → ${kept}`);
+      const moved = await archive(row.folder, row.id, ext);
+      for (const dest of moved) console.log(`      previous version → ${dest}`);
       await writeFile(file, buf);
       console.log(`ok    ${row.folder}/${row.id}${ext}  ${(buf.length / 1024).toFixed(0)} KB`);
       return "ok";

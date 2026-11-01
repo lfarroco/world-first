@@ -1,7 +1,7 @@
 import { CHECK_LABEL, KIND_LABEL } from "../../sim";
 import { useGameStore } from "../../store/gameStore";
 import { inspectInfo } from "../../store/selectors";
-import { Art } from "../components/Art";
+import { Art, itemArtId } from "../components/Art";
 import { Modal } from "../components/Modal";
 import { Chip } from "../components/Primitives";
 
@@ -168,7 +168,18 @@ export const InspectModal = ({ contentId, onClose }: { contentId: string; onClos
                 <tbody>
                   {content.drops.map((drop) => (
                     <tr key={drop.name}>
-                      <td>{drop.name}</td>
+                      <td>
+                        <span className="row" style={{ gap: 7 }}>
+                          <Art
+                            base={`/art/items/${itemArtId(drop.name)}`}
+                            alt=""
+                            width={26}
+                            height={26}
+                            className="item-icon"
+                          />
+                          {drop.name}
+                        </span>
+                      </td>
                       <td className="muted">{drop.slot}</td>
                       <td className="num">{drop.ilvl}</td>
                       <td className="num">{Math.round(drop.chance * 100)}%</td>

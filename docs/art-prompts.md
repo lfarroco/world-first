@@ -4,7 +4,7 @@ The game has no art. This document is the brief for generating it outside the re
 
 It is not a wish list. Every prompt below maps to a content id the sim already has, so a generated file can be dropped in without a rename and nothing in `src/` changes.
 
-> **Status (2026-11-01).** Written, not executed. No image has been generated. The cost and the counts are estimates; the style block is untested against a real model.
+> **Status (2026-11-01).** The first set is generated: 98/98 files in `public/art/`, all wired. It was made in the oil-paint style below and is **superseded** — the icons did not read at 28 px, so §2 now specifies painted cartoon fantasy and the set needs regenerating (~98 calls). The old files still render until they are replaced.
 
 ---
 
@@ -45,9 +45,10 @@ The rule the script applies: **STYLE BLOCK + ", " + SUBJECT**. Nothing else. Do 
 What a row comes out as:
 
 ```
-hand-painted dark fantasy portrait in the style of 2000s RTS concept art, bust to mid-chest,
-bold chunky forms, thick dark outline, saturated colours, warm rim light from the upper left,
-deep blue-black background, exaggerated features, readable as a 32 px silhouette, no text,
+hand-painted fantasy hero portrait in the style of 2000s RTS character art, head and shoulders
+filling the frame, bold chunky forms, thick dark outline, fully saturated colour, strong rim light
+and a coloured glow behind the head, bright lit face against a dark background, exaggerated
+expressive features, readable as a 32 px silhouette, no text,
 broad-shouldered warrior in scarred plate, tower shield resting edge-down, helm under one arm,
 grey at the temples, patient
 ```
@@ -55,18 +56,18 @@ grey at the temples, patient
 Item example:
 
 ```
-hand-painted fantasy game icon in the style of 2000s RTS concept art, one object, bold chunky
-silhouette, thick dark outline, saturated colours, strong rim light, flat deep blue-black
-background, the object fills most of the frame, readable at 32 px, no text, small stoneware jar
-of green salve, waxed cloth lid, salve smeared on the rim
+hand-painted still life of a single fantasy object filling the frame, bold chunky silhouette, thick
+dark outline, fully saturated colour, bright highlights, strong rim light, a coloured glow behind
+the object fading to black at the edges, no text, no frame, no border, small stoneware jar of green salve,
+waxed cloth lid, salve smeared on the rim
 ```
 
 Location example:
 
 ```
-hand-painted dark fantasy environment in the style of 2000s RTS concept art, wide establishing
-shot at eye level, bold shapes, saturated palette, one strong light source, deep shadows, high
-contrast, stylised proportions, no figures in the foreground, no text, birch and pine wood at
+hand-painted fantasy environment in the style of 2000s RTS concept art, wide establishing shot at
+eye level, bold shapes, fully saturated palette, strong directional light, high colour contrast,
+stylised proportions, no figures in the foreground, no text, birch and pine wood at
 dusk, moss underfoot, a hunter's trail, embers of a dead campfire
 ```
 
@@ -79,25 +80,26 @@ Three blocks, one per asset class. Copy them exactly. They are the whole consist
 **Portraits**
 
 ```
-hand-painted dark fantasy portrait in the style of 2000s RTS concept art, bust to mid-chest,
-bold chunky forms, thick dark outline, saturated colours, warm rim light from the upper left,
-deep blue-black background, exaggerated features, readable as a 32 px silhouette, no text
+hand-painted fantasy hero portrait in the style of 2000s RTS character art, head and shoulders
+filling the frame, bold chunky forms, thick dark outline, fully saturated colour, strong rim light
+and a coloured glow behind the head, bright lit face against a dark background, exaggerated
+expressive features, readable as a 32 px silhouette, no text
 ```
 
 **Locations**
 
 ```
-hand-painted dark fantasy environment in the style of 2000s RTS concept art, wide establishing
-shot at eye level, bold shapes, saturated palette, one strong light source, deep shadows, high
-contrast, stylised proportions, no figures in the foreground, no text
+hand-painted fantasy environment in the style of 2000s RTS concept art, wide establishing shot at
+eye level, bold shapes, fully saturated palette, strong directional light, high colour contrast,
+stylised proportions, no figures in the foreground, no text
 ```
 
 **Items**
 
 ```
-hand-painted fantasy game icon in the style of 2000s RTS concept art, one object, bold chunky
-silhouette, thick dark outline, saturated colours, strong rim light, flat deep blue-black
-background, the object fills most of the frame, readable at 32 px, no text
+hand-painted still life of a single fantasy object filling the frame, bold chunky silhouette, thick
+dark outline, fully saturated colour, bright highlights, strong rim light, a coloured glow behind
+the object fading to black at the edges, no text, no frame, no border
 ```
 
 **Negative prompt** (SD, Flux, ComfyUI; Midjourney gets the short form in `--no`)
@@ -112,7 +114,18 @@ desaturated, grey, soft focus, blurry, vignette, black bars
 
 **Do not put the artist's name in the prompt.** Some models filter a living artist's name; the ones that do not produce a pastiche of one picture rather than a working style. "2000s RTS concept art" plus the properties carries the same information and survives the filter. Use the name to explain the target to a human, not to the model.
 
-**The palette still answers to the UI.** Bright art is what makes a dark slate panel readable; a muted picture on `#10141a` is a shadow on a shadow. Keep the background dark — the object carries the colour, the frame does not.
+**What the reference actually does.** The Warcraft III sheets show four things, and only one of them is about brightness:
+
+| Property | In the reference | In our first set |
+|---|---|---|
+| Subject vs ground | object is the brightest thing in the frame, background falls off to near-black | object and ground were the same value |
+| Hue | one dominant colour per icon — cyan ice, orange fire, green poison — carried by the object | grey object, grey ground |
+| Separation | thick dark outline, plus a coloured halo behind the subject | no outline, no halo |
+| Fill | subject occupies 70–85% of the square | subject in the middle third |
+
+So the background in the reference is dark, and can stay dark. What makes it read at 64 px is that the subject is much brighter than the ground and carries the only saturated colour. "Bright high-key" (the previous wording) would have flattened exactly the contrast that does the work, so it is gone; the blocks now ask for a **bright lit subject, fully saturated, with a coloured glow behind it on a dark ground**.
+
+**The reference is not in the repo, and should not be.** Those sheets are Blizzard's art. Use them to steer the prompt, never to train on, trace, or commit.
 
 ## 3. Consistency protocol
 
@@ -156,7 +169,7 @@ One per role in [roles.ts](../src/sim/content/roles.ts). Filename is the role id
 - alternate age: "young, early twenties" / "forties, weathered"
 - alternate presentation across the set, deliberately: vary skin tone, hair, and gender across the sixteen so the roster is not eight people from one village.
 
-**Framing rules.** Crop at mid-chest. Eyes on the upper third. Subject fills 70% of the frame. Do not let a weapon leave the frame; a cut-off axe reads as a mistake in a 40 px circle.
+**Framing rules.** Head and shoulders, the head filling about half the frame — the reference portraits crop closer than a normal character sheet, and the crop is what survives a 26 px circle. Eyes on the upper third. Do not let a weapon leave the frame; a cut-off axe reads as a mistake at 26 px.
 
 ---
 
@@ -297,9 +310,9 @@ Items are read at 20–28 px. One object, filling 80% of the frame, no scene. De
 | `items/broken-standard.jpg` | The Broken Standard | fragment of a company banner on a broken spear |
 | `items/last-light.jpg` | Last Light | small lamp on a chain, the last of its oil |
 
-**Icon rules.** No hands, no scenes, no glow that bleeds outside the object. The item sits at a 30° tilt; straight-on reads as flat at 24 px.
+**Icon rules.** The object fills 70–85% of the square. One dominant hue per icon, so two icons in a list are told apart by colour as well as shape. A coloured glow behind the object, falling off to near-black at the edges — that is the halo in the reference, not a border. No hands, no scenes, no fine detail: at 28 px a buckle and a scratch are the same pixel.
 
-**"Game inventory icon" was the wrong phrase.** It pulled the genre convention in with it: of the first five, two came back on a dark circular disc, one on a blue ring, one on a grey studio sweep and one on **white**. The medium came back as a 3D render, against the oil paint of the portraits. The block is now a still life, and the background is stated as a field that fills the frame, because a negative ("no vignette") is not a thing Gemini's API reads.
+**"Icon" is the word that puts a frame around it.** Three rounds of evidence. "Game inventory icon" produced discs, a blue ring, a studio sweep and a white background. Rewriting it as a still life produced five clean dark fields. Adding "2000s RTS concept art" back in brought the white background and the black disc with it on the first re-probe, while the portrait and location blocks — which never say "icon" — stayed clean. Items are now a still life with the cartoon properties carried by the adjectives, not by the genre noun. Everything is stated positively: a negative ("no vignette") is not a thing Gemini's API reads.
 
 ---
 
@@ -347,6 +360,8 @@ The ids come from [content.ts](../src/sim/content/content.ts), [market.ts](../sr
 Run these on every image before it goes in `public/art/`.
 
 - [ ] Squint test at 32 px: the silhouette still reads.
+- [ ] Contrast check at 28 px: the subject is clearly brighter than its own background. The ground may be near-black — the reference's is — but the object must not be.
+- [ ] Hue check: each icon has one dominant saturated colour. Two greys in one list means the set drifted.
 - [ ] No text, no letters, no watermark, no signature.
 - [ ] Background is the same flat near-black as the rest of the set — no disc, no ring, no studio sweep, no white. A different background is a regenerate, not a crop.
 - [ ] The palette sits next to `#10141a` without clashing. Put it on the panel colour to check.
@@ -362,15 +377,17 @@ Run these on every image before it goes in `public/art/`.
 
 ## 9. Order of work
 
-Do not generate 95 images before testing the style. The first ten decide whether the rest are worth generating.
+Do not generate 98 images before testing the style. Three decide whether the other 95 are worth generating.
 
 | Phase | Images | Why first |
 |---|---|---|
-| 1. Probe | 2 | One portrait, one location. Check the style block on your model. |
+| 1. Probe | 3 | One icon, one portrait, one location — `--only salve,evoker,emberwood --force`. Look at them at 28 px before anything else. |
 | 2. Prove | 8 | The 8 role portraits at one seed. This is the set that either coheres or does not. |
 | 3. Cover the loop | 27 | 8 roles + 12 locations (farms, missions, first three dungeons) + 7 market icons. Now every screen has art. |
 | 4. Complete | 64 | Remaining 18 locations, 46 loot icons. |
 | 5. Optional | 3 | Raid bosses as portraits, if the raid hub earns the space. |
+
+**Regenerating an existing set.** `--force` rewrites the files in place and keeps the previous version in `art/raw/`. Do the probe first: 3 calls now is cheaper than 98 calls twice.
 
 Cost: unmeasured. A hosted model at 4 images per prompt for 98 assets is a few hundred generations; re-rolls for consistency are the real cost, not the count.
 
@@ -454,4 +471,29 @@ Run `--dry-run --limit 1` and compare it to the current API reference before the
 
 **Then shrink it.** `npm run art:tidy` converts the PNG output to JPEG and parks the original in `art/raw/` (macOS only — it calls `sips`). Without it, 30 locations is 45 MB in the repo.
 
-**Then look at the result.** `npm run art:check` prints `art N/98`. The pack's QA checklist (§8) still applies — the script does not judge whether a picture is good, only whether it exists.
+**No credits: the web app.** The Gemini web version produces the same style and returns JPEG. Save each file as `public/art/<folder>/<id>.jpg`, taking the id from `art/prompts.csv`. Three things bite:
+
+- The download is called `Gemini_Generated_Image_<hash>.jpg`. Renaming is the whole job, and a file with the wrong name is invisible to the game — `art:check` now lists any file whose name is not a content id.
+- There is no batch. 98 images is 98 downloads.
+- Saving a new file next to an old one with a different extension leaves two files for one id, and the lookup serves whichever it tries first — usually the older picture. `art:check` fails on that too.
+
+**Then look at the result.** `npm run art:check` prints `art N/98`, and it counts files, not judgements — a white poster background still counts as present.
+
+**Re-rolling one image.** Two commands, by id, in any folder:
+
+```bash
+npm run art:generate -- --only bulwark --force
+npm run art:generate -- --only toll-house,wailing-mines,last-outpost --force
+```
+
+`--force` rewrites the file and moves the previous version into `art/raw/`. Judge the new one at 28 px before moving on.
+
+**White at the edge is a re-roll, not a crop.** Five of the first ninety-eight came back with white at the edges, in two shapes: a thin bar along one edge (`wailing-mines`), or the subject painted on a white poster with margins and a ragged painted edge (`bulwark`). Cropping was tried on both and rejected — 3% left the poster's sides and cut the shield, 4% still showed white on both. The margin is 4–8%, more than the composition can spare. Re-roll with `--force`.
+
+**No credits: the web app.** The Gemini web version produces the same style and returns JPEG. Save each file as `public/art/<folder>/<id>.jpg`, taking the id from `art/prompts.csv`. Three things bite:
+
+- The download is called `Gemini_Generated_Image_<hash>.jpg`. Renaming is the whole job, and a file with the wrong name is invisible to the game — `art:check` now lists any file whose name is not a content id.
+- There is no batch. 98 images is 98 downloads.
+- Saving a new file next to an old one with a different extension leaves two files for one id, and the lookup serves whichever it tries first — usually the older picture. `art:check` fails on that too.
+
+**Then look at the result.** The pack's QA checklist (§8) still applies — the script does not judge whether a picture is good, only whether it exists.

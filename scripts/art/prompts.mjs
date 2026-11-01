@@ -46,6 +46,8 @@ const SPEC = {
   items: { aspect: "1:1", size: "512x512", export: "256x256" },
 };
 
+const EXTS = [".jpg", ".jpeg", ".png", ".webp"];
+
 const rows = [];
 for (const m of doc.matchAll(ROW)) {
   const [, folder, id, name, subject] = m;
@@ -139,19 +141,46 @@ async function check() {
   if (!fresh) drift++;
   console.log(`list   art/prompts.csv ${fresh ? "up to date" : "STALE — run npm run art:prompts"}`);
 
-  // What has been generated so far.
+  // What has been generated so far, and whether hand-saved files left a mess.
   const present = {};
+  const known = {};
   for (const folder of Object.keys(SPEC)) {
-    present[folder] = new Set(await readdir(join(ART, folder)).catch(() => []));
+    const files = (await readdir(join(ART, folder)).catch(() => [])).filter((f) => !f.startsWith("."));
+    present[folder] = new Set(files);
+    known[folder] = new Set(rows.filter((r) => r.folder === folder).map((r) => r.id));
   }
-  const EXTS = [".jpg", ".jpeg", ".png", ".webp"];
-  const done = rows.filter((r) => EXTS.some((ext) => present[r.folder].has(r.id + ext))).length;
-  console.log(`\nart    ${done}/${rows.length} images in public/art/`);
+
+  // Two files for one id means the lookup serves whichever extension it tries
+  // first — usually the older picture. Files whose stem is not an id are
+  // invisible to the game: a mis-named download, or a stray copy.
+  for (const folder of Object.keys(SPEC)) {
+    const stems = new Map();
+    for (const file of present[folder]) {
+      const ext = EXTS.find((e) => file.endsWith(e));
+      if (!ext) continue;
+      const stem = file.slice(0, -ext.length);
+      stems.set(stem, [...(stems.get(stem) ?? []), ext]);
+    }
+    const dupes = [...stems].filter(([, exts]) => exts.length > 1);
+    const strays = [...stems.keys()].filter((stem) => !known[folder].has(stem));
+    if (dupes.length) {
+      drift++;
+      console.log(`${folder} duplicates: ${dupes.map(([id, exts]) => `${id} (${exts.join(" + ")})`).join(", ")}`);
+    }
+    if (strays.length) {
+      drift++;
+      console.log(`${folder} not in the content list: ${strays.join(", ")}`);
+    }
+  }
+
+  const done = rows.filter((r) =>
+    EXTS.some((ext) => present[r.folder].has(`${r.id}${ext}`)),
+  ).length;  console.log(`\nart    ${done}/${rows.length} images in public/art/`);
 
   if (drift) {
     console.error(
-      "\nfail: docs/art-prompts.md, src/sim/content and art/prompts.csv disagree —" +
-        " fix the table, then run npm run art:prompts",
+      "\nfail: something above is inconsistent — a content id without a prompt, a stale" +
+        " art/prompts.csv, or a folder with two files for one id. Fix it before generating.",
     );
     process.exit(1);
   }

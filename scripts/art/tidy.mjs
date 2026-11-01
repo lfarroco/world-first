@@ -65,6 +65,14 @@ for (const folder of FOLDERS) {
       continue;
     }
 
+    // A JPEG from an earlier generation would otherwise be overwritten silently.
+    if (existsSync(out)) {
+      let stash = join(RAW, folder, `${id}.jpg`);
+      for (let n = 2; existsSync(stash); n++) stash = join(RAW, folder, `${id}.${n}.jpg`);
+      await mkdir(dirname(stash), { recursive: true });
+      await rename(out, stash);
+    }
+
     await run("sips", ["-s", "format", "jpeg", "-s", "formatOptions", QUALITY, src, "--out", out]);
     const outSize = (await stat(out)).size;
 
