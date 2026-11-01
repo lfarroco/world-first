@@ -396,9 +396,6 @@ export const ReportScreen = () => {
                 <button className="btn btn-ghost btn-block" onClick={() => setScreen("hall")}>
                   Back to the hall
                 </button>
-                <div className="tiny dim">
-                  Each line shows what that change would add to the failed check.
-                </div>
               </div>
             </section>
           ) : null}
