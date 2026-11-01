@@ -100,7 +100,7 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 - **Attention and loot** — blocking items gate Advance; every option carries its consequence; drops never block and the next Advance takes the default.
 - **Tavern and facilities** — pulled forward from the amplification list because a guild that cannot hire is stuck at three heroes (see the learning below).
 
-**Measured:** 141 tests (five new sim tests for the raid log on top of the twelve headless action/reducer tests); production build 415.12 kB JS / 123.15 kB gzip and 35.27 kB CSS / 7.98 kB gzip in 0.54 s; a save is 164–255 kB because it carries the three rival guilds and the player's raid log (4 kB for 17 nights, 1.5% of the end-of-run save; 3.4 ms to stringify and 2.3 ms to parse the 255 kB file, 500 runs, and the log moves either by under 0.1 ms). A full 84-day UI run completes and reaches the verdict (automated, first-option queue).
+**Measured:** 141 tests (five new sim tests for the raid log on top of the twelve headless action/reducer tests); production build 415.82 kB JS / 123.41 kB gzip and 35.27 kB CSS / 7.98 kB gzip in 1.05 s; a save is 164–255 kB because it carries the three rival guilds and the player's raid log (4 kB for 17 nights, 1.5% of the end-of-run save; 3.4 ms to stringify and 2.3 ms to parse the 255 kB file, 500 runs, and the log moves either by under 0.1 ms). A full 84-day UI run completes and reaches the verdict (automated, first-option queue).
 
 **Cut from this pass:** drag-and-drop, bulk roster actions, comparison drawer, column chooser, scouting fog, signing negotiation, contracts table, settings, mobile card list, fixed bottom Advance. Each needs a sim field or a playtest.
 

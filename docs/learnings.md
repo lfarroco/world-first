@@ -611,3 +611,11 @@ Adding the fifth tab pushed "New run" off a 390 px viewport, and the mobile rule
 **Evidence:** day-84 hub at 390 × 844 — the nav overflowed to "NE"; the pull rows showed the phase name and an empty cell.
 **Changes:** the nav's "New run" is `.tab-optional` and hidden below 560 px (the Hall and the title screen still start a run), the two long tab labels become `Hall` / `War`, and the hide rule is `.pull-row > span:last-child`. Check both breakpoints whenever a screen or a tab is added.
 **Rejected:** shrinking all five tab labels — the labels are the navigation, and a scroll bar that starts mid-word looks broken.
+
+## The tab badge (2026-10-31)
+
+### L100. A count is not a notification until it names the thing
+The Guild Hall tab showed a red `1` with `title="Guild Hall (1)"`: the number in the tooltip was the keyboard shortcut, so nothing said the badge counted blocking items. The count also showed while the Hall was open, beside the "Needs you (1)" panel that already answers it.
+**Evidence:** player screenshot, day 15 — the Hall tab read `GUILD HALL 1`, the top bar read `1 ITEM NEEDS YOU`, and the panel read `NEEDS YOU (1)`; the only hover text was `Guild Hall (1)`.
+**Changes:** the tab title and accessible name now say what the badge counts (`1 item needs you before Advance`, `2 contracts expiring, 1 injury`, `no party planned for tonight`); the count hides on the open tab; the Help modal names the count and the report dot.
+**Rejected:** relying on the top-bar sub-label (it is present but small and does not name the tab badge), and replacing the count with a dot (the Hall can hold up to three blocking items; the count is the useful part).

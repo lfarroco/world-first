@@ -145,8 +145,10 @@ export const HelpModal = ({ onClose }: { onClose: () => void }) => (
     </div>
     <hr className="sep" />
     <p className="small muted">
-      A blocking item holds Advance until you answer it. Drops never block: the next Advance takes the
-      default. A phase at 0.92–1.00 is a scrape — it clears, but can roll into a wipe and an injury.
+      A blocking item holds Advance until you answer it. A count on a tab is what waits inside; the
+      dot on Report is a day report you have not opened. Drops never block: the next Advance takes
+      the default. A phase at 0.92–1.00 is a scrape — it clears, but can roll into a wipe and an
+      injury.
     </p>
   </Modal>
 );

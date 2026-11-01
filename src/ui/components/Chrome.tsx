@@ -142,24 +142,57 @@ export const Nav = () => {
     return 0;
   };
 
+  /**
+   * A count is not a notification until it says what it counts. The tab title
+   * used to print the shortcut in the same parentheses as the badge number, so
+   * `Guild Hall (1)` looked like it explained the 1 and did not.
+   */
+  const badgeHint = (id: string, count: number): string => {
+    if (id === "hall") {
+      return `${count} item${count === 1 ? "" : "s"} need${count === 1 ? "s" : ""} you before Advance`;
+    }
+    if (id === "roster") {
+      const parts = [
+        expiring > 0 ? `${expiring} contract${expiring === 1 ? "" : "s"} expiring` : "",
+        injured > 0 ? `${injured} injur${injured === 1 ? "y" : "ies"}` : "",
+      ].filter(Boolean);
+      return parts.length > 0 ? parts.join(", ") : `${count} roster alert${count === 1 ? "" : "s"}`;
+    }
+    if (id === "war") return "no party planned for tonight";
+    return "";
+  };
+
   return (
     <nav className="nav" aria-label="Screens">
       <div className="nav-inner">
         {TABS.map((tab) => {
           const count = badge(tab.id);
+          const unread = tab.id === "report" && report !== null && report.day !== seenReportDay;
+          const hints = [
+            count > 0 ? badgeHint(tab.id, count) : "",
+            unread ? "a new day report is waiting" : "",
+          ].filter(Boolean);
+          // The open tab's content is already on screen; its count is noise.
+          const showCount = count > 0 && screen !== tab.id;
+          const title = `${tab.label}${hints.length > 0 ? ` — ${hints.join("; ")}` : ""} (press ${tab.key})`;
           return (
             <button
               key={tab.id}
               className="tab"
               data-active={screen === tab.id}
               onClick={() => setScreen(tab.id)}
-              title={`${tab.label} (${tab.key})`}
+              title={title}
+              aria-label={`${tab.label}${hints.length > 0 ? `, ${hints.join(", ")}` : ""}`}
             >
               <span className="tab-label">{tab.label}</span>
               <span className="tab-label-short">{tab.short}</span>
-              {count > 0 ? <span className="tab-badge">{count > 9 ? "9+" : count}</span> : null}
-              {tab.id === "report" && report && report.day !== seenReportDay ? (
-                <span className="tab-badge soft" title="A day report is waiting">
+              {showCount ? (
+                <span className="tab-badge" title={badgeHint(tab.id, count)} aria-hidden="true">
+                  {count > 9 ? "9+" : count}
+                </span>
+              ) : null}
+              {unread ? (
+                <span className="tab-badge soft" title="A day report is waiting" aria-hidden="true">
                   •
                 </span>
               ) : null}

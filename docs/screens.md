@@ -6,7 +6,7 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 >
 > | Screen | State | Where it differs from this spec |
 > |---|---|---|
-> | Global chrome | Built | Gold, day, wages, score, rank, raids; tab badges; Space to advance; `1–5`, `R`, `W`, `Esc`. The advance button is sticky, not fixed to the bottom on mobile. |
+> | Global chrome | Built | Gold, day, wages, score, rank, raids; labelled tab badges (the count hides on the open tab); Space to advance; `1–5`, `R`, `W`, `Esc`. The advance button is sticky, not fixed to the bottom on mobile. |
 > | Guild Hall | Built, compact | Queue-first layout, digest, standings with a link to the raid hub, week strip, contract board, promises, loot, facilities, tavern. The week strip reads the event log, so a routine farm night with no events is blank. |
 > | Roster | Built | Table, six views, class filter, search, sort, group-by-class, status chips, last five events. No bulk selection, column chooser, compare mode or power trend (there is no 7-day history in the sim). |
 > | Hero Sheet | Built | Attributes, all eight role chips with fit multipliers, previewed check contributions, gear, condition, contract, traits, ten-day event strip. Potential is shown as unscouted, not scouted; no portrait and no compare drawer. |
@@ -60,13 +60,13 @@ Dark operations console, not a fantasy illustration. The game is read at a glanc
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ 🛡 Ironbound Order · Renown 3   │ 1,240g │ Day 12/84 │ ⚠ Wage 612/445 │ [ADVANCE DAY ▸] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ GUILD HALL │ ROSTER │ TAVERN │ WAR ROOM ● │ RAID │ GUILD                 │
+│ GUILD HALL ① │ ROSTER │ TAVERN │ WAR ROOM │ RAID │ GUILD                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - Crest → Guild screen. Renown → tooltip explaining what it gates.
 - Gold, Day, Wage always visible: the three resources that matter.
-- `●` on a tab = unresolved attention items inside.
+- A red count on a tab = what waits inside that screen. The count hides on the tab currently open, because its panel is already on screen; the tooltip and accessible name name the thing (`1 item needs you before Advance`, `2 contracts expiring, 1 injury`, `no party planned for tonight`). A soft dot on Report = a day report you have not opened yet.
 - **ADVANCE DAY** is persistent, right-aligned, and shows a live sub-label: `2 items need you` when blocked. Keyboard: `Space`.
 - Global shortcuts: `1–6` tabs, `R` roster, `W` war room, `Space` advance, `Esc` close drawer.
 
