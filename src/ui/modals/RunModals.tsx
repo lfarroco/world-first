@@ -136,8 +136,16 @@ export const HelpModal = ({ onClose }: { onClose: () => void }) => (
             <dd>Average of four gear slots</dd>
           </div>
           <div className="kv">
+            <dt>Check</dt>
+            <dd>A phase test: DPS, Mitigation, Mechanics or Sustain</dd>
+          </div>
+          <div className="kv">
+            <dt>Pull</dt>
+            <dd>One attempt at an area</dd>
+          </div>
+          <div className="kv">
             <dt>Mastery</dt>
-            <dd>+2% per pull, capped at 30%</dd>
+            <dd>Each pull adds 2%, capped at 30%</dd>
           </div>
         </dl>
       </div>
