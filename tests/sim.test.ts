@@ -152,7 +152,7 @@ describe("starting position", () => {
 
   it("has the whole ladder defined, three raids deep", () => {
     expect(RAIDS).toHaveLength(3);
-    expect(CONTENT.filter((c) => c.kind === "dungeon")).toHaveLength(4);
+    expect(CONTENT.filter((c) => c.kind === "dungeon")).toHaveLength(9);
     expect(CONTENT.filter((c) => c.kind === "mission")).toHaveLength(7);
     expect(CONTENT.filter((c) => c.kind === "farm")).toHaveLength(3);
   });
@@ -818,8 +818,8 @@ describe("content availability", () => {
 
   it("names the next door with the same average the gate used", () => {
     const base = newGame(1, "Door");
-    // Twelve level-30 heroes: every dungeon up to the Sunken Temple is
-    // fieldable, the Ashen Spire is not, and the raids behind it are locked.
+    // Twelve level-30 heroes: every area at or below 30 is fieldable, and the
+    // Pale Market (32) is the first that is not.
     const roster = Array.from({ length: 12 }, (_, index) => ({
       ...base.roster[index % base.roster.length]!,
       id: `door-${index}`,
@@ -827,12 +827,12 @@ describe("content availability", () => {
     }));
     const s: GameState = { ...base, roster };
     const door = nextDoor(s);
-    expect(door?.content.id).toBe("ashen-spire");
+    expect(door?.content.id).toBe("pale-market");
     expect(door?.status).toBe("level");
     // The gate carries the numbers the rule used, not a second opinion.
-    expect(door?.gate).toEqual({ average: 30, need: 35, counted: 5 });
+    expect(door?.gate).toEqual({ average: 30, need: 32, counted: 5 });
     expect(door?.reason).toContain("30.0");
-    expect(canField(contentById("ashen-spire")!, s.roster)).toBe(false);
+    expect(canField(contentById("pale-market")!, s.roster)).toBe(false);
     // A raid behind the door is not the next step the guild can take.
     expect(door?.content.kind).toBe("dungeon");
 

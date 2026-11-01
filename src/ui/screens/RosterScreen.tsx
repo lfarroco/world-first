@@ -251,8 +251,7 @@ export const RosterScreen = () => {
         <div>
           <h1 className="screen-title">Roster</h1>
           <p className="screen-sub">
-            The master table. Power is tonight's output; form is condition, sharpness, morale and
-            health multiplied together. Click a hero for the full sheet.
+            Every hero, with tonight's power and condition. Click a hero for the full sheet.
           </p>
         </div>
         <div className="row-wrap small">
@@ -399,8 +398,7 @@ export const RosterScreen = () => {
         </div>
         <div className="footer-note">
           <span>
-            ★ is the standing raid ten. A hero in a party is deployed tonight; everyone else rests and
-            gains fatigue back but loses sharpness.
+            ★ marks the standing raid ten. Deployed heroes fight tonight. The rest recover fatigue and lose sharpness.
           </span>
           <span className="mono">roster cap {rosterCapFor(game.facilities)}</span>
         </div>

@@ -47,37 +47,40 @@ export const nextLevers = (state: GameState, log: EncounterLog): NextLever[] => 
 
   const levers: NextLever[] = [];
   const gap = Math.max(0, failed.requirement - failed.value);
+  // The label names the change; the detail carries the number. A bare `+5
+  // Mitigation` twice in a row is what the player asked about (L111).
   levers.push({
-    label: `+${gap} ${failed.checkLabel}`,
-    detail: `what the failed check was short (${failed.value}/${failed.requirement})`,
+    label: "Shortfall",
+    detail: `the failed check reached ${failed.value}/${failed.requirement} ${failed.checkLabel}`,
     gain: gap,
   });
 
+  const pushPct = Math.round(STANCE.push.check * 100);
   if (log.stance === "push") {
     levers.push({
-      label: "Already on Push",
-      detail: `the ${Math.round(STANCE.push.check * 100)}% check bonus is already in these numbers`,
+      label: "Push stance",
+      detail: `already on Push: the ${pushPct}% bonus is in these numbers`,
       gain: 0,
     });
   } else {
     levers.push({
-      label: `+${Math.round(failed.value * STANCE.push.check)} ${failed.checkLabel}`,
-      detail: `switch stance to Push (+${Math.round(STANCE.push.check * 100)}% checks, +55% injury risk)`,
+      label: "Push stance",
+      detail: `+${Math.round(failed.value * STANCE.push.check)} ${failed.checkLabel}; +${pushPct}% to every check, +55% injury risk`,
       gain: Math.round(failed.value * STANCE.push.check),
     });
   }
 
   levers.push({
-    label: `+${Math.round(failed.value * GEAR_TIER_GAIN)} ${failed.checkLabel}`,
-    detail: "one gear tier from the next dungeon clear",
+    label: "One gear tier",
+    detail: `+${Math.round(failed.value * GEAR_TIER_GAIN)} ${failed.checkLabel} from the next dungeon clear`,
     gain: Math.round(failed.value * GEAR_TIER_GAIN),
   });
 
   const attempts = state.progress.find((p) => p.contentId === log.contentId)?.attempts ?? 0;
   if (attempts > 0) {
     levers.push({
-      label: `mastery ${Math.round(masteryFor(attempts) * 100)}%`,
-      detail: `${attempts} pull${attempts === 1 ? "" : "s"} so far (2% per pull, cap 30%)`,
+      label: `Mastery ${Math.round(masteryFor(attempts) * 100)}%`,
+      detail: `${attempts} pull${attempts === 1 ? "" : "s"} so far; each adds 2%, capped at 30%`,
       gain: 0,
     });
   }

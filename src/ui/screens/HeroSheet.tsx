@@ -257,7 +257,7 @@ export const HeroSheet = ({ heroId, onClose }: { heroId: string; onClose: () => 
                 <button className="btn btn-primary btn-sm" onClick={assignRole}>
                   Assign {roleById(selectedRole).name}
                 </button>
-                <span className="tiny dim">Free and instant; output changes tonight.</span>
+                <span className="tiny dim">Free and instant. Output changes tonight.</span>
               </div>
             ) : null}
           </section>
@@ -275,7 +275,7 @@ export const HeroSheet = ({ heroId, onClose }: { heroId: string; onClose: () => 
               ))}
             </div>
             <div className="tiny dim" style={{ marginTop: 6 }}>
-              There is no bag: a clear's drops wait in the loot queue, and the next advance takes the default.
+              There is no bag. A clear's drops wait in the loot queue; the next advance takes the default.
             </div>
           </section>
 

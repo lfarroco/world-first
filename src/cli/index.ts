@@ -1098,7 +1098,7 @@ const cmdReport = (): void => {
 
   const levers = nextLevers(state, log);
   if (levers.length > 0) {
-    console.log(color(`\nnext levers`, "bold"));
+    console.log(color(`\nwhat to change`, "bold"));
     for (const lever of levers) console.log(`  ${pad(lever.label, 18)}  ${color(lever.detail, "dim")}`);
     if (state.plan.parties.some((p) => p.contentId === log.contentId)) {
       const projection = projectAssignment(state, state.plan.parties.find((p) => p.contentId === log.contentId)!);
@@ -1364,7 +1364,7 @@ ${color("world-first", "bold")} — progression harness
   ${color("clear", "cyan")}                       unassign everyone (they rest)
   ${color("auto", "cyan")}                        let the AI plan today
   ${color("advance", "cyan")} [--days N]           stops when something needs you
-  ${color("report", "cyan")}                      last encounter + levers
+  ${color("report", "cyan")}                      last encounter + what to change
   ${color("attention", "cyan")} · ${color("resolve", "cyan")} <id> <option>
   ${color("ai", "cyan")} [--days N] [--personality steady|reckless|careful]
   ${color("sim", "cyan")} [--runs N] [--personality id]

@@ -25,14 +25,19 @@ Sixteen entries, four kinds. Every band carries more than one job, and the rewar
 | 8 | The Toll House | mission | 9 | 3 | 260g, 40xp, no loot | — |
 | 9 | The Plundered Vault | mission | 14 | 3 | 40g, 60xp, 2 items | — |
 | 10 | Hollow Crypt | dungeon | 10 | 4–5 | 120g, 500xp, 2 items (40–62) | — |
-| 11 | The Wailing Mines | dungeon | 16 | 4–5 | 140g, 300xp, 3 items (44–64) | — |
-| 12 | Sunken Temple | dungeon | 22 | 4–5 | 180g, 900xp, 2 items (78–108) | Hollow Crypt |
-| 13 | Ashen Spire | dungeon | 35 | 4–5 | 360g, 3000xp, 3 items (115–148) | Sunken Temple |
-| 14 | Obsidian Citadel — Gatewarden | raid | 28 | 10 | 900g, 3000xp, 4 items (148–172) | Ashen Spire |
-| 15 | Obsidian Citadel — Twin Covens | raid | 40 | 10 | 1200g, 3000xp, 4 items (182–205) | Gatewarden |
-| 16 | Obsidian Citadel — The Tyrant | raid | 52 | 10 | 1800g, 4000xp, 5 items (220–250) | Twin Covens |
+| 11 | The Sallow Reach | dungeon | 13 | 4–5 | 110g, 640xp, 2 items (44–64) | — |
+| 12 | The Wailing Mines | dungeon | 16 | 4–5 | 140g, 300xp, 3 items (44–64) | — |
+| 13 | The Ragged Chapel | dungeon | 19 | 4–5 | 190g, 380xp, 2 items (56–78) | — |
+| 14 | Sunken Temple | dungeon | 22 | 4–5 | 180g, 900xp, 2 items (78–108) | Hollow Crypt |
+| 15 | The Ember Kilns | dungeon | 25 | 4–5 | 220g, 1100xp, 2 items (80–108) | — |
+| 16 | The Iron Tide | dungeon | 29 | 4–5 | 180g, 500xp, 3 items (86–116) | — |
+| 17 | The Pale Market | dungeon | 32 | 4–5 | 280g, 1500xp, 2 items (94–124) | — |
+| 18 | Ashen Spire | dungeon | 35 | 4–5 | 360g, 3000xp, 3 items (115–148) | Sunken Temple |
+| 19 | Obsidian Citadel — Gatewarden | raid | 28 | 10 | 900g, 3000xp, 4 items (148–172) | Ashen Spire |
+| 20 | Obsidian Citadel — Twin Covens | raid | 40 | 10 | 1200g, 3000xp, 4 items (182–205) | Gatewarden |
+| 21 | Obsidian Citadel — The Tyrant | raid | 52 | 10 | 1800g, 4000xp, 5 items (220–250) | Twin Covens |
 
-The Wailing Mines is the one dungeon that does **not** hand over a free recruit on its first clear (`firstClearRecruit: false`). It is a gear option, not a fourth step that funds the raid roster. The other three dungeons keep the 55% recruit.
+Six of the nine dungeons are side runs and do **not** hand over a free recruit on their first clear (`firstClearRecruit: false`): The Wailing Mines, The Sallow Reach, The Ragged Chapel, The Ember Kilns, The Iron Tide and The Pale Market. They are gear and XP options, not steps that fund the raid roster. The three ladder dungeons (Hollow Crypt, Sunken Temple, Ashen Spire) keep the 55% recruit, which is what builds the ten.
 
 ### 1.1 The content pass (2026-10-30)
 
@@ -43,7 +48,7 @@ Four comments from a hand-played run drove this pass:
 3. Give more options, and make each one meaningful: more gold, more XP, more loot.
 4. Let the player inspect an area: mobs, items, chances.
 
-**Availability is three gates.** A content is open when its prerequisites are cleared, the roster has `minHeroes` heroes, and those heroes can meet the average level gate. `availableContent` hides the rest; the `content` screen prints a count ("13 areas not open yet") and never a name. Opening one emits a single `unlock` event and records it in `knownContent`, so a roster that shrinks and grows again does not re-announce the same place. A save written before the ledger existed initialises silently.
+**Availability is three gates.** A content is open when its prerequisites are cleared, the roster has `minHeroes` heroes, and those heroes can meet the average level gate. `availableContent` hides the rest; the UI names only the next door, with its gap ([learnings.md](learnings.md) L108), and the CLI `content` screen prints a bare count. Opening one emits a single `unlock` event and records it in `knownContent`, so a roster that shrinks and grows again does not re-announce the same place. A save written before the ledger existed initialises silently.
 
 **The options trade one reward for another.** The first build gave every new option gold, XP and loot. That was additive income, not a choice: the Steward moved 23,251 → 28,313, raids 2.70 → 3.00, World First 2/10 → 6/10, and the ladder stopped stalling. The shipped numbers specialise. The Drowned Mill is the XP run (260 XP, 30g, no loot). The Toll House is the gold run (260g, 40 XP, no loot). The Plundered Vault and The Wailing Mines are the loot runs (2 and 3 items, little gold or XP). Measured on the standard sweep:
 
@@ -71,7 +76,41 @@ The last two rows have the same player numbers because the old rival pace only m
 - **XP** from every activity (`xpToNext(L) = 40 + 16L`, cap 60). Farm gives 6–22, missions 40–200, dungeons 300–3000, raids 3000–4000.
 - **Gear** from loot, queued as drops and assigned to a hero (the player's choice, or the need suggestion; §3.6). The default is the largest actual slot upgrade, with a bias for the standing raid ten. A clear pays its listed item count; a named drop replaces one of those items rather than adding one.
 - **Recruits** arrive at ~68% of your best hero's level, so a guild of veterans attracts experienced adventurers. This is the mechanism that makes a 10-man raid reachable inside 84 days.
-- **Free recruits** join after your first clear of each of the three ladder dungeons at **55% of your best hero's level**. The side dungeon does not. Three free heroes is enough that a careful player reaches ten for the first raid without buying the whole roster. The first implementation passed `0.55 × best` into a function that multiplied by a recruit factor again, so they arrived at ~34%; fixed in §3.1.
+- **Free recruits** join after your first clear of each of the three ladder dungeons at **55% of your best hero's level**. The six side dungeons do not. Three free heroes is enough that a careful player reaches ten for the first raid without buying the whole roster. The first implementation passed `0.55 × best` into a function that multiplied by a recruit factor again, so they arrived at ~34%; fixed in §3.1.
+
+---
+
+### 1.3 The dungeon spacing pass (2026-11-01)
+
+**Why.** The first 70-day human run ([learnings.md](learnings.md) L108) showed the gap: the player's top five averaged 15.0 on day 40, and the next dungeon after the Sunken Temple (22) was the Ashen Spire (35). That is thirteen levels and about thirty days of play with no new dungeon, and the run never saw a raid. The ladder had one new dungeon every six levels at the bottom and one in thirteen at the top.
+
+**The rule.** A new dungeon every 3–4 levels from 10 to 35, the band a player actually walks. Nine dungeons now: **10, 13, 16, 19, 22, 25, 29, 32, 35**. The five new ones are side content (`requires: []`, `firstClearRecruit: false`), so they add choices without widening the ladder's prerequisite chain.
+
+**The numbers came from measurement, not intuition.** For each new dungeon, the script ran the Steward planner until the roster could first field the content (8 seeds), then read the check value of the party it would field that day. The requirement is the median of those values, which puts the first legal party at a ratio of 1.00 — the same band the shipped dungeons sit in (0.73–1.24). On that measurement a real party at level 32 carries iLvl 62, not the 112 the `recommendedIlvl` column suggests; the first draft set requirements from a full-gear template and the Pale Market projected 31% for a player standing two levels above its gate.
+
+| Dungeon | Lvl | rec iLvl | First legal day | Party iLvl | Phase | Requirement | Ratio |
+|---|---|---|---|---|---|---|---|
+| The Sallow Reach | 13 | 47 | 23 | 25 | mechanics | 71 | 1.00 |
+| | | | | | sustain | 43 | 1.00 |
+| The Ragged Chapel | 19 | 67 | 31 | 36 | mitigation | 48 | 1.05 |
+| | | | | | dps | 77 | 0.73 |
+| The Ember Kilns | 25 | 92 | 39 | 41 | dps | 83 | 1.02 |
+| | | | | | sustain | 46 | 1.12 |
+| The Iron Tide | 29 | 104 | 42 | 57 | mechanics | 130 | 1.11 |
+| | | | | | dps | 115 | 0.93 |
+| The Pale Market | 32 | 112 | 45 | 62 | mitigation | 88 | 1.09 |
+| | | | | | sustain | 87 | 1.16 |
+
+**Measured effect (20 seeds per personality, `sim --runs 20`):**
+
+| Build | Steward | Gambler | Quartermaster | Raids (S/G/Q) | World First (S/G/Q) | Avg rank (S/G/Q) |
+|---|---|---|---|---|---|---|
+| Before (4 dungeons) | 25,238 | 21,208 | 26,302 | 2.80 / 2.45 / 2.90 | 10 / 5 / 9 | 1.80 / 2.55 / 1.85 |
+| After (9 dungeons) | 28,439 | 24,136 | 27,413 | 2.95 / 2.60 / 2.85 | 6 / 2 / 3 | 2.45 / 3.35 / 2.90 |
+
+Every personality clears 9.00 dungeons. Scores rise 4–14% and raids hold or rise by 0.15, but the **race** moved against the player: World Firsts fell from 10/5/9 to 6/2/3 of 20 and average rank from 1.80/2.55/1.85 to 2.45/3.35/2.90. The plausible cause is that the side dungeons are full-pay and the planners that price gear and XP take them, while the rivals' lines push raids; more optional content taxes focus. That is a second dial and it is not tuned here: the next pass should decide between dungeon pay and rival pace, on its own 20-seed sweep.
+
+**Rejected:** moving the Ashen Spire down to 30 (it is the last dungeon before raiding and its requirements were measured at 35; moving it invalidates the three phase numbers), adding dungeons past 35 (the raid band is the endgame, not more five-mans), and a full re-space to one dungeon every 3 levels from 10 to 60 (fifteen dungeons; the player never reached the top half of that range, and every one needs its own measurement).
 
 ---
 
@@ -462,6 +501,8 @@ The control reproduces the pre-change baseline exactly, so no other system moved
 The probe is within noise of the control on score (−1.1%) and raids (0.00). The visible loss is World First: 7/30 → 5/30. A world with threats but no counters loses 6% of score and 0.13 raids, so having counters in the roster recovers most of the penalty.
 
 ### 6.2 How often a threat decides
+
+> **Measured before the 2026-11-01 dungeon pass.** The five new dungeons are not in this table; their first-legal-day ratios are in §1.3.
 
 The bot does not over-farm before attempting. On the standard Steward sweep (10 seeds), its first attempt on each content lands at a median 0.80–1.38 of the requirement. The raids are attempted below 1.0; the side jobs are cleared well above it. The bot trains on the wall and farms the side content.
 

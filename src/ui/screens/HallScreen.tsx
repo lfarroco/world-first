@@ -149,7 +149,7 @@ const Yesterday = () => {
         ) : null}
         {shown.length === 0 ? (
           <div className="empty" style={{ padding: "12px 0" }}>
-            Nothing was logged. A quiet farm or a rest day is a real day.
+            Nothing happened this day.
           </div>
         ) : (
           shown.map((event) => <EventLine key={event.id} event={event} />)
@@ -248,7 +248,7 @@ const WeekPanel = () => {
           ))}
         </div>
         <div className="tiny dim" style={{ marginTop: 6 }}>
-          A filled mark means the log recorded something; a blank day was quiet, not broken.
+          Filled means something happened that day. Blank means it did not.
         </div>
       </div>
     </section>
@@ -267,7 +267,7 @@ const Contracts = () => {
       </div>
       <div className="panel-body">
         {info.contracts.length === 0 ? (
-          <div className="small dim">No open mission is fieldable today. Farms and first clears are always full pay.</div>
+          <div className="small dim">No open mission can be fielded today. Farms and first clears pay full.</div>
         ) : (
           <div className="stack" style={{ gap: 5 }}>
             {info.contracts.map((contract) => (
@@ -279,7 +279,7 @@ const Contracts = () => {
           </div>
         )}
         <div className="tiny dim" style={{ marginTop: 8 }}>
-          First clears are never taxed. A posted contract cannot fund a raid by itself.
+          First clears pay full. Every other repeat of a mission pays 25%.
         </div>
       </div>
     </section>
@@ -345,7 +345,7 @@ const LootPanel = () => {
           </button>
         </div>
         <div className="tiny dim" style={{ marginTop: 6 }}>
-          Non-blocking. The next advance takes the default.
+          The next advance takes the default.
         </div>
       </div>
     </section>

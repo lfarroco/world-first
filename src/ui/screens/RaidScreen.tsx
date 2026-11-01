@@ -213,7 +213,7 @@ const PullLog = ({ game, raid }: { game: GameState; raid: ContentDef }) => {
         <div className="empty" style={{ padding: "14px 12px" }}>
           {attempts > 0
             ? `${attempts} earlier pull${attempts === 1 ? "" : "s"} are older than the last ${RAID_LOG.maxNights} raid nights. The next raid night adds a row.`
-            : "No raid night is logged for this boss. The War Room sets the party; the log starts with the first pull."}
+            : "No raid night for this boss yet. Set a party in the War Room to start the log."}
         </div>
       ) : (
         <div className="pull-log">
@@ -268,8 +268,7 @@ const PullLog = ({ game, raid }: { game: GameState; raid: ContentDef }) => {
         <div className="panel-body" style={{ borderTop: "1px solid var(--color-line-soft)" }}>
           <div className="spread">
             <span className="tiny dim">
-              The full analysis of the last night — every phase, the threat, the next lever — is on
-              the report.
+              The report lists each phase, the threat and what would close the gap.
             </span>
             <button className="btn btn-sm" onClick={() => setScreen("report")}>
               Open the report
@@ -299,7 +298,7 @@ const WallPanel = ({ game, raid }: { game: GameState; raid: ContentDef }) => {
   return (
     <section className="panel">
       <div className="panel-head">
-        <span className="eyebrow">The wall</span>
+        <span className="eyebrow">Your record on it</span>
         <span className="tiny dim">{shortName(raid)}</span>
       </div>
       <div className="panel-body stack" style={{ gap: 9 }}>
@@ -319,7 +318,7 @@ const WallPanel = ({ game, raid }: { game: GameState; raid: ContentDef }) => {
         </div>
         {team.length === 0 ? (
           <p className="tiny dim">
-            No raid ten yet — the planner builds one when the first raid opens.
+            No raid ten yet. The planner builds one when a raid opens.
           </p>
         ) : (
           <div>
@@ -403,9 +402,7 @@ export const RaidScreen = () => {
         <div>
           <h1 className="screen-title">{tierName()}</h1>
           <p className="screen-sub">
-            The race up the tier. The standings are scored every day by the same formula as the
-            verdict; the pull log is every raid night this guild has fought, so a stall is a
-            record and not a feeling.
+            The race to three bosses. Standings use the same score as the run end. Every raid night is logged below.
           </p>
         </div>
         <div className="row-wrap small">

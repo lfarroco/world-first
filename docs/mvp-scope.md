@@ -28,7 +28,7 @@ If those three are fun with no art, the game is real. Everything else is amplifi
 |---|---|
 | Heroes | **8 attributes** · 8 roles · 4 classes · 5 hidden attributes · level 1–60 · XP curve · gear (4 slots, iLvl) |
 | Party | Up to **3 parties**, any mix of farm / mission / dungeon / raid · 3 stances |
-| Combat | 17 content entries (3 farms, 7 missions, 4 dungeons, 3 raids) · 1–3 phases each · 4 check types · mastery · consistency rolls · fatigue/sharpness/morale · bestiary and named drops |
+| Combat | 22 content entries (3 farms, 7 missions, 9 dungeons, 3 raids) · 1–3 phases each · 4 check types · mastery · consistency rolls · fatigue/sharpness/morale · bestiary and named drops |
 | Content gate | **Only fieldable content is listed** — prerequisite clears, roster size and party average level · one `unlock` event per area · `inspect <id>` shows phases, mobs, drops and per-clear chances |
 | Day loop | 9-stage pipeline · digest · **attention queue (max 3 blocking)** · Advance Day |
 | Progression | level gates + prerequisite clears · locked content hidden · free recruits on the three ladder dungeons (55% of your best; side dungeon excluded) · tavern recruits ≈ 62–80% of your best |

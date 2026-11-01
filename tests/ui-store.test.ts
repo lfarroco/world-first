@@ -295,8 +295,10 @@ describe("the report helpers used by the UI and the CLI", () => {
     expect(focusPull(wipeLog!)?.killed).toBe(false);
     const levers = nextLevers(wiped, wipeLog!);
     expect(levers.length).toBeGreaterThanOrEqual(3);
-    expect(levers[0]?.label).toContain("DPS");
-    expect(levers.some((lever) => lever.detail.includes("Push"))).toBe(true);
+    // The label names the change; the detail carries the check and the number.
+    expect(levers[0]?.label).toBe("Shortfall");
+    expect(levers[0]?.detail).toContain("DPS");
+    expect(levers.some((lever) => lever.label === "Push stance")).toBe(true);
   });
 });
 
@@ -339,11 +341,11 @@ describe("the next door readout", () => {
     }));
     const state: GameState = { ...base, roster };
     const info = nextDoorInfo(state)!;
-    expect(info.content.id).toBe("ashen-spire");
-    expect(info.shortName).toBe("Ashen Spire");
+    expect(info.content.id).toBe("pale-market");
+    expect(info.shortName).toBe("The Pale Market");
     expect(info.kindLine).toBe("Dungeon · 4–5 heroes");
-    expect(info.gateLine).toBe("avg lvl 30.0 / 35 over your best 5 — 5.0 short");
-    expect(info.gap).toBe(5);
+    expect(info.gateLine).toBe("avg lvl 30.0 / 32 over your best 5 — 2.0 short");
+    expect(info.gap).toBe(2);
     // The count in the drawer footer and the panel come from one list.
     expect(info.closed).toBe(unavailableContent(state).length);
   });

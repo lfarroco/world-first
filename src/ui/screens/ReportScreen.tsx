@@ -104,10 +104,12 @@ const EncounterReport = ({ game, encounter }: { game: GameState; encounter: Enco
       {levers.length > 0 ? (
         <div className="panel-body" style={{ borderTop: "1px solid var(--color-line-soft)" }}>
           <div className="eyebrow" style={{ marginBottom: 4 }}>
-            Next levers
+            What would close the gap
           </div>
-          {levers.map((lever) => (
-            <div className="lever" key={lever.label}>
+          {levers.map((lever, index) => (
+            // Two lines can carry the same label (the shortfall and a stance
+            // bonus round to the same check), so the label is not a key.
+            <div className="lever" key={`${lever.label}-${index}`}>
               <span className={`lever-value ${lever.gain > 0 ? "good" : "dim"}`}>{lever.label}</span>
               <span className="lever-detail">{lever.detail}</span>
             </div>
@@ -116,7 +118,7 @@ const EncounterReport = ({ game, encounter }: { game: GameState; encounter: Enco
             <button className="btn btn-primary btn-sm" onClick={() => setScreen("war")}>
               Go to War Room
             </button>
-            <span className="tiny dim">The failed check names the lever; the party card shows the new projection.</span>
+            <span className="tiny dim">The failed check shows what to change. The party card shows the new projection.</span>
           </div>
         </div>
       ) : null}
@@ -322,7 +324,7 @@ export const ReportScreen = () => {
           <p className="screen-sub">
             {game.finished
               ? "The verdict, the components, and the moments that made the run. The next run can use the same seed."
-              : "The digest, the pull that decided the night, and the next lever with numbers. A wipe names the check that failed; the projection names what a change buys."}
+              : "The digest, the pull that decided the night, and what would close the gap. A wipe names the failed check."}
           </p>
         </div>
         <div className="row-wrap small">
@@ -350,7 +352,7 @@ export const ReportScreen = () => {
               {!report ? (
                 <div className="empty">Advance the day to produce a report.</div>
               ) : report.events.length === 0 ? (
-                <div className="empty">Nothing was logged. A quiet day is still a day.</div>
+                <div className="empty">Nothing happened this day.</div>
               ) : (
                 report.events.map((event) => <EventLine key={event.id} event={event} />)
               )}
@@ -359,7 +361,7 @@ export const ReportScreen = () => {
 
           {encounter ? <EncounterReport game={game} encounter={encounter} /> : (
             <section className="panel">
-              <div className="empty">No encounter on this day. The digest is the whole report.</div>
+              <div className="empty">No fight this day. The digest is all there is.</div>
             </section>
           )}
         </div>
@@ -395,8 +397,7 @@ export const ReportScreen = () => {
                   Back to the hall
                 </button>
                 <div className="tiny dim">
-                  The next lever is a party change, a stance, or a gear tier. The report shows the number
-                  each one is worth on the failed check.
+                  Each line shows what that change would add to the failed check.
                 </div>
               </div>
             </section>

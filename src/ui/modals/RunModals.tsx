@@ -66,8 +66,7 @@ export const NewRunModal = ({ onClose }: { onClose: () => void }) => {
           </div>
         </div>
         <p className="small muted">
-          The seed fixes the roster, the rivals, the tavern and every roll. Play it again to test a
-          different plan against the same world.
+          The seed fixes the roster, the rivals, the tavern and every roll. Replay it to test another plan against the same world.
         </p>
       </div>
     </Modal>
@@ -77,7 +76,7 @@ export const NewRunModal = ({ onClose }: { onClose: () => void }) => {
 export const HelpModal = ({ onClose }: { onClose: () => void }) => (
   <Modal
     title="Shortcuts and numbers"
-    subtitle="Every number on screen comes from the simulation; none is recomputed by the UI."
+    subtitle="Every number comes from the simulation."
     onClose={onClose}
     footer={
       <button className="btn btn-primary" onClick={onClose}>
@@ -145,10 +144,7 @@ export const HelpModal = ({ onClose }: { onClose: () => void }) => (
     </div>
     <hr className="sep" />
     <p className="small muted">
-      A blocking item holds Advance until you answer it. A count on a tab is what waits inside; the
-      dot on Report is a day report you have not opened. Drops never block: the next Advance takes
-      the default. A phase at 0.92–1.00 is a scrape — it clears, but can roll into a wipe and an
-      injury.
+      A blocking item holds Advance until you answer it. The count on a tab is what waits inside it. The Report dot means an unopened day report. Drops never block: the next Advance takes the default. A phase ratio of 0.92–1.00 can clear or wipe, and a wipe can injure a hero.
     </p>
   </Modal>
 );

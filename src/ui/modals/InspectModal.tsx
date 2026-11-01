@@ -36,7 +36,7 @@ export const InspectModal = ({ contentId, onClose }: { contentId: string; onClos
       wide
       footer={
         <>
-          <span className="tiny dim grow">Read-only. Nothing is committed until the party is sent.</span>
+          <span className="tiny dim grow">Read-only. Nothing changes until you advance the day.</span>
           <button
             className="btn"
             onClick={() => {
@@ -144,8 +144,8 @@ export const InspectModal = ({ contentId, onClose }: { contentId: string; onClos
           {content.drops.length === 0 ? (
             <div className="small dim">
               {content.kind === "farm"
-                ? "None — farms pay in gold and practice."
-                : "None — this is a contract, not a treasure room."}
+                ? "None. Farms pay gold and XP."
+                : "None. A contract pays gold and XP."}
             </div>
           ) : (
             <div className="table-wrap">
@@ -205,8 +205,7 @@ export const InspectModal = ({ contentId, onClose }: { contentId: string; onClos
                 ))}
               </div>
               <div className="tiny dim" style={{ marginTop: 5 }}>
-                Steady stance, best legal party from the roster. The War Room shows the party you actually
-                plan to send.
+                Steady stance and the best legal party. The War Room shows the party you plan to send.
               </div>
             </>
           )}

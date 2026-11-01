@@ -25,9 +25,7 @@ export const TitleScreen = () => {
           Eighty-four days.
         </h1>
         <p className="title-lead">
-          You never fight. You decide who raids, who sits, who gets the drop, and whether tonight is
-          progress or farm. The boss fight audits those decisions. Three rival guilds walk the same
-          ladder on the same clock.
+          You never fight. You choose who raids, who sits, who gets a drop, and whether tonight is progress or farm. The fight tests those choices. Three rival guilds run the same ladder at the same pace.
         </p>
         <div className="title-form">
           <div className="field">
@@ -72,7 +70,7 @@ export const TitleScreen = () => {
           </div>
         </div>
         <div className="footer-note">
-          <span>Same seed and same actions produce the same run. Saves live in this browser.</span>
+          <span>The same seed and the same actions replay the same run. The save lives in this browser.</span>
           <span className="mono">seed {seed || "—"}</span>
         </div>
       </div>

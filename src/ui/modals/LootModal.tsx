@@ -52,7 +52,7 @@ export const LootModal = ({ onClose }: { onClose: () => void }) => {
   return (
     <Modal
       title="Assign the drops"
-      subtitle="A clear queues untargeted drops. The suggestion is need plus a small raid-ten bias; a bench hero with a much larger gain still wins."
+      subtitle="A clear queues untargeted drops. The suggestion favours need and the raid ten, but a bench hero with a much larger gain still wins."
       onClose={onClose}
       wide
       footer={
@@ -79,8 +79,7 @@ export const LootModal = ({ onClose }: { onClose: () => void }) => {
             <DropRow key={drop.id} drop={drop} />
           ))}
           <div className="tiny dim" style={{ marginTop: 8 }}>
-            The suggested hero is recomputed per drop, so two same-slot drops can both find a home. A drop
-            with no positive gain is discarded at queue time or by Auto.
+            The suggestion is worked out again for each drop, so two drops for the same slot can go to two heroes. A drop with no gain is discarded.
           </div>
         </div>
       )}

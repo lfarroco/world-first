@@ -11,7 +11,7 @@ Last updated: 2026-11-01. Update this file when a phase ships or the order chang
 | Piece | State |
 |---|---|
 | Simulation core | Done — deterministic, 153 tests, `resolveDay` clones its input |
-| Progression ladder | Done — 3 heroes → 3 farms, 7 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
+| Progression ladder | Done — 3 heroes → 3 farms, 7 missions, 9 dungeons, 3 raids over 84 days, one new dungeon every 3–4 levels. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities; prices the purse, the next wall's level gate and the gear gap |
 | Rivals | Done — three full guilds run the same planner and the same `resolveDay`. Each has a roster, gold, facilities and a score; the leaderboard has a real rank |
@@ -22,7 +22,7 @@ Last updated: 2026-11-01. Update this file when a phase ships or the order chang
 | Loot assignment & raid ten | Done — a clear queues drops; the player assigns any hero or takes the need suggestion, the AI keeps the old lowest-party pick (42/60 full clears). The standing ten is built at the first raid; day-40 team iLvl is 46–55 against the 65 target |
 | Role review | Done — the reviewer only re-specs a party below 1.0, caps at two flips, and stops at 1.0; the `role` command prints the four check deltas. The 1.30 affinity widening was measured and rejected (ladder volatility); the 1.15 table stays |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
-| Balance | Provisional — 20 seeds on the current build (bridge + contracts): Steward 25,238, Quartermaster 26,302, Gambler 21,208; full clears 16/18/10 = 44/60. The earlier pre-bridge control on the same harness was 15/17/9 = 41/60. The conservative AI is 44/60; the player's need pick is 52/60; day-40 team iLvl is 46–55 against the 65 target (§3.6–§3.8) |
+| Balance | Provisional — 20 seeds on the nine-dungeon build: Steward 28,439, Quartermaster 27,413, Gambler 24,136; raids 2.95 / 2.85 / 2.60; all nine dungeons cleared. The 20-seed control before the spacing pass was 25,238 / 26,302 / 21,208 at 2.80 / 2.90 / 2.45. The race moved against the player in the same pass (World First 10/5/9 → 6/2/3 of 20); that is the open dial ([progression-report.md](progression-report.md) §1.3). Day-40 team iLvl is 46–55 against the 65 target (§3.6–§3.8) |
 | UI | **Vertical slice shipped** — Guild Hall, Roster + Hero Sheet, War Room with live projection, Raid hub with the per-boss pull log, Report + Run End, attention queue, loot, tavern, facilities. No drag-and-drop, scouting fog or wage negotiation. Bundle 418 kB raw / 124 kB gzip; 153 tests; `npm run dev` |
 | Raid hub | Done — the three-boss ladder with lock reasons, the four-guild race with live rival activity and per-boss best, and a bounded per-pull log of the guild's raid nights (failed check, shortfall, stance). Rivals carry no log; the player's is 4 kB at day 85 |
 | Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
@@ -109,6 +109,8 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 **Kill criterion:** if the wipe report in the UI does not make a player say "ah — swap the rogue", the model is wrong, not the screen. **Partially tested:** the wipe report named the failing check in every failed pull; the endgame was invisible (L108).
 
 ### Phase 4 — The missing levers
+
+A lever is a change that moves a check: a stance, a party, a gear tier or a role. The UI calls them "what would close the gap"; the docs keep the short word.
 
 - **Role assignment** — shipped as the reviewer gate and the check readout. The 1.30 affinity widening was measured and rejected: it moved the ladder 17–22/30 and the Steward 10/20–20/20 (§6.4). The 1.15 table stays; the role lever is a short-content tool (5–13% of a check on a 3-hero mission). A party-level mechanic is the next lever if roles must decide raids.
 - **A new three-hero activity with a non-mechanics check** — shipped as **The Broken Bridge** (level 18, mitigation 36, 220g). Twenty seeds: Steward 16/20, Quartermaster 19/20, Gambler 9/20, no 20/20. The gold curve (160–220g) and requirement 40 were measured and did not move the Quartermaster; the extra full-pay night did. Table in [progression-report.md](progression-report.md) §3.7.

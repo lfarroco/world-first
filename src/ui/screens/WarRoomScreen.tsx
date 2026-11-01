@@ -121,7 +121,7 @@ const ContentPicker = ({
   return (
     <Dialog
       title="Choose a target"
-      subtitle="Only areas the guild can field are listed. Projected is the best legal party's best pull."
+      subtitle="Only areas the guild can field. Projected is the best legal party's best pull."
       onClose={onClose}
       wide
       footer={
@@ -317,12 +317,12 @@ const HeroPicker = ({
         <p className="tiny warn" style={{ marginBottom: 8 }}>
           {party.heroes.length > content.maxHeroes
             ? `This party is ${party.heroes.length}/${content.maxHeroes} — above the hero limit. Remove ${party.heroes.length - content.maxHeroes} before the day can advance.`
-            : `This party has ${party.heroes.length}/${content.maxHeroes} heroes. Adding one puts it above the hero limit; the day cannot advance until you remove one.`}
+            : `This party has ${party.heroes.length}/${content.maxHeroes} heroes. Adding one puts it above the hero limit. Remove one before the day can advance.`}
         </p>
       ) : null}
       <div className="hero-picker">
         {filtered.length === 0 ? (
-          <div className="empty">No free hero. An injured or resting hero does not appear until he can fight.</div>
+          <div className="empty">No free hero. Injured and resting heroes appear once they can fight.</div>
         ) : (
           filtered.map((hero) => {
             const already = current.has(hero.id);
@@ -377,7 +377,7 @@ const TeamPicker = ({ onClose }: { onClose: () => void }) => {
   return (
     <Dialog
       title="Set the raid ten"
-      subtitle="The team is a preference, not a lock. Injuries are filled from the bench for one night."
+      subtitle="Injuries are filled from the bench for one night. The team itself does not change."
       onClose={onClose}
       wide
       footer={
@@ -802,14 +802,13 @@ const ProjectionStrip = () => {
               </span>
             </div>
             <div className="tiny dim" style={{ marginTop: 2 }}>
-              A failed check banks its ratio toward the best pull. 0.92–1.00 is a scrape: it clears,
-              but can roll into a wipe.
+              A failed check still adds its ratio to the best pull. A ratio of 0.92–1.00 can clear or wipe.
             </div>
           </div>
         </>
       ) : (
         <div className="panel-body small muted">
-          The party has no check to project. Add heroes, or pick a target.
+          No check to project. Add heroes or pick a target.
         </div>
       )}
       <div className="panel-body" style={{ borderTop: "1px solid var(--color-line-soft)" }}>
@@ -843,7 +842,7 @@ const ProjectionStrip = () => {
               Rest the whole guild
             </ConfirmButton>
             <div className="tiny dim" style={{ marginTop: 3, textAlign: "center" }}>
-              Removes every party tonight. Fatigue recovers; sharpness drops.
+              Removes every party tonight. Heroes recover fatigue and lose sharpness.
             </div>
           </div>
         ) : null}
@@ -874,7 +873,7 @@ const BoardPanel = () => {
           ))
         )}
         <div className="tiny dim">
-          A planned token repeat says so on the party card. First clears are always full.
+          A token repeat is marked on the party card. First clears pay full.
         </div>
       </div>
     </section>
@@ -897,7 +896,7 @@ const NextDoorPanel = () => {
         <span className="tiny dim">{door.kindLine}</span>
         <span className={`tiny ${door.gap !== null ? "warn" : "dim"}`}>{door.gateLine}</span>
         <span className="tiny dim">
-          Not selectable until the guild can field it. The target list hides it until then.
+          Not in the target list until the guild can field it.
         </span>
       </div>
     </section>
@@ -922,7 +921,7 @@ const TeamPanel = ({ onOpen }: { onOpen: () => void }) => {
       </div>
       <div className="panel-body stack" style={{ gap: 7 }}>
         {team.length === 0 ? (
-          <span className="small dim">No standing ten yet. It is built at the first open raid; the planner prefers it and loot defaults to it.</span>
+          <span className="small dim">No standing ten yet. The planner builds it when a raid opens, and loot defaults to it.</span>
         ) : (
           <div className="team-strip">
             {team.map((hero) => (
@@ -1009,7 +1008,7 @@ const LootStrip = ({ onOpen }: { onOpen: () => void }) => {
           </button>
         </div>
         <div className="tiny dim" style={{ marginTop: 4 }}>
-          Non-blocking. Your pick; the next advance takes the default.
+          Your pick. The next advance takes the default.
         </div>
       </div>
     </section>
@@ -1050,8 +1049,7 @@ export const WarRoomScreen = () => {
         <div>
           <h1 className="screen-title">War Room</h1>
           <p className="screen-sub">
-            The decision of the day. Pick a target each party can field, set the stance, watch the checks
-            move. The projection is the same function the resolution uses.
+            Pick a target for each party, set a stance, and read the projection. It runs the same checks as the night.
           </p>
         </div>
         <div className="row-wrap small">

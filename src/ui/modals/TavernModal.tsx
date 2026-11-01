@@ -50,7 +50,7 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
               <Chip>iLvl {itemLevel(hero.gear)}</Chip>
               <Chip>wage {hero.contract.wage}g/wk</Chip>
               <Chip tone="warn">fee {candidate.fee}g</Chip>
-              <Chip title="Scouting is not built; potential is hidden">potential ████</Chip>
+              <Chip title="Scouting is not built. Potential stays hidden.">potential ████</Chip>
             </div>
           </div>
         </div>
@@ -92,7 +92,7 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
         </div>
       ) : null}
       <div className="tiny dim" style={{ marginTop: 6 }}>
-        {hero.traits.map((id) => traitById(id).text).join(" ") || "No traits."} Attributes and traits are known; potential is not scouted.
+        {hero.traits.map((id) => traitById(id).text).join(" ") || "No traits."} Attributes and traits are known. Potential is not scouted.
       </div>
     </div>
   );
@@ -128,8 +128,7 @@ export const TavernModal = ({ onClose }: { onClose: () => void }) => {
       )}
       <hr className="sep" />
       <div className="small muted">
-        A signing is immediate and costs the fee. Wage, length and squad status are fixed by the
-        candidate; the contract is paid every seventh day.
+        A signing is immediate and costs the fee. Wage, length and squad status are fixed. Wages are paid every seventh day.
       </div>
     </Modal>
   );
