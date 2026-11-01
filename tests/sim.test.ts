@@ -44,9 +44,12 @@ import {
   availableContent,
   unavailableContent,
   contentAvailability,
+  nextDoor,
+  canField,
   announceUnlocks,
   rollNamedDrop,
   validatePlan,
+  partySizeProblems,
   advanceDays,
   advanceDay,
   RIVAL,
@@ -813,6 +816,38 @@ describe("content availability", () => {
     expect(contentAvailability(s, contentById("old-quarry")!).status).toBe("new");
   });
 
+  it("names the next door with the same average the gate used", () => {
+    const base = newGame(1, "Door");
+    // Twelve level-30 heroes: every dungeon up to the Sunken Temple is
+    // fieldable, the Ashen Spire is not, and the raids behind it are locked.
+    const roster = Array.from({ length: 12 }, (_, index) => ({
+      ...base.roster[index % base.roster.length]!,
+      id: `door-${index}`,
+      level: 30,
+    }));
+    const s: GameState = { ...base, roster };
+    const door = nextDoor(s);
+    expect(door?.content.id).toBe("ashen-spire");
+    expect(door?.status).toBe("level");
+    // The gate carries the numbers the rule used, not a second opinion.
+    expect(door?.gate).toEqual({ average: 30, need: 35, counted: 5 });
+    expect(door?.reason).toContain("30.0");
+    expect(canField(contentById("ashen-spire")!, s.roster)).toBe(false);
+    // A raid behind the door is not the next step the guild can take.
+    expect(door?.content.kind).toBe("dungeon");
+
+    const capped: GameState = { ...s, roster: s.roster.map((h) => ({ ...h, level: 60 })) };
+    expect(nextDoor(capped)).toBeNull();
+  });
+
+  it("names a roster gate when the area needs more bodies", () => {
+    const base = newGame(1, "Door");
+    const s: GameState = { ...base, roster: base.roster.map((h) => ({ ...h, level: 60 })) };
+    const door = nextDoor(s);
+    expect(door?.content.id).toBe("hollow-crypt");
+    expect(door?.roster).toEqual({ have: 3, need: 4 });
+  });
+
   it("emits one unlock event per area, ever", () => {
     const base = newGame(1, "Unlock");
     const s: GameState = {
@@ -1209,6 +1244,44 @@ describe("plan safety", () => {
     const mission = assignParty(start, { contentId: "wolf-den", heroes: ids, stance: "steady" });
     const split = assignParty(mission, { contentId: "emberwood", heroes: [ids[0]!], stance: "steady" });
     expect(split.plan.parties.map((p) => p.contentId)).toEqual(["emberwood"]);
+  });
+
+  it("reports a party outside the area's hero range, and only the gap", () => {
+    const start = newGame(1, "Overfill");
+    const extra: Hero = { ...start.roster[0]!, id: "extra-hero" };
+    const ids = [...start.roster.map((h) => h.id), extra.id];
+    const over: GameState = {
+      ...start,
+      roster: [...start.roster, extra],
+      plan: { parties: [{ contentId: "wolf-den", heroes: ids, stance: "steady" }] },
+    };
+    expect(partySizeProblems(over)).toMatchObject([
+      { index: 0, heroes: 4, kind: "over", delta: 1 },
+    ]);
+    expect(validatePlan(over).some((p) => p.message.includes("3-3 heroes (has 4)"))).toBe(true);
+    expect(partySizeProblems(start)).toEqual([]);
+
+    // The other direction: a two-hero plan for a three-hero area is editable
+    // (so a replacement can be added) but not deployable.
+    const short: GameState = {
+      ...start,
+      plan: { parties: [{ contentId: "wolf-den", heroes: ids.slice(0, 2), stance: "steady" }] },
+    };
+    expect(partySizeProblems(short)).toMatchObject([
+      { index: 0, heroes: 2, kind: "under", delta: 1 },
+    ]);
+    expect(validatePlan(short).some((p) => p.message.includes("3-3 heroes (has 2)"))).toBe(true);
+
+    // Removing every hero keeps the target: 0/3 is an editable state, not a
+    // deleted party, and it blocks the day like any other short plan.
+    const empty: GameState = {
+      ...start,
+      plan: { parties: [{ contentId: "wolf-den", heroes: [], stance: "steady" }] },
+    };
+    expect(partySizeProblems(empty)).toMatchObject([
+      { index: 0, heroes: 0, kind: "under", delta: 3 },
+    ]);
+    expect(validatePlan(empty).some((p) => p.message.includes("3-3 heroes (has 0)"))).toBe(true);
   });
 
   it("rejects a duplicate hero, a bad stance and locked content", () => {

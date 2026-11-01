@@ -2,7 +2,7 @@
 
 Where the project is, what could kill it, and the order I'd build in.
 
-Last updated: 2026-10-31. Update this file when a phase ships or the order changes.
+Last updated: 2026-11-01. Update this file when a phase ships or the order changes.
 
 ---
 
@@ -10,7 +10,7 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 143 tests, `resolveDay` clones its input |
+| Simulation core | Done — deterministic, 153 tests, `resolveDay` clones its input |
 | Progression ladder | Done — 3 heroes → 3 farms, 7 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities; prices the purse, the next wall's level gate and the gear gap |
@@ -23,7 +23,7 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 | Role review | Done — the reviewer only re-specs a party below 1.0, caps at two flips, and stops at 1.0; the `role` command prints the four check deltas. The 1.30 affinity widening was measured and rejected (ladder volatility); the 1.15 table stays |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
 | Balance | Provisional — 20 seeds on the current build (bridge + contracts): Steward 25,238, Quartermaster 26,302, Gambler 21,208; full clears 16/18/10 = 44/60. The earlier pre-bridge control on the same harness was 15/17/9 = 41/60. The conservative AI is 44/60; the player's need pick is 52/60; day-40 team iLvl is 46–55 against the 65 target (§3.6–§3.8) |
-| UI | **Vertical slice shipped** — Guild Hall, Roster + Hero Sheet, War Room with live projection, Raid hub with the per-boss pull log, Report + Run End, attention queue, loot, tavern, facilities. No drag-and-drop, scouting fog or wage negotiation. Bundle 418 kB raw / 124 kB gzip; 143 tests; `npm run dev` |
+| UI | **Vertical slice shipped** — Guild Hall, Roster + Hero Sheet, War Room with live projection, Raid hub with the per-boss pull log, Report + Run End, attention queue, loot, tavern, facilities. No drag-and-drop, scouting fog or wage negotiation. Bundle 418 kB raw / 124 kB gzip; 153 tests; `npm run dev` |
 | Raid hub | Done — the three-boss ladder with lock reasons, the four-guild race with live rival activity and per-boss best, and a bounded per-pull log of the guild's raid nights (failed check, shortfall, stance). Rivals carry no log; the player's is 4 kB at day 85 |
 | Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
 | Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
@@ -86,7 +86,7 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 
 **The cost:** a full world run takes ~1.1 s instead of ~0.1 s, because three rival guilds plan 84 days each. The unit tests use the player-only `aiRun`; the race has its own three world tests. `sim --runs 20` now takes ~65 s.
 
-### Phase 3 — UI vertical slice *(the product)* ◐ *shipped, unplayed*
+### Phase 3 — UI vertical slice *(the product)* ◐ *shipped; one 70-day human run*
 
 **Goal:** a stranger plays a week without asking what a number means.
 
@@ -104,7 +104,9 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 
 **Cut from this pass:** drag-and-drop, bulk roster actions, comparison drawer, column chooser, scouting fog, signing negotiation, contracts table, settings, mobile card list, fixed bottom Advance. Each needs a sim field or a playtest.
 
-**Kill criterion:** if the wipe report in the UI does not make a player say "ah — swap the rogue", the model is wrong, not the screen. **This has not been tested with a human.** The UI makes the test possible; it does not pass it.
+**The first human run (2026-11-01).** One player, seed 444, by hand to day 70 of 84: 701 actions over 69 advances, 10 a day, no bot. The wipe report worked: five failed Hollow Crypt pulls between day 33 and 45 each named the failing check and its shortfall (`The Descent` dps 24/42, `The Warden` mitigation 41/46), and the player kept at it. Two things did not: the run had never seen a raid (0/3, score 3,285 against rivals at 16,228–16,880), and the one thing standing in the way — the Ashen Spire, 1.2 average levels away — was never named anywhere, while the brand line pointed at a raid locked behind it. Both are fixed in L108 and L109. The run does not settle the kill criterion: it says the ladder's last door was invisible, not whether the days were worth retelling. It is also unfinished, and one run is not a sample.
+
+**Kill criterion:** if the wipe report in the UI does not make a player say "ah — swap the rogue", the model is wrong, not the screen. **Partially tested:** the wipe report named the failing check in every failed pull; the endgame was invisible (L108).
 
 ### Phase 4 — The missing levers
 
@@ -123,7 +125,7 @@ The first week is a natural tutorial: one concept per day, delivered by the stew
 | When | Decision | Blocks |
 |---|---|---|
 | Before Phase 3 | **React or Angular** ([ADR 0002](adr/0002-ui-framework.md)) | **Resolved 2026-10-30:** React + Vite. No longer blocks the phase |
-| After Phase 1 playtest | **84 days or 56** | Balance of everything after |
+| After Phase 1 playtest | **84 days or 56** | Balance of everything after. **Evidence 2026-11-01:** the one human run reached day 70 with a top-five average of 33.8 and no raid seen, so 84 is not too long for a first-timer — it may be too short. Not decided on one run |
 | Before Phase 3 | **Art direction**: type, colour, spacing | **Resolved 2026-10-31:** dark operations console, tokens in [screens.md](screens.md) §Visual direction |
 | Before any public surface | **Name** ("World First" is a working title) | Domain, store page |
 
@@ -140,3 +142,5 @@ Each is in [vision.md](vision.md) §5 with a phase. None of them is load-bearing
 ## 6. If you only do one thing
 
 **Play thirty days by hand and write down what you wanted to do and could not.** The cards are priced, the queue is total, and the ladder is measured; the only claim left untested is the one no sweep can answer — that a player has a moment worth retelling. Every remaining feature is an amplification of that claim, and none of them fixes a day that reads as administration.
+
+**Done once, on 2026-11-01, for 70 days.** What the player wanted and could not: see the endgame. The fix is L108/L109. What the run could not answer: whether the days were worth retelling. The next human run should be shorter and observed while it happens, not only measured from its save.

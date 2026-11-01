@@ -25,6 +25,55 @@ export const levelOk = (content: ContentDef, heroes: readonly Hero[]): boolean =
 export const sizeOk = (content: ContentDef, heroes: readonly Hero[]): boolean =>
   heroes.length >= content.minHeroes && heroes.length <= content.maxHeroes;
 
+export type PartySizeProblem = {
+  index: number;
+  content: ContentDef;
+  heroes: number;
+  /** `under` is below `minHeroes`; `over` is above `maxHeroes`. */
+  kind: "under" | "over";
+  /** Heroes to add (under) or remove (over) to make the party legal. */
+  delta: number;
+};
+
+/**
+ * Parties outside the area's hero range. The plan may hold one while the player
+ * fixes it — the War Room lets a hero leave a three-hero area before the
+ * replacement arrives, and lets a fourth hero in — but the day cannot advance
+ * and `sanitizePlan` will not deploy it.
+ */
+export const partySizeProblems = (state: GameState): PartySizeProblem[] => {
+  const problems: PartySizeProblem[] = [];
+  state.plan.parties.forEach((party, index) => {
+    const content = contentById(party.contentId);
+    if (!content) return;
+    const heroes = party.heroes.length;
+    if (heroes < content.minHeroes) {
+      problems.push({
+        index,
+        content,
+        heroes,
+        kind: "under",
+        delta: content.minHeroes - heroes,
+      });
+    } else if (heroes > content.maxHeroes) {
+      problems.push({
+        index,
+        content,
+        heroes,
+        kind: "over",
+        delta: heroes - content.maxHeroes,
+      });
+    }
+  });
+  return problems;
+};
+
+/** One sentence for the advance gate, the top bar and the projection footer. */
+export const sizeProblemLine = (problem: PartySizeProblem): string =>
+  problem.kind === "over"
+    ? `${problem.content.name} is above the hero limit (${problem.heroes}/${problem.content.maxHeroes}) — remove ${problem.delta} before the day can advance.`
+    : `${problem.content.name} is below the hero minimum (${problem.heroes}/${problem.content.minHeroes}) — add ${problem.delta} before the day can advance.`;
+
 /**
  * Rank heroes for a content by their contribution to its checks.
  *
@@ -132,10 +181,48 @@ export type ContentAvailability = {
   status: ContentStatus;
   /** Why the content is not open. Empty when it is. */
   reason: string;
+  /**
+   * The numbers behind a level gate. The average here is the same one
+   * `canField` tested, so the screen that shows the gap cannot disagree with
+   * the rule that blocks the party.
+   */
+  gate?: { average: number; need: number; counted: number };
+  /** The numbers behind a roster gate. */
+  roster?: { have: number; need: number };
 };
 
 const isOpen = (status: ContentStatus): boolean =>
   status === "new" || status === "open" || status === "cleared";
+
+type RosterGate =
+  | { status: "ok" }
+  | { status: "roster"; reason: string; roster: { have: number; need: number } }
+  | { status: "level"; reason: string; gate: { average: number; need: number; counted: number } };
+
+/**
+ * The two gates the roster can answer, independent of prerequisites. Asking
+ * them separately is what lets `nextDoor` name the wall before the chain that
+ * leads to it is cleared (L108).
+ */
+const rosterGate = (state: GameState, content: ContentDef): RosterGate => {
+  if (state.roster.length < content.minHeroes) {
+    return {
+      status: "roster",
+      reason: `Needs ${content.minHeroes} heroes; the roster has ${state.roster.length}.`,
+      roster: { have: state.roster.length, need: content.minHeroes },
+    };
+  }
+  if (!canField(content, state.roster)) {
+    const top = [...state.roster].sort((a, b) => b.level - a.level).slice(0, content.maxHeroes);
+    const average = top.reduce((acc, h) => acc + h.level, 0) / Math.max(1, top.length);
+    return {
+      status: "level",
+      reason: `Party average level ${average.toFixed(1)}; needs ${content.minLevel}.`,
+      gate: { average, need: content.minLevel, counted: top.length },
+    };
+  }
+  return { status: "ok" };
+};
 
 export const contentAvailability = (
   state: GameState,
@@ -148,22 +235,12 @@ export const contentAvailability = (
     return { content, status: "locked", reason: `Clear ${names} first.` };
   }
 
-  if (state.roster.length < content.minHeroes) {
-    return {
-      content,
-      status: "roster",
-      reason: `Needs ${content.minHeroes} heroes; the roster has ${state.roster.length}.`,
-    };
+  const gate = rosterGate(state, content);
+  if (gate.status === "roster") {
+    return { content, status: "roster", reason: gate.reason, roster: gate.roster };
   }
-
-  if (!canField(content, state.roster)) {
-    const top = [...state.roster].sort((a, b) => b.level - a.level).slice(0, content.maxHeroes);
-    const average = top.reduce((acc, h) => acc + h.level, 0) / Math.max(1, top.length);
-    return {
-      content,
-      status: "level",
-      reason: `Party average level ${average.toFixed(1)}; needs ${content.minLevel}.`,
-    };
+  if (gate.status === "level") {
+    return { content, status: "level", reason: gate.reason, gate: gate.gate };
   }
 
   const progress = state.progress.find((p) => p.contentId === content.id);
@@ -185,6 +262,28 @@ export const availableContent = (state: GameState): ContentDef[] =>
 
 export const unavailableContent = (state: GameState): ContentAvailability[] =>
   contentStates(state).filter((a) => !isOpen(a.status));
+
+/**
+ * The one area standing between the guild and the rest of the ladder: the first
+ * content in ladder order that the roster cannot field, prerequisites ignored.
+ * Null when the roster can field every area.
+ *
+ * The target list still hides what the guild cannot field. This is the single
+ * door the screens may name, with the numbers behind its gate, so a guild that
+ * stalls can see what it is stalling against (see L108 in docs/learnings.md).
+ */
+export const nextDoor = (state: GameState): ContentAvailability | null => {
+  for (const content of CONTENT) {
+    const gate = rosterGate(state, content);
+    if (gate.status === "roster") {
+      return { content, status: "roster", reason: gate.reason, roster: gate.roster };
+    }
+    if (gate.status === "level") {
+      return { content, status: "level", reason: gate.reason, gate: gate.gate };
+    }
+  }
+  return null;
+};
 
 export const setParty = (state: GameState, index: number, assignment: Assignment | null): GameState => {
   const parties = [...state.plan.parties];

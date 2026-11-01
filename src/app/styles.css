@@ -1333,6 +1333,30 @@ hr.sep {
   background: var(--color-panel-3);
 }
 
+/* Fatigue is a pill, not a tooltip: an exhausted hero in the plan has to be
+   visible from across the table. */
+.fatigue-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  padding: 0 5px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.fatigue-badge[data-state="tired"] {
+  color: var(--color-warn);
+  background: rgba(216, 179, 95, 0.13);
+}
+
+.fatigue-badge[data-state="exhausted"] {
+  color: var(--color-bad);
+  background: rgba(208, 114, 114, 0.14);
+}
+
 .hero-slot-remove {
   appearance: none;
   border: 0;
@@ -1346,6 +1370,17 @@ hr.sep {
 .hero-slot-remove:hover {
   color: var(--color-bad);
   background: rgba(208, 114, 114, 0.1);
+}
+
+/* The plan can hold an illegal party while it is being fixed; say why it
+   cannot deploy, in the card, not only in a tooltip. */
+.party-alert {
+  padding: 6px 11px;
+  border-top: 1px solid rgba(208, 114, 114, 0.3);
+  background: rgba(208, 114, 114, 0.08);
+  color: var(--color-bad);
+  font-size: 10px;
+  line-height: 1.45;
 }
 
 .slot-add {

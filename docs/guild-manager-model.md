@@ -185,6 +185,8 @@ Fatigue per day:
 
 `Endurance` reduces positive fatigue: `fatigue += base × (1.15 − endurance/40)`.
 
+**The screens draw two lines on the fatigue scale:** `tired` at 45 and `exhausted` at 70 (`FATIGUE_LINES` in `tuning.ts`). 70 is also the line the daily queue uses for "running on empty", so the War Room pill and the Hall warning name the same heroes. The pill is display, not a rule: an exhausted hero still deploys, at the condition the curve already applies and a higher injury chance.
+
 A fresh hero who raids every day goes 0 → 22 → 44 → 66 → 88 → 100 (capped). **Four consecutive raid nights puts them at 88; the fifth hits the wall.** That is the intended rhythm: raid blocks of 3–4, rest, repeat. It also makes split runs meaningful, because your B-team can farm while the A-team rests.
 
 ### 2.6 Hidden attributes — five numbers the player never sees
@@ -425,6 +427,10 @@ A content is a record in `src/sim/content/content.ts`. The fields the player mee
 | `mobs` / `drops` | The bestiary and the named drop table. `inspect <id>` prints both. |
 
 **Availability is three gates.** Prerequisites cleared, roster size, and the average-level gate. `availableContent` returns only content the roster can field; the list never shows a locked area. The guild is told once, through a `unlock` event, when an area opens; `knownContent` keeps the ledger so a roster that shrinks and grows does not re-announce it. A save from before the ledger existed initialises silently.
+
+**One closed area is named: the next door.** `nextDoor` walks the ladder and returns the first content the roster cannot field, prerequisites ignored, with the numbers the gate used (`gate = { average, need, counted }`, or `roster = { have, need }`). It is the same `canField` test `contentAvailability` runs, so the screen cannot show a gap the rule does not enforce. Prerequisites are ignored on purpose: a raid behind an uncleared dungeon is not a step the guild can take, and naming it (the brand line did, before L108) points at a door that is not there. `nextDoor` returns `null` once the roster can field every area; the screens then fall back to the raid line. The rest of the closed list stays hidden and keeps its one-time `unlock` announcement.
+
+**The plan may be temporarily illegal.** `minHeroes` and `maxHeroes` gate deployment, not editing: the War Room lets a three-hero party stand at `0/3`, `1/3` or `2/3`, or overfill at `4/3`, and the day is blocked until the count is back in range. `partySizeProblems` is the rule the UI and the advance gate call; `sanitizePlan` still drops an out-of-range party if one reaches the resolver (an old save, or a hand-edited file), so the payout path never trusts the plan.
 
 **Rewards are a choice, not a stack.** Each band carries more than one job. The XP run pays no loot, the gold run pays no XP, and the loot run pays neither. The shipped numbers and the measured effect are in [progression-report.md](progression-report.md) §1.1; the rule is that a new option must take something away, or it is free progression.
 

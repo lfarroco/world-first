@@ -4,13 +4,16 @@ import {
   MAX_PARTIES,
   averageItemLevel,
   contentById,
+  contentAvailability,
   fieldableParty,
   heroPower,
   itemLevel,
   lootUpgrade,
   nextRaidContent,
   openRaidContent,
+  partySizeProblems,
   rankFor,
+  sizeProblemLine,
   suggestLootTarget,
   unavailableContent,
   type Assignment,
@@ -21,10 +24,13 @@ import {
 } from "../../sim";
 import { useGameStore } from "../../store/gameStore";
 import {
+  FATIGUE_LABEL,
   ROW_LABEL,
   contractInfo,
   contentChoices,
+  fatigueState,
   freeHeroesFor,
+  nextDoorInfo,
   partyAdvice,
   partyProjection,
   slotRowFor,
@@ -49,6 +55,25 @@ const partyHeroes = (state: GameState, index: number): Hero[] => {
     .filter((h): h is Hero => Boolean(h));
 };
 
+/** The assigned, bench and picker rows all read fatigue from this one state. */
+const FatigueBadge = ({ hero, showFresh = false }: { hero: Hero; showFresh?: boolean }) => {
+  const state = fatigueState(hero);
+  if (state === "fresh") {
+    return showFresh ? (
+      <span className="tiny dim">{Math.round(hero.fatigue)} fat</span>
+    ) : null;
+  }
+  return (
+    <span
+      className="fatigue-badge"
+      data-state={state}
+      title={`Fatigue ${Math.round(hero.fatigue)}/100 — ${state}. Condition and injury chance get worse with fatigue.`}
+    >
+      {FATIGUE_LABEL[state]} {Math.round(hero.fatigue)}
+    </span>
+  );
+};
+
 const PayTag = ({ choice }: { choice: ContentChoice }) => {
   if (choice.content.kind !== "mission") return <span className="dim">—</span>;
   if (choice.payScale >= 1) return <Chip tone="gold">full</Chip>;
@@ -58,9 +83,12 @@ const PayTag = ({ choice }: { choice: ContentChoice }) => {
 const ContentPicker = ({
   partyIndex,
   onClose,
+  onRemove,
 }: {
   partyIndex: number;
   onClose: () => void;
+  /** Absent while adding a party: there is nothing to remove yet. */
+  onRemove?: () => void;
 }) => {
   const game = useGameStore((s) => s.game);
   const dispatch = useGameStore((s) => s.dispatch);
@@ -70,6 +98,7 @@ const ContentPicker = ({
 
   const choices = contentChoices(game);
   const hidden = unavailableContent(game);
+  const door = nextDoorInfo(game);
   const usedByAnother = new Set(
     game.plan.parties.filter((_, index) => index !== partyIndex).map((p) => p.contentId),
   );
@@ -96,9 +125,23 @@ const ContentPicker = ({
       onClose={onClose}
       wide
       footer={
-        <button className="btn" onClick={onClose}>
-          Close
-        </button>
+        <>
+          {onRemove ? (
+            <ConfirmButton
+              label="Remove this party"
+              confirmLabel="Confirm: remove"
+              className="btn btn-ghost btn-sm btn-danger"
+              onConfirm={() => {
+                onRemove();
+                onClose();
+              }}
+            />
+          ) : null}
+          <span className="grow" />
+          <button className="btn" onClick={onClose}>
+            Close
+          </button>
+        </>
       }
     >
       <div className="table-wrap">
@@ -172,8 +215,14 @@ const ContentPicker = ({
         </table>
       </div>
       <div className="tiny dim" style={{ marginTop: 8 }}>
-        {choices.length} open today · {hidden.length} area{hidden.length === 1 ? "" : "s"} not open yet. You
-        are told when one opens. First clears are never taxed by the board.
+        {choices.length} open today · {hidden.length} area{hidden.length === 1 ? "" : "s"} not open yet.
+        {door ? (
+          <>
+            {" "}
+            Next door: <span className="warn">{door.shortName}</span> — {door.gateLine}.
+          </>
+        ) : null}{" "}
+        You are told when one opens. First clears are never taxed by the board.
       </div>
     </Dialog>
   );
@@ -206,6 +255,7 @@ const HeroPicker = ({
     ? ranked.filter((h) => h.name.toLowerCase().includes(query.trim().toLowerCase()))
     : ranked;
   const atMax = party.heroes.length >= content.maxHeroes;
+  const exhaustedInPool = pool.filter((h) => fatigueState(h) === "exhausted").length;
   // One average, computed in the selector, so the picker and the card cannot
   // disagree about the gate.
   const partyAverage = partyAdvice(game, partyIndex).averageLevel;
@@ -217,7 +267,8 @@ const HeroPicker = ({
     if (replaceId) {
       heroes = party.heroes.map((id) => (id === replaceId ? hero.id : id));
     } else {
-      if (atMax) return;
+      // Over the cap is allowed here too: the card marks it red and the day
+      // is blocked until the player removes one. The picker is not the censor.
       heroes = [...party.heroes, hero.id];
     }
     dispatch({ type: "assign-party", assignment: { ...party, heroes } });
@@ -232,7 +283,9 @@ const HeroPicker = ({
       footer={
         <>
           <span className="tiny dim grow">
-            {atMax && !replaceId ? "Party is full — click a deployed hero to swap." : "Only available heroes are listed."}
+            {atMax && !replaceId
+              ? `The party is at its limit (${content.maxHeroes}) — adding above it blocks the day until you remove one.`
+              : "Only available heroes are listed."}
           </span>
           <button className="btn" onClick={onClose}>
             Close
@@ -252,6 +305,19 @@ const HeroPicker = ({
         <p className="tiny bad" style={{ marginBottom: 8 }}>
           This party averages level {partyAverage.toFixed(1)}; {content.name} needs {content.minLevel}.
           A higher-level hero can carry the average.
+        </p>
+      ) : null}
+      {exhaustedInPool > 0 ? (
+        <p className="tiny warn" style={{ marginBottom: 8 }}>
+          {exhaustedInPool} exhausted hero{exhaustedInPool === 1 ? "" : "es"} in this list —
+          condition and injury risk are worse tonight.
+        </p>
+      ) : null}
+      {atMax && !replaceId ? (
+        <p className="tiny warn" style={{ marginBottom: 8 }}>
+          {party.heroes.length > content.maxHeroes
+            ? `This party is ${party.heroes.length}/${content.maxHeroes} — above the hero limit. Remove ${party.heroes.length - content.maxHeroes} before the day can advance.`
+            : `This party has ${party.heroes.length}/${content.maxHeroes} heroes. Adding one puts it above the hero limit; the day cannot advance until you remove one.`}
         </p>
       ) : null}
       <div className="hero-picker">
@@ -280,7 +346,7 @@ const HeroPicker = ({
                 </span>
                 <span className="dim">iLvl {itemLevel(hero.gear)}</span>
                 <span className="mono">pow {Math.round(heroPower(hero))}</span>
-                <span className="tiny dim">{Math.round(hero.fatigue)} fat</span>
+                <FatigueBadge hero={hero} showFresh />
               </button>
             );
           })
@@ -359,7 +425,11 @@ const TeamPicker = ({ onClose }: { onClose: () => void }) => {
               <span className="dim">lvl {hero.level}</span>
               <span className="dim">iLvl {itemLevel(hero.gear)}</span>
               <span className="mono">{Math.round(heroPower(hero))}</span>
-              <span className="tiny dim">{hero.injuryDays > 0 ? `out ${hero.injuryDays}d` : `${Math.round(hero.fatigue)} fat`}</span>
+              {hero.injuryDays > 0 ? (
+                <span className="tiny dim">out {hero.injuryDays}d</span>
+              ) : (
+                <FatigueBadge hero={hero} showFresh />
+              )}
             </button>
           );
         })}
@@ -393,11 +463,13 @@ const PartyCard = ({
   onPick,
   onContent,
   onInspect,
+  onRemove,
 }: {
   index: number;
   onPick: (partyIndex: number, replaceId?: string) => void;
   onContent: (partyIndex: number) => void;
   onInspect: (contentId: string) => void;
+  onRemove: (partyIndex: number) => void;
 }) => {
   const game = useGameStore((s) => s.game);
   const dispatch = useGameStore((s) => s.dispatch);
@@ -412,6 +484,10 @@ const PartyCard = ({
   const advice = partyAdvice(game, index);
   const free = freeHeroesFor(game, index).filter((h) => !party.heroes.includes(h.id));
   const rows: SlotRow[] = ["front", "mid", "back"];
+  // Either side of the range is a legal plan to edit, never a legal plan to
+  // run: the card says so in red and the advance gate refuses.
+  const over = advice.overBy;
+  const under = advice.underBy;
   // The gate is the party average, not a per-hero minimum. The selector owns
   // the number so the card and the picker cannot disagree about it.
   const averageLevel = advice.averageLevel;
@@ -428,12 +504,10 @@ const PartyCard = ({
   };
 
   const add = (heroId: string): void => {
-    if (heroes.length >= content.maxHeroes) return;
     dispatch({ type: "assign-party", assignment: { ...party, heroes: [...party.heroes, heroId] } });
   };
 
   const remove = (heroId: string): void => {
-    if (heroes.length <= content.minHeroes) return;
     dispatch({
       type: "assign-party",
       assignment: { ...party, heroes: party.heroes.filter((id) => id !== heroId) },
@@ -450,8 +524,17 @@ const PartyCard = ({
       <div className="party-head">
         <span className="party-index">{index + 1}</span>
         <ContentButton partyIndex={index} onOpen={() => onContent(index)} />
-        <Chip tone="info">
-          {heroes.length}/{content.maxHeroes}
+        <Chip
+          tone={over > 0 || under > 0 ? "bad" : "info"}
+          title={
+            over > 0
+              ? `Above the hero limit — ${heroes.length}/${content.maxHeroes}. Remove ${over} before the day can advance.`
+              : under > 0
+                ? `Below the hero minimum — ${heroes.length}/${content.minHeroes}. Add ${under} before the day can advance.`
+                : `${heroes.length} of ${content.maxHeroes}; the area needs at least ${content.minHeroes}.`
+          }
+        >
+          {party.heroes.length}/{content.maxHeroes}
         </Chip>
         <Chip
           tone={heroes.length === 0 ? "info" : levelMet ? "good" : "bad"}
@@ -459,6 +542,16 @@ const PartyCard = ({
         >
           avg lvl {heroes.length === 0 ? "—" : averageLevel.toFixed(1)} / {content.minLevel}
         </Chip>
+        {advice.exhausted > 0 ? (
+          <Chip
+            tone="bad"
+            title={`${advice.exhausted} assigned hero${advice.exhausted === 1 ? "" : "es"} ${
+              advice.exhausted === 1 ? "is" : "are"
+            } exhausted. They still deploy, with reduced condition and a higher injury chance.`}
+          >
+            {advice.exhausted} exhausted
+          </Chip>
+        ) : null}
         <div className="seg" onClick={(event) => event.stopPropagation()}>
           {STANCES.map((stance) => (
             <button
@@ -491,6 +584,16 @@ const PartyCard = ({
         >
           Inspect
         </button>
+        <span onClick={(event) => event.stopPropagation()}>
+          <ConfirmButton
+            label="Remove this party"
+            confirmLabel="Confirm: remove"
+            className="btn btn-ghost btn-sm btn-danger"
+            onConfirm={() => onRemove(index)}
+          >
+            Remove
+          </ConfirmButton>
+        </span>
       </div>
 
       <div className="slots">
@@ -506,7 +609,7 @@ const PartyCard = ({
                     className="hero-slot"
                     key={hero.id}
                     data-team={(game.raidTeam ?? []).includes(hero.id)}
-                    title={`${hero.name} · ${hero.role} · lvl ${hero.level} · power ${Math.round(heroPower(hero))} · iLvl ${itemLevel(hero.gear)}`}
+                    title={`${hero.name} · ${hero.role} · lvl ${hero.level} · power ${Math.round(heroPower(hero))} · fatigue ${Math.round(hero.fatigue)} · iLvl ${itemLevel(hero.gear)}`}
                   >
                     <button
                       className="btn-ghost"
@@ -523,17 +626,19 @@ const PartyCard = ({
                       </span>
                     </button>
                     <span className="tiny dim">lvl {hero.level}</span>
+                    <FatigueBadge hero={hero} />
                     <button
                       className="hero-slot-remove"
-                      disabled={heroes.length <= content.minHeroes}
                       onClick={(event) => {
                         event.stopPropagation();
                         remove(hero.id);
                       }}
                       title={
-                        heroes.length <= content.minHeroes
-                          ? `Needs ${content.minHeroes} heroes`
-                          : "Remove from this party"
+                        party.heroes.length === 1
+                          ? `Remove ${hero.name} — the party will have no heroes; the day is blocked until one is added`
+                          : under > 0
+                            ? `Remove ${hero.name} — the party is already below its minimum; add ${under} before the day can advance`
+                            : `Remove ${hero.name} from this party`
                       }
                       aria-label={`Remove ${hero.name}`}
                     >
@@ -547,7 +652,6 @@ const PartyCard = ({
                     event.stopPropagation();
                     onPick(index);
                   }}
-                  disabled={heroes.length >= content.maxHeroes}
                 >
                   + add
                 </button>
@@ -556,6 +660,19 @@ const PartyCard = ({
           );
         })}
       </div>
+
+      {over > 0 ? (
+        <div className="party-alert" role="status">
+          Above the hero limit — {party.heroes.length}/{content.maxHeroes}. Remove {over} before the
+          day can advance.
+        </div>
+      ) : null}
+      {under > 0 ? (
+        <div className="party-alert" role="status">
+          Below the hero minimum — {party.heroes.length}/{content.minHeroes}. Add {under} before the
+          day can advance.
+        </div>
+      ) : null}
 
       <div className="bench-line">
         <span className="tiny dim">Bench</span>
@@ -570,10 +687,10 @@ const PartyCard = ({
                 event.stopPropagation();
                 add(hero.id);
               }}
-              title={`Add ${hero.name} · lvl ${hero.level} · power ${Math.round(heroPower(hero))}`}
-              disabled={heroes.length >= content.maxHeroes}
+              title={`Add ${hero.name} · lvl ${hero.level} · power ${Math.round(heroPower(hero))} · fatigue ${Math.round(hero.fatigue)}`}
             >
               {hero.name.split(" ")[0]} <span className="dim">lvl {hero.level}</span>
+              <FatigueBadge hero={hero} />
             </button>
           ))
         )}
@@ -612,6 +729,7 @@ const ProjectionStrip = () => {
   const projection = partyProjection(game, selected);
   const advice = partyAdvice(game, selected);
   const content = party ? contentById(party.contentId) : null;
+  const size = partySizeProblems(game);
 
   if (!party || !content) {
     return (
@@ -695,6 +813,11 @@ const ProjectionStrip = () => {
         </div>
       )}
       <div className="panel-body" style={{ borderTop: "1px solid var(--color-line-soft)" }}>
+        {size.length > 0 ? (
+          <div className="tiny bad" style={{ marginBottom: 6 }} role="status">
+            {sizeProblemLine(size[0]!)}
+          </div>
+        ) : null}
         <button
           className="btn btn-primary btn-block"
           onClick={advance}
@@ -758,12 +881,38 @@ const BoardPanel = () => {
   );
 };
 
+const NextDoorPanel = () => {
+  const game = useGameStore((s) => s.game);
+  if (!game) return null;
+  const door = nextDoorInfo(game);
+  if (!door) return null;
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <span className="eyebrow">Next door</span>
+        <span className="tiny dim">{door.closed} closed</span>
+      </div>
+      <div className="panel-body stack" style={{ gap: 4 }}>
+        <span className="small">{door.content.name}</span>
+        <span className="tiny dim">{door.kindLine}</span>
+        <span className={`tiny ${door.gap !== null ? "warn" : "dim"}`}>{door.gateLine}</span>
+        <span className="tiny dim">
+          Not selectable until the guild can field it. The target list hides it until then.
+        </span>
+      </div>
+    </section>
+  );
+};
+
 const TeamPanel = ({ onOpen }: { onOpen: () => void }) => {
   const game = useGameStore((s) => s.game);
   const dispatch = useGameStore((s) => s.dispatch);
   if (!game) return null;
   const team = teamLine(game);
-  const raid = openRaidContent(game) ?? nextRaidContent(game);
+  const open = openRaidContent(game);
+  const raid = open ?? nextRaidContent(game);
+  // A locked raid's gear gap is not the blocker, so it must not be the line.
+  const lock = raid && !open ? contentAvailability(game, raid) : null;
   const avg = averageItemLevel(team);
   return (
     <section className="panel">
@@ -796,14 +945,23 @@ const TeamPanel = ({ onOpen }: { onOpen: () => void }) => {
         )}
         {raid ? (
           <div className="small dim">
-            Next: {raid.name} · recommended iLvl {raid.recommendedIlvl} ·{" "}
-            {team.length === 0 ? (
-              <span className="warn">no ten yet</span>
+            {lock ? (
+              <>
+                Next: {raid.name} · <span className="warn">locked</span> — {lock.reason} The ten can wait
+                until the door opens.
+              </>
             ) : (
               <>
-                your ten{" "}
-                <span className={avg < raid.recommendedIlvl ? "warn" : "good"}>{avg}</span>
-                {avg < raid.recommendedIlvl ? ` (−${raid.recommendedIlvl - avg})` : ""}
+                Next: {raid.name} · recommended iLvl {raid.recommendedIlvl} ·{" "}
+                {team.length === 0 ? (
+                  <span className="warn">no ten yet</span>
+                ) : (
+                  <>
+                    your ten{" "}
+                    <span className={avg < raid.recommendedIlvl ? "warn" : "good"}>{avg}</span>
+                    {avg < raid.recommendedIlvl ? ` (−${raid.recommendedIlvl - avg})` : ""}
+                  </>
+                )}
               </>
             )}
           </div>
@@ -862,6 +1020,7 @@ export const WarRoomScreen = () => {
   const game = useGameStore((s) => s.game);
   const selected = useGameStore((s) => s.selectedParty);
   const setSelected = useGameStore((s) => s.selectParty);
+  const dispatch = useGameStore((s) => s.dispatch);
   const openModal = useGameStore((s) => s.openModal);
   const [contentPicker, setContentPicker] = useState<number | null>(null);
   const [heroPicker, setHeroPicker] = useState<{ index: number; replaceId?: string } | null>(null);
@@ -871,6 +1030,19 @@ export const WarRoomScreen = () => {
   if (!game) return null;
 
   const openContent = (index: number): void => setContentPicker(index);
+
+  /**
+   * A party is a target plus its heroes, so clearing the target means removing
+   * the party. Selection follows the cards: a card above the selected one
+   * shifts the selection down, and removing the selected one lands on its
+   * neighbour, so the projection never describes the wrong party.
+   */
+  const removeParty = (index: number): void => {
+    const count = game.plan.parties.length;
+    dispatch({ type: "set-party", index, assignment: null });
+    if (index < selected) setSelected(selected - 1);
+    else if (index === selected) setSelected(Math.max(0, Math.min(index, count - 2)));
+  };
 
   return (
     <div className="stack" style={{ gap: 12 }}>
@@ -903,6 +1075,7 @@ export const WarRoomScreen = () => {
               onPick={(partyIndex, replaceId) => setHeroPicker({ index: partyIndex, replaceId })}
               onContent={openContent}
               onInspect={(contentId) => openModal({ kind: "inspect", contentId })}
+              onRemove={removeParty}
             />
           ))}
           {game.plan.parties.length < MAX_PARTIES ? (
@@ -913,12 +1086,21 @@ export const WarRoomScreen = () => {
           <ProjectionStrip />
           <LootStrip onOpen={() => openModal({ kind: "loot" })} />
           <BoardPanel />
+          <NextDoorPanel />
           <TeamPanel onOpen={() => setTeamPicker(true)} />
         </aside>
       </div>
 
       {contentPicker !== null ? (
-        <ContentPicker partyIndex={contentPicker} onClose={() => setContentPicker(null)} />
+        <ContentPicker
+          partyIndex={contentPicker}
+          onClose={() => setContentPicker(null)}
+          onRemove={
+            contentPicker < game.plan.parties.length
+              ? () => removeParty(contentPicker)
+              : undefined
+          }
+        />
       ) : null}
       {heroPicker !== null ? (
         <HeroPicker

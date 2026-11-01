@@ -2,13 +2,23 @@ import { describe, expect, it } from "vitest";
 import {
   contentById,
   fieldableParty,
+  freeHeroes,
   newGame,
+  unavailableContent,
   type GameState,
+  type Hero,
 } from "../src/sim";
 import { focusPull, nextLevers } from "../src/sim/report";
 import { applyAction, logAction, type GameAction } from "../src/store/actions";
 import { SAVE_KEY, loadSave, writeSave, type StorageLike } from "../src/store/save";
-import { filterHeroes, partyAdvice } from "../src/store/selectors";
+import {
+  fatigueState,
+  filterHeroes,
+  nextDoorInfo,
+  partyAdvice,
+  statusChips,
+} from "../src/store/selectors";
+import { useGameStore } from "../src/store/gameStore";
 
 const memoryStorage = (): StorageLike => {
   const values = new Map<string, string>();
@@ -88,6 +98,16 @@ describe("the UI action reducer", () => {
     expect(auto.raidTeam?.length).toBe(3);
   });
 
+  it("clears one party's target by removing the party and freeing its heroes", () => {
+    const start = newGame(4242);
+    expect(start.plan.parties).toHaveLength(1);
+    const next = applyAction(start, { type: "set-party", index: 0, assignment: null });
+    expect(next.plan.parties).toEqual([]);
+    // The heroes are not released, only unassigned: they return to the pool.
+    expect(next.roster).toHaveLength(start.roster.length);
+    expect(freeHeroes(next)).toHaveLength(start.roster.length);
+  });
+
   it("does not mutate the state it is given", () => {
     const start = newGame(4242);
     const snapshot = structuredClone(start);
@@ -97,6 +117,107 @@ describe("the UI action reducer", () => {
       { type: "auto-raid-team" },
     ]);
     expect(start).toEqual(snapshot);
+  });
+});
+
+describe("the fatigue readout", () => {
+  it("draws one line for the badge, the chip and the raid-ready filter", () => {
+    const start = newGame(4242);
+    const base = start.roster[0]!;
+    const at = (fatigue: number) => ({ ...base, fatigue });
+    expect(fatigueState(at(44))).toBe("fresh");
+    expect(fatigueState(at(45))).toBe("tired");
+    expect(fatigueState(at(69))).toBe("tired");
+    expect(fatigueState(at(70))).toBe("exhausted");
+    expect(statusChips(at(70))[0]).toMatchObject({ label: "Exhausted", tone: "bad" });
+    expect(filterHeroes(start, [at(70)], "raid-ready")).toHaveLength(0);
+    expect(filterHeroes(start, [at(69)], "raid-ready")).toHaveLength(1);
+  });
+
+  it("counts exhausted assigned heroes for the party chip", () => {
+    const start = newGame(4242);
+    const [tiredId, exhaustedId] = start.plan.parties[0]!.heroes;
+    const state: GameState = {
+      ...start,
+      roster: start.roster.map((h) =>
+        h.id === tiredId
+          ? { ...h, fatigue: 52 }
+          : h.id === exhaustedId
+            ? { ...h, fatigue: 88 }
+            : h,
+      ),
+    };
+    expect(partyAdvice(state, 0).exhausted).toBe(1);
+  });
+});
+
+describe("the advance gate", () => {
+  it("refuses the day while a party is above the hero limit, and frees it when fixed", () => {
+    useGameStore.getState().startRun(4242, "Gate");
+    const start = useGameStore.getState().game!;
+    const ids = start.roster.map((h) => h.id);
+    // The Wolf Den fields 3; a fourth body is the over-limit plan the card
+    // lets the player build while they decide who leaves.
+    const extra: Hero = { ...start.roster[0]!, id: "extra-hero" };
+    const over: GameState = {
+      ...start,
+      roster: [...start.roster, extra],
+      plan: { parties: [{ contentId: "wolf-den", heroes: [...ids, extra.id], stance: "steady" }] },
+    };
+    useGameStore.setState({ game: over, screen: "hall" });
+
+    useGameStore.getState().advance();
+    const blocked = useGameStore.getState();
+    expect(blocked.game!.day).toBe(start.day);
+    expect(blocked.screen).toBe("war");
+    expect(blocked.toast?.text).toContain("4/3");
+
+    // Drop the fourth hero: the same advance now resolves the day.
+    useGameStore.setState({
+      game: { ...over, plan: { parties: [{ contentId: "wolf-den", heroes: ids, stance: "steady" }] } },
+    });
+    useGameStore.getState().advance();
+    expect(useGameStore.getState().game!.day).toBe(start.day + 1);
+  });
+
+  it("lets every hero leave a full party, then blocks the day until one is added back", () => {
+    useGameStore.getState().startRun(4242, "Short");
+    const start = useGameStore.getState().game!;
+    const ids = start.roster.map((h) => h.id);
+    const party = { ...start.plan.parties[0]!, contentId: "wolf-den" };
+    // The Wolf Den fields exactly 3. Removing one is the edit the old card
+    // refused; the plan holds 2/3 and the advance gate names the gap.
+    useGameStore.setState({
+      game: { ...start, plan: { parties: [{ ...party, heroes: ids.slice(0, 2) }] } },
+      screen: "war",
+    });
+    expect(useGameStore.getState().game!.plan.parties[0]!.heroes).toHaveLength(2);
+
+    useGameStore.getState().advance();
+    const blocked = useGameStore.getState();
+    expect(blocked.game!.day).toBe(start.day);
+    expect(blocked.toast?.text).toContain("2/3");
+    expect(blocked.toast?.text).toContain("add 1");
+
+    // The last hero can leave too. The target stays; 0/3 blocks the same way.
+    useGameStore.setState({
+      game: { ...start, plan: { parties: [{ ...party, heroes: [] }] } },
+    });
+    useGameStore.getState().advance();
+    const empty = useGameStore.getState();
+    expect(empty.game!.day).toBe(start.day);
+    expect(empty.game!.plan.parties[0]!.contentId).toBe("wolf-den");
+    expect(empty.toast?.text).toContain("0/3");
+    expect(empty.toast?.text).toContain("add 3");
+
+    useGameStore.setState({
+      game: {
+        ...start,
+        plan: { parties: [{ ...party, heroes: ids }] },
+      },
+    });
+    useGameStore.getState().advance();
+    expect(useGameStore.getState().game!.day).toBe(start.day + 1);
   });
 });
 
@@ -205,6 +326,36 @@ describe("party advice for the level gate", () => {
       false,
     );
     expect(partyAdvice({ ...start, plan: { parties: [] } }, 0).averageLevel).toBe(0);
+  });
+});
+
+describe("the next door readout", () => {
+  it("prints one gate line from the rule's own numbers", () => {
+    const base = newGame(4242);
+    const roster = Array.from({ length: 12 }, (_, index) => ({
+      ...base.roster[index % base.roster.length]!,
+      id: `door-${index}`,
+      level: 30,
+    }));
+    const state: GameState = { ...base, roster };
+    const info = nextDoorInfo(state)!;
+    expect(info.content.id).toBe("ashen-spire");
+    expect(info.shortName).toBe("Ashen Spire");
+    expect(info.kindLine).toBe("Dungeon · 4–5 heroes");
+    expect(info.gateLine).toBe("avg lvl 30.0 / 35 over your best 5 — 5.0 short");
+    expect(info.gap).toBe(5);
+    // The count in the drawer footer and the panel come from one list.
+    expect(info.closed).toBe(unavailableContent(state).length);
+  });
+
+  it("names a roster wall without pretending it is a level gap", () => {
+    const base = newGame(4242);
+    const state: GameState = { ...base, roster: base.roster.map((h) => ({ ...h, level: 60 })) };
+    const info = nextDoorInfo(state)!;
+    expect(info.content.id).toBe("hollow-crypt");
+    expect(info.gateLine).toBe("roster 3 / 4 heroes");
+    expect(info.gap).toBeNull();
+    expect(info.shortName).toBe("Hollow Crypt");
   });
 });
 

@@ -13,7 +13,7 @@ import { wageBudgetFor } from "./facilities";
 import { cardById, optionAffordable } from "./content/events";
 import { lootUpgrade, suggestLootTarget } from "./loot-target";
 import { CONTENT, KIND_LABEL } from "./content/content";
-import { CONTRACT, NEGOTIATION, PROMISE } from "./content/tuning";
+import { CONTRACT, FATIGUE_LINES, NEGOTIATION, PROMISE } from "./content/tuning";
 
 /** Deterministic id: no global counters, or replays diverge. */
 const hashText = (text: string): number => {
@@ -198,7 +198,7 @@ export const deriveAttention = (state: GameState): AttentionItem[] => {
   // fatigue column already carries the number; the queue only needs to say
   // that the night is being fought on empty.
   const assigned = assignedIds(state.plan);
-  const exhausted = state.roster.filter((h) => h.fatigue >= 70 && assigned.has(h.id));
+  const exhausted = state.roster.filter((h) => h.fatigue >= FATIGUE_LINES.exhausted && assigned.has(h.id));
   if (exhausted.length > 0) {
     items.push({
       id: itemId("fatigue-risk", undefined, today),

@@ -3,6 +3,7 @@ import {
   CLASS_IDS,
   CLASS_LABEL,
   CONTRACT_BOARD,
+  FATIGUE_LINES,
   ROLES,
   ROSTER_CAP,
   abilityById,
@@ -28,6 +29,8 @@ import {
   traitById,
   wageBill,
   wageBudgetFor,
+  nextDoor,
+  unavailableContent,
   type Assignment,
   type CheckType,
   type ContentAvailability,
@@ -39,6 +42,21 @@ import {
   type ScoreLine,
   type SquadStatus,
 } from "../sim";
+
+export type FatigueState = "fresh" | "tired" | "exhausted";
+
+/** The one place the screens decide how a fatigue number reads. */
+export const fatigueState = (hero: Hero): FatigueState =>
+  hero.fatigue >= FATIGUE_LINES.exhausted
+    ? "exhausted"
+    : hero.fatigue >= FATIGUE_LINES.tired
+      ? "tired"
+      : "fresh";
+
+export const FATIGUE_LABEL: Record<Exclude<FatigueState, "fresh">, string> = {
+  tired: "Tired",
+  exhausted: "Exhausted",
+};
 
 export type WageInfo = {
   bill: number;
@@ -124,6 +142,60 @@ export const contractInfo = (state: GameState) => {
   };
 };
 
+/**
+ * The next door, formatted once. `nextDoor` returns the rule's own numbers, so
+ * the header, the War Room panel and the picker footer cannot print three
+ * different gaps.
+ */
+export type NextDoorInfo = {
+  content: ContentDef;
+  /** The last segment of a raid name: `Obsidian Citadel — Gatewarden` → `Gatewarden`. */
+  shortName: string;
+  /** `Dungeon · 4–5 heroes`, `Raid · 10 heroes`, `Farm · 1–5 heroes`. */
+  kindLine: string;
+  /** The gate in one line: `avg lvl 33.8 / 35 over your best 5 — 1.2 short`. */
+  gateLine: string;
+  /** How much the guild is short. Positive means the door is closed. Null on a roster block. */
+  gap: number | null;
+  /** Areas still closed behind this one. */
+  closed: number;
+};
+
+export const nextDoorInfo = (state: GameState): NextDoorInfo | null => {
+  const door = nextDoor(state);
+  if (!door) return null;
+  const content = door.content;
+  const shortName = content.name.split("—").pop()?.trim() ?? content.name;
+  const sizes =
+    content.minHeroes === content.maxHeroes
+      ? `${content.minHeroes} heroes`
+      : `${content.minHeroes}–${content.maxHeroes} heroes`;
+  const kindLabel = content.kind.charAt(0).toUpperCase() + content.kind.slice(1);
+  if (door.gate) {
+    const need = door.gate.need;
+    const average = door.gate.average;
+    const gap = need - average;
+    return {
+      content,
+      shortName,
+      kindLine: `${kindLabel} · ${sizes}`,
+      gateLine:
+        `avg lvl ${average.toFixed(1)} / ${need} over your best ${door.gate.counted} — ` +
+        `${gap.toFixed(1)} short`,
+      gap,
+      closed: unavailableContent(state).length,
+    };
+  }
+  return {
+    content,
+    shortName,
+    kindLine: `${kindLabel} · ${sizes}`,
+    gateLine: door.roster ? `roster ${door.roster.have} / ${door.roster.need} heroes` : door.reason,
+    gap: null,
+    closed: unavailableContent(state).length,
+  };
+};
+
 export const inspectInfo = (state: GameState, contentId: string) => {
   const content = contentById(contentId);
   if (!content) return null;
@@ -190,7 +262,12 @@ export const freeHeroesFor = (state: GameState, partyIndex: number): Hero[] => {
 export type PartyAdvice = {
   projection: Projection | null;
   weakest: Projection["phases"][number] | null;
-  sizeProblem: string | null;
+  /** Heroes above the area's cap; > 0 blocks the day until one is removed. */
+  overBy: number;
+  /** Heroes below the area's minimum; > 0 blocks the day until one is added. */
+  underBy: number;
+  /** Assigned heroes at or over the exhausted line. */
+  exhausted: number;
   /** Party average level; 0 for an empty party. The War Room gates on this. */
   averageLevel: number;
   payScale: number;
@@ -203,7 +280,9 @@ export const partyAdvice = (state: GameState, index: number): PartyAdvice => {
     return {
       projection: null,
       weakest: null,
-      sizeProblem: null,
+      overBy: 0,
+      underBy: 0,
+      exhausted: 0,
       averageLevel: 0,
       payScale: 1,
       warnings: [],
@@ -221,9 +300,8 @@ export const partyAdvice = (state: GameState, index: number): PartyAdvice => {
     heroes.length === 0 ? 0 : heroes.reduce((total, hero) => total + hero.level, 0) / heroes.length;
   const warnings: string[] = [];
   if (content) {
-    if (heroes.length < content.minHeroes) {
-      warnings.push(`needs ${content.minHeroes} heroes — has ${heroes.length}`);
-    }
+    // The size gate is printed on every party card (chip, alert and the
+    // advance toast), so it is not repeated in this list.
     // The level gate is printed on every party card, so it is not repeated in
     // this list; the card needs the number whether the gate passes or not.
     const payScale = payScaleFor(state, content);
@@ -236,10 +314,9 @@ export const partyAdvice = (state: GameState, index: number): PartyAdvice => {
   return {
     projection,
     weakest,
-    sizeProblem:
-      content && heroes.length < content.minHeroes
-        ? `${heroes.length}/${content.minHeroes} heroes`
-        : null,
+    overBy: content ? Math.max(0, party.heroes.length - content.maxHeroes) : 0,
+    underBy: content ? Math.max(0, content.minHeroes - party.heroes.length) : 0,
+    exhausted: heroes.filter((hero) => fatigueState(hero) === "exhausted").length,
     averageLevel,
     payScale: content ? payScaleFor(state, content) : 1,
     warnings,
@@ -378,7 +455,7 @@ export const filterHeroes = (state: GameState, heroes: Hero[], view: HeroView): 
     case "all":
       return heroes;
     case "raid-ready":
-      return heroes.filter((h) => isAvailable(h) && h.fatigue < 70);
+      return heroes.filter((h) => isAvailable(h) && fatigueState(h) !== "exhausted");
     case "team":
       return heroes.filter((h) => team.has(h.id));
     case "resting":
@@ -397,8 +474,9 @@ export const filterHeroes = (state: GameState, heroes: Hero[], view: HeroView): 
 export const statusChips = (hero: Hero): { label: string; tone: string }[] => {
   const chips: { label: string; tone: string }[] = [];
   if (hero.injuryDays > 0) chips.push({ label: `OUT ${hero.injuryDays}d`, tone: "bad" });
-  if (hero.fatigue >= 70) chips.push({ label: "Exhausted", tone: "warn" });
-  else if (hero.fatigue >= 45) chips.push({ label: "Tired", tone: "warn" });
+  const fatigue = fatigueState(hero);
+  if (fatigue === "exhausted") chips.push({ label: "Exhausted", tone: "bad" });
+  else if (fatigue === "tired") chips.push({ label: "Tired", tone: "warn" });
   if (hero.morale < 40) chips.push({ label: "Unhappy", tone: "bad" });
   if (hero.contract.daysLeft <= 7) chips.push({ label: `${hero.contract.daysLeft}d left`, tone: "warn" });
   if (hero.contract.counterRefused) chips.push({ label: "Counter refused", tone: "bad" });

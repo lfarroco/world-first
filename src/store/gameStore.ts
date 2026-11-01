@@ -4,6 +4,8 @@ import {
   deriveAttention,
   hasBlocking,
   newGame,
+  partySizeProblems,
+  sizeProblemLine,
   type EncounterLog,
   type GameEvent,
   type GameState,
@@ -208,6 +210,16 @@ export const useGameStore = create<GameStore>()((set, get) => {
             `Day ${state.day} is waiting on you${blocked[0] ? ` — ${blocked[0].title}` : ""}.`,
             "bad",
           ),
+        });
+        return;
+      }
+      // A party outside the area's hero range is a plan the simulation would
+      // drop silently. Send the player to the card that needs the fix instead.
+      const size = partySizeProblems(state);
+      if (size.length > 0) {
+        set({
+          screen: "war",
+          toast: toast(sizeProblemLine(size[0]!), "bad"),
         });
         return;
       }

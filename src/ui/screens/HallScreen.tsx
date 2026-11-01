@@ -6,6 +6,8 @@ import {
   digestForDay,
   lootUpgrade,
   nextCost,
+  partySizeProblems,
+  sizeProblemLine,
   rosterCapFor,
   suggestLootTarget,
   type AttentionItem,
@@ -448,6 +450,7 @@ export const HallScreen = () => {
       return `${name} (${p.heroes.length})`;
     })
     .join(" · ");
+  const size = partySizeProblems(game);
 
   return (
     <div className="stack" style={{ gap: 14 }}>
@@ -460,7 +463,9 @@ export const HallScreen = () => {
             {game.finished
               ? "The verdict and the moments that made it are on the report."
               : game.plan.parties.length > 0
-                ? `Tonight: ${partyLine}. ${game.attention.some((i) => i.blocking) ? "Answer what needs you first." : "The queue is clear — advance when ready."}`
+                ? size.length > 0
+                  ? `Tonight: ${partyLine}. ${sizeProblemLine(size[0]!)}`
+                  : `Tonight: ${partyLine}. ${game.attention.some((i) => i.blocking) ? "Answer what needs you first." : "The queue is clear — advance when ready."}`
                 : "No party is set. The day will resolve as a rest day unless you plan one."}
           </p>
         </div>

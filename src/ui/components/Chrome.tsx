@@ -1,12 +1,13 @@
 import {
   RUN_DAYS,
   blockingAttention,
+  partySizeProblems,
   playerRaidsCleared,
   RAIDS,
   contentById,
 } from "../../sim";
 import { useGameStore } from "../../store/gameStore";
-import { guildSummary, wageInfo } from "../../store/selectors";
+import { guildSummary, nextDoorInfo, wageInfo } from "../../store/selectors";
 
 const fmt = (value: number): string => Math.round(value).toLocaleString("en-US");
 
@@ -19,6 +20,7 @@ export const TopBar = () => {
   const wage = wageInfo(game);
   const summary = guildSummary(game);
   const blocked = blockingAttention(game);
+  const size = partySizeProblems(game);
   const raids = playerRaidsCleared(game);
   const lastCleared = game.progress
     .filter((p) => contentById(p.contentId)?.kind === "raid" && p.clears > 0)
@@ -31,6 +33,10 @@ export const TopBar = () => {
     : nextRaid
       ? `${contentById(nextRaid.contentId)?.name.split("—").pop()?.trim() ?? "next raid"} next`
       : "no raid left";
+  // The brand names the next door, not the next raid: a raid locked behind a
+  // dungeon is not the step the guild can take (L108).
+  const door = nextDoorInfo(game);
+  const stepLabel = door ? `${door.shortName} next` : raidLabel;
 
   return (
     <header className="topbar">
@@ -40,7 +46,7 @@ export const TopBar = () => {
           <div>
             <div className="brand-name">{game.guildName}</div>
             <div className="brand-sub">
-              Renown {game.renown} · {raidLabel}
+              Renown {game.renown} · {stepLabel}
             </div>
           </div>
         </div>
@@ -79,12 +85,14 @@ export const TopBar = () => {
 
         <div className="advance">
           <div className="advance-copy">
-            <div className={`advance-note ${blocked.length > 0 ? "advance-blocked" : ""}`}>
+            <div className={`advance-note ${blocked.length > 0 || size.length > 0 ? "advance-blocked" : ""}`}>
               {game.finished
                 ? "run complete"
                 : blocked.length > 0
                   ? `${blocked.length} item${blocked.length === 1 ? "" : "s"} ${blocked.length === 1 ? "needs" : "need"} you`
-                  : "ready"}
+                  : size.length > 0
+                    ? `${size.length} part${size.length === 1 ? "y" : "ies"} outside the hero range`
+                    : "ready"}
             </div>
             <div className="tiny dim">
               <span className="kbd">Space</span> to advance
@@ -94,7 +102,13 @@ export const TopBar = () => {
             className="btn btn-primary btn-lg"
             onClick={advance}
             disabled={game.finished}
-            title={game.finished ? "The run is over" : "Resolve the day with the current plan"}
+            title={
+              game.finished
+                ? "The run is over"
+                : size.length > 0
+                  ? "Blocked while a party is outside its hero range"
+                  : "Resolve the day with the current plan"
+            }
           >
             {game.finished ? "Run complete" : "Advance day ▸"}
           </button>
@@ -130,6 +144,7 @@ export const Nav = () => {
   if (!game) return null;
 
   const blocked = blockingAttention(game).length;
+  const size = partySizeProblems(game).length;
   const expiring = game.roster.filter((h) => h.contract.daysLeft <= 7).length;
   const injured = game.roster.filter((h) => h.injuryDays > 0).length;
   const planWarnings = game.plan.parties.length === 0;
@@ -138,7 +153,7 @@ export const Nav = () => {
     if (game.finished) return 0;
     if (id === "hall") return blocked;
     if (id === "roster") return expiring + injured;
-    if (id === "war") return planWarnings ? 1 : 0;
+    if (id === "war") return planWarnings || size > 0 ? 1 : 0;
     return 0;
   };
 
@@ -158,7 +173,9 @@ export const Nav = () => {
       ].filter(Boolean);
       return parts.length > 0 ? parts.join(", ") : `${count} roster alert${count === 1 ? "" : "s"}`;
     }
-    if (id === "war") return "no party planned for tonight";
+    if (id === "war") {
+      return size > 0 ? "a party is outside its hero range" : "no party planned for tonight";
+    }
     return "";
   };
 

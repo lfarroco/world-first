@@ -39,6 +39,17 @@ export const INJURY = {
 export const HEALTH_RECOVERY_PER_DAY = 14;
 
 /**
+ * The two lines the screens draw on fatigue. `tired` is a nudge; `exhausted`
+ * is the state the daily queue calls "running on empty" and the reason a hero
+ * should not be sent out. Both live here so the badge, the picker and the
+ * attention line cannot drift apart.
+ */
+export const FATIGUE_LINES = {
+  tired: 45,
+  exhausted: 70,
+} as const;
+
+/**
  * The line the planner uses to pull a hero out of the plan. It is also what an
  * event card's fatigue cost means: a push that puts a hero over this line costs
  * the night, not a percentage of his output.
