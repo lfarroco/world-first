@@ -8,7 +8,7 @@ import {
 import { focusPull, nextLevers } from "../src/sim/report";
 import { applyAction, logAction, type GameAction } from "../src/store/actions";
 import { SAVE_KEY, loadSave, writeSave, type StorageLike } from "../src/store/save";
-import { partyAdvice } from "../src/store/selectors";
+import { filterHeroes, partyAdvice } from "../src/store/selectors";
 
 const memoryStorage = (): StorageLike => {
   const values = new Map<string, string>();
@@ -205,5 +205,18 @@ describe("party advice for the level gate", () => {
       false,
     );
     expect(partyAdvice({ ...start, plan: { parties: [] } }, 0).averageLevel).toBe(0);
+  });
+});
+
+describe("the roster Injured view", () => {
+  it("answers with the same set the tab badge counts", () => {
+    const state = newGame(4242);
+    const [first, second] = state.roster;
+    // A hero at 99 health is recovering and deployable; only injuryDays makes
+    // him count as an injury on the tab and in the view.
+    const recovering = { ...first!, health: 80, injuryDays: 0 };
+    const injured = { ...second!, health: 60, injuryDays: 2 };
+    const heroes = [recovering, injured];
+    expect(filterHeroes(state, heroes, "injured")).toEqual([injured]);
   });
 });

@@ -166,6 +166,7 @@ const HeroRow = ({ hero }: { hero: Hero }) => {
 export const RosterScreen = () => {
   const game = useGameStore((s) => s.game);
   const openModal = useGameStore((s) => s.openModal);
+  const selectHero = useGameStore((s) => s.selectHero);
   const [view, setView] = useState<HeroView>("all");
   const [query, setQuery] = useState("");
   const [klass, setKlass] = useState("all");
@@ -218,6 +219,31 @@ export const RosterScreen = () => {
   const cap = game.roster.length;
   const wage = wageBill(game.roster);
   const budget = wageBudgetFor(game.renown, game.facilities);
+  // The Roster tab count is contracts inside seven days plus injuries. Say
+  // which hero each count is about; a tooltip on the tab is not enough once
+  // the player is looking at a twenty-row table.
+  const alerts = [
+    ...game.roster
+      .filter((hero) => hero.contract.daysLeft <= 7)
+      .sort((a, b) => a.contract.daysLeft - b.contract.daysLeft)
+      .map((hero) => ({
+        key: `contract-${hero.id}`,
+        hero,
+        kind: "Contract",
+        tone: "warn" as const,
+        detail: `${hero.contract.daysLeft} day${hero.contract.daysLeft === 1 ? "" : "s"} left · ${hero.contract.wage}g/week`,
+      })),
+    ...game.roster
+      .filter((hero) => hero.injuryDays > 0)
+      .sort((a, b) => b.injuryDays - a.injuryDays)
+      .map((hero) => ({
+        key: `injury-${hero.id}`,
+        hero,
+        kind: "Injured",
+        tone: "bad" as const,
+        detail: `out ${hero.injuryDays} day${hero.injuryDays === 1 ? "" : "s"}`,
+      })),
+  ];
 
   return (
     <div className="stack" style={{ gap: 12 }}>
@@ -242,6 +268,36 @@ export const RosterScreen = () => {
           </button>
         </div>
       </header>
+
+      {alerts.length > 0 ? (
+        <section className="panel">
+          <div className="panel-head">
+            <span className="eyebrow">Roster alerts ({alerts.length})</span>
+            <span className="tiny dim">the Roster tab count · click a hero</span>
+          </div>
+          <div>
+            {alerts.slice(0, 5).map((alert) => (
+              <button
+                className="roster-alert"
+                key={alert.key}
+                onClick={() => selectHero(alert.hero.id)}
+                title="Open the hero sheet"
+              >
+                <Chip tone={alert.tone}>{alert.kind}</Chip>
+                <span style={{ fontWeight: 600 }}>{alert.hero.name}</span>
+                <span className="small dim">{alert.detail}</span>
+                <span className="grow" />
+                <span className="tiny dim">open ▸</span>
+              </button>
+            ))}
+            {alerts.length > 5 ? (
+              <div className="tiny dim" style={{ padding: "6px 12px" }}>
+                +{alerts.length - 5} more — use the Expiring or Injured view.
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="panel">
         <div className="panel-head" style={{ gap: 10, alignItems: "center" }}>

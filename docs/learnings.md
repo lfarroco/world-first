@@ -627,3 +627,11 @@ The War Room printed the area's average-level requirement only in `partyAdvice.w
 **Evidence:** player screenshot, day 15 — The Wolf Den card lists three heroes and no level requirement; the only place the gate appears is the target picker's `Avg lvl` column, which is closed while assigning.
 **Changes:** every party card prints `avg lvl X / N` beside its size, red when below; the hero picker repeats `needs avg lvl N · party avg X` and warns when the current party is under; deployed and bench chips label the number `lvl`; the picker row labels `lvl · iLvl · pow` and keeps the full line in its tooltip.
 **Rejected:** a per-hero "below level" badge (the gate is an average, so a low hero can be carried), and putting the requirement only in the inspect sheet (it is closed during assignment).
+
+## The roster alerts strip (2026-10-31)
+
+### L102. A badge that counts two different things needs a list, not a bigger tooltip
+The Roster tab counts expiring contracts plus injuries. L100 made the tab title say so (`Roster — 1 contract expiring`), but clicking it landed on a twenty-row table sorted by power, where the reason was one `7d left` chip. The count was explained; the item was not.
+**Evidence:** player screenshot, day 16 — the Roster tab read `1`; the table showed twenty heroes and the only marker was a contract chip on one row, below the fold of the grouped view.
+**Changes:** an alerts strip above the table names each expiring contract and injury (`Contract · Perrin the Pale · 7 days left · 124g/week`) and opens the hero sheet on click. It counts the same expiring-plus-injured set as the tab badge, and the Injured view now uses the same `injuryDays > 0` predicate; the number, the list and the filter cannot disagree.
+**Rejected:** auto-switching the Roster view to "Expiring" on entry (surprising, and it hides the rest of the roster), and a row highlight alone (the alert can sit far down a grouped table).

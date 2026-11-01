@@ -8,7 +8,7 @@ Every screen below is specified as: **purpose → regions → data/Lists → act
 > |---|---|---|
 > | Global chrome | Built | Gold, day, wages, score, rank, raids; labelled tab badges (the count hides on the open tab); Space to advance; `1–5`, `R`, `W`, `Esc`. The advance button is sticky, not fixed to the bottom on mobile. |
 > | Guild Hall | Built, compact | Queue-first layout, digest, standings with a link to the raid hub, week strip, contract board, promises, loot, facilities, tavern. The week strip reads the event log, so a routine farm night with no events is blank. |
-> | Roster | Built | Table, six views, class filter, search, sort, group-by-class, status chips, last five events. No bulk selection, column chooser, compare mode or power trend (there is no 7-day history in the sim). |
+> | Roster | Built | Table, six views, class filter, search, sort, group-by-class, status chips, last five events. An alerts strip names the expiring contracts and injuries behind the tab count and opens the hero sheet. No bulk selection, column chooser, compare mode or power trend (there is no 7-day history in the sim). |
 > | Hero Sheet | Built | Attributes, all eight role chips with fit multipliers, previewed check contributions, gear, condition, contract, traits, ten-day event strip. Potential is shown as unscouted, not scouted; no portrait and no compare drawer. |
 > | Tavern | Built, reduced | Candidate list and immediate signing at the listed fee. No scouting fog, no watchlist, and no three-round wage negotiation: the sim's `hireCandidate` has no negotiation state. |
 > | War Room | Built | Click-to-fill slots in Front/Mid/Back order, target picker, inspect sheet, live projection, stance, auto-fill, standing raid ten, loot strip, rest day. Each party card prints its average level against the area gate; the hero picker repeats the requirement and labels `lvl · iLvl · pow`. No drag-and-drop, no flasks (no prep purchase exists in the sim), no split-run funnel. |
@@ -139,6 +139,8 @@ Dark operations console, not a fantasy illustration. The game is read at a glanc
 | Last 5 | ✓✓✗—✓ activity strip |
 
 **Views (saved filters):** `All · Raid-ready · Resting · Unhappy · Expiring · Injured`
+
+**Alerts strip.** When a contract is inside seven days or a hero is injured, a strip above the table names each one — `Contract · Perrin the Pale · 7 days left · 124g/week` — and opens the hero sheet on click. It counts the same expiring-plus-injured set as the Roster tab badge and the Injured view: the badge says how many, the strip says which hero and why. The strip shows the five most urgent; the rest are one `+N more` line pointing at the Expiring / Injured views.
 
 **Filters:** class, level range, role fit, wage max, status. Attribute-range filter available via "Advanced" (FM-style query) but not in the MVP default surface.
 

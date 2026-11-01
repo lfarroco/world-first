@@ -10,7 +10,7 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 
 | Piece | State |
 |---|---|
-| Simulation core | Done — deterministic, 142 tests, `resolveDay` clones its input |
+| Simulation core | Done — deterministic, 143 tests, `resolveDay` clones its input |
 | Progression ladder | Done — 3 heroes → 3 farms, 7 missions, 4 dungeons, 3 raids over 84 days. The list hides what the guild cannot field and announces each new area once |
 | Content inspection | Done — `content` shows rewards and projection per area; `inspect <id>` shows phases, bestiary and truthful drop chances |
 | AI planner | Done — priorities, raid prep, resting, hiring, 6 personalities; prices the purse, the next wall's level gate and the gear gap |
@@ -23,7 +23,7 @@ Last updated: 2026-10-31. Update this file when a phase ships or the order chang
 | Role review | Done — the reviewer only re-specs a party below 1.0, caps at two flips, and stops at 1.0; the `role` command prints the four check deltas. The 1.30 affinity widening was measured and rejected (ladder volatility); the 1.15 table stays |
 | CLI | Done — playable end to end; invalid plans are repaired and reported, and every screen names its inputs |
 | Balance | Provisional — 20 seeds on the current build (bridge + contracts): Steward 25,238, Quartermaster 26,302, Gambler 21,208; full clears 16/18/10 = 44/60. The earlier pre-bridge control on the same harness was 15/17/9 = 41/60. The conservative AI is 44/60; the player's need pick is 52/60; day-40 team iLvl is 46–55 against the 65 target (§3.6–§3.8) |
-| UI | **Vertical slice shipped** — Guild Hall, Roster + Hero Sheet, War Room with live projection, Raid hub with the per-boss pull log, Report + Run End, attention queue, loot, tavern, facilities. No drag-and-drop, scouting fog or wage negotiation. Bundle 416 kB raw / 124 kB gzip; 142 tests; `npm run dev` |
+| UI | **Vertical slice shipped** — Guild Hall, Roster + Hero Sheet, War Room with live projection, Raid hub with the per-boss pull log, Report + Run End, attention queue, loot, tavern, facilities. No drag-and-drop, scouting fog or wage negotiation. Bundle 418 kB raw / 124 kB gzip; 143 tests; `npm run dev` |
 | Raid hub | Done — the three-boss ladder with lock reasons, the four-guild race with live rival activity and per-boss best, and a bounded per-pull log of the guild's raid nights (failed check, shortfall, stance). Rivals carry no log; the player's is 4 kB at day 85 |
 | Drama / events | 10 cards, fired at 40%/day. The AI prices every option and chooses; the trace is in [progression-report.md](progression-report.md) §5.4 |
 | Traits | 20 across five kinds, rolled at creation, used by resolution and the planner. Within 1.7% of the two-counter build ([progression-report.md](progression-report.md) §6.5) |
@@ -100,7 +100,7 @@ The compressed one-number model is gone. Each rival is a full `GameState` with i
 - **Attention and loot** — blocking items gate Advance; every option carries its consequence; drops never block and the next Advance takes the default.
 - **Tavern and facilities** — pulled forward from the amplification list because a guild that cannot hire is stuck at three heroes (see the learning below).
 
-**Measured:** 142 tests (five new sim tests for the raid log and one selector test for the party level gate, on top of the twelve headless action/reducer tests); production build 416.49 kB JS / 123.60 kB gzip and 35.27 kB CSS / 7.98 kB gzip in 0.68 s; a save is 164–255 kB because it carries the three rival guilds and the player's raid log (4 kB for 17 nights, 1.5% of the end-of-run save; 3.4 ms to stringify and 2.3 ms to parse the 255 kB file, 500 runs, and the log moves either by under 0.1 ms). A full 84-day UI run completes and reaches the verdict (automated, first-option queue).
+**Measured:** 143 tests (five new sim tests for the raid log and two selector tests for the party level gate and the Injured view, on top of the twelve headless action/reducer tests); production build 417.88 kB JS / 123.86 kB gzip and 35.56 kB CSS / 8.01 kB gzip in 0.72 s; a save is 164–255 kB because it carries the three rival guilds and the player's raid log (4 kB for 17 nights, 1.5% of the end-of-run save; 3.4 ms to stringify and 2.3 ms to parse the 255 kB file, 500 runs, and the log moves either by under 0.1 ms). A full 84-day UI run completes and reaches the verdict (automated, first-option queue).
 
 **Cut from this pass:** drag-and-drop, bulk roster actions, comparison drawer, column chooser, scouting fog, signing negotiation, contracts table, settings, mobile card list, fixed bottom Advance. Each needs a sim field or a playtest.
 

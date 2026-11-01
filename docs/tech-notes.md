@@ -201,7 +201,7 @@ Measured 2026-10-31 on the shipped build:
 - **`sim --runs 20`** (60 world runs) is ~65 s at the board build. The unit tests use the player-only `aiRun`; three world runs cover the race.
 - The roster table is ≤ 22 rows. No virtualisation needed. Tavern is ≤ 3.
 - **The projection is the expensive interaction.** `projectAssignment` runs on every party/stance/content change. It is one pure call over the party (≤22 heroes), so the War Room recomputes it rather than caching a derived number; keep it pure. The 15-hero AI save rendered without a visible delay in the headless pass; no frame timing was taken.
-- **Production bundle:** 416.49 kB JS / 123.60 kB gzip and 35.27 kB CSS / 7.98 kB gzip, built in 0.68 s (`vite build`, 74 modules). No component library, no chart library, no drag library.
+- **Production bundle:** 417.88 kB JS / 123.86 kB gzip and 35.56 kB CSS / 8.01 kB gzip, built in 0.72 s (`vite build`, 74 modules). No component library, no chart library, no drag library.
 - **Save cost:** a day-41 save is 164 kB; a finished run is 255 kB because it carries three rival guilds and the player's raid log (4 kB for 17 nights). The end-of-run file stringifies in 3.4 ms and parses in 2.3 ms over 500 runs on the dev host; the log moves either by under 0.1 ms. The store writes on every game action, not on UI state, so a day costs one write on top of the ~13 ms world tick.
 - A 10,000-day batch is ~12 s with `aiRun` (player only, ~119 full runs) and ~100 s with the world attached. Optimise the rival planner first if that becomes the bottleneck; do not cut the race out of the sweep.
 

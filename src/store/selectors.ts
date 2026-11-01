@@ -388,7 +388,9 @@ export const filterHeroes = (state: GameState, heroes: Hero[], view: HeroView): 
     case "expiring":
       return heroes.filter((h) => h.contract.daysLeft <= 7);
     case "injured":
-      return heroes.filter((h) => !isAvailable(h) || h.health < 100);
+      // The Roster tab counts `injuryDays > 0`; the view must answer with the
+      // same set. A hero at 99 health is recovering, not out.
+      return heroes.filter((h) => h.injuryDays > 0);
   }
 };
 
