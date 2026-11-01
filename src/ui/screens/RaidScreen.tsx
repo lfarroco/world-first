@@ -19,6 +19,7 @@ import {
 import { useGameStore } from "../../store/gameStore";
 import { guildSummary } from "../../store/selectors";
 import { Chip, Meter } from "../components/Primitives";
+import { Art } from "../components/Art";
 
 const fmt = (value: number): string => Math.round(value).toLocaleString("en-US");
 const pct = (value: number): string => `${Math.round(value * 100)}%`;
@@ -117,6 +118,7 @@ const RaidMap = ({
             title={availability.reason || `Read the log for ${shortName(raid)}`}
           >
             <span className="raid-index">{index + 1}</span>
+            <Art base={`/art/places/${raid.id}`} alt="" width={62} height={35} className="raid-thumb" />
             <span className="raid-body">
               <span className="raid-line">
                 <span className="raid-name">{shortName(raid)}</span>

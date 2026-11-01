@@ -4,6 +4,7 @@ import { aiTurn, type AiTurn } from "./ai/turn";
 import { personalityById, type Personality } from "./ai/personalities";
 import { resolveDay } from "./day";
 import { blockingAttention, event, hasBlocking, push } from "./events";
+import { rivalPoachTick } from "./poach";
 import { rivalRaidsCleared } from "./rivals";
 
 const raidName = (rival: Rival): string => {
@@ -99,6 +100,11 @@ export const tickRivals = (state: GameState): void => {
       );
     }
   }
+
+  // The rivals trade among themselves after their own days. This is ambient:
+  // it changes a bench body, not a raid ten, and the Guilds screen shows who
+  // moved. It runs after the raid check so it cannot change the World First.
+  rivalPoachTick(state);
 };
 
 /** One guild day, then the world's. */

@@ -18,6 +18,7 @@ import {
   unavailableContent,
   type Assignment,
   type ContentDef,
+  type ContentKind,
   type GameState,
   type Hero,
   type Stance,
@@ -29,6 +30,7 @@ import {
   contractInfo,
   contentChoices,
   fatigueState,
+  featuredInfo,
   freeHeroesFor,
   nextDoorInfo,
   partyAdvice,
@@ -39,6 +41,7 @@ import {
   type SlotRow,
 } from "../../store/selectors";
 import { Chip, Meter } from "../components/Primitives";
+import { Art } from "../components/Art";
 import { ConfirmButton, Modal as Dialog } from "../components/Modal";
 
 const STANCES: { id: Stance; label: string; hint: string }[] = [
@@ -94,11 +97,21 @@ const ContentPicker = ({
   const dispatch = useGameStore((s) => s.dispatch);
   const setSelected = useGameStore((s) => s.selectParty);
   const openModal = useGameStore((s) => s.openModal);
+  const [kindFilter, setKindFilter] = useState<ContentKind | "all">("all");
   if (!game) return null;
 
   const choices = contentChoices(game);
   const hidden = unavailableContent(game);
   const door = nextDoorInfo(game);
+  const kinds: { id: ContentKind | "all"; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "farm", label: "Farm" },
+    { id: "mission", label: "Mission" },
+    { id: "dungeon", label: "Dungeon" },
+    { id: "raid", label: "Raid" },
+  ];
+  const shown = choices.filter((choice) => kindFilter === "all" || choice.content.kind === kindFilter);
+  const star = featuredInfo(game);
   const usedByAnother = new Set(
     game.plan.parties.filter((_, index) => index !== partyIndex).map((p) => p.contentId),
   );
@@ -144,6 +157,28 @@ const ContentPicker = ({
         </>
       }
     >
+      <div className="row-wrap" style={{ marginBottom: 8, gap: 4 }}>
+        {kinds.map((kind) => {
+          const count = choices.filter((choice) => kind.id === "all" || choice.content.kind === kind.id).length;
+          return (
+            <button
+              key={kind.id}
+              className="btn btn-sm"
+              data-active={kindFilter === kind.id}
+              onClick={() => setKindFilter(kind.id)}
+              style={
+                kindFilter === kind.id
+                  ? { borderColor: "var(--color-gold)", color: "var(--color-gold)" }
+                  : undefined
+              }
+            >
+              {kind.label} {count}
+            </button>
+          );
+        })}
+        <span className="grow" />
+        {star ? <Chip tone="gold">★ {star.content.name}</Chip> : null}
+      </div>
       <div className="table-wrap">
         <table className="data-table">
           <thead>
@@ -162,7 +197,16 @@ const ContentPicker = ({
             </tr>
           </thead>
           <tbody>
-            {choices.map((choice) => {
+            {shown.length === 0 ? (
+              <tr>
+                <td colSpan={11}>
+                  <div className="empty" style={{ padding: "14px 0" }}>
+                    Nothing open in this tab today.
+                  </div>
+                </td>
+              </tr>
+            ) : null}
+            {shown.map((choice) => {
               const c = choice.content;
               const clash = usedByAnother.has(c.id);
               const status =
@@ -179,7 +223,15 @@ const ContentPicker = ({
                   style={clash ? { opacity: 0.42 } : undefined}
                   title={clash ? "Already planned by another party" : "Choose this target"}
                 >
-                  <td style={{ fontWeight: 600 }}>{c.name}</td>
+                  <td style={{ fontWeight: 600 }}>
+                    <span className="row" style={{ gap: 8 }}>
+                      <Art base={`/art/places/${c.id}`} alt="" width={44} height={26} className="place-thumb" />
+                      <span>
+                        {choice.featured ? <span className="gold">★ </span> : null}
+                        {c.name}
+                      </span>
+                    </span>
+                  </td>
                   <td className="muted">{KIND_LABEL[c.kind]}</td>
                   <td className="num">{c.minLevel}</td>
                   <td className="num">
@@ -215,7 +267,7 @@ const ContentPicker = ({
         </table>
       </div>
       <div className="tiny dim" style={{ marginTop: 8 }}>
-        {choices.length} open today · {hidden.length} area{hidden.length === 1 ? "" : "s"} not open yet.
+        {shown.length} of {choices.length} shown · {hidden.length} area{hidden.length === 1 ? "" : "s"} not open yet.
         {door ? (
           <>
             {" "}
@@ -452,6 +504,9 @@ const ContentButton = ({
   const content = contentById(party.contentId);
   return (
     <button className="party-target" onClick={onOpen} title="Choose the target">
+      {content ? (
+        <Art base={`/art/places/${content.id}`} alt="" width={34} height={21} className="place-thumb" />
+      ) : null}
       <span>{content?.name ?? party.contentId}</span>
       <span className="tiny dim">▾</span>
     </button>
@@ -480,6 +535,8 @@ const PartyCard = ({
   if (!party) return null;
   const content = contentById(party.contentId);
   if (!content) return null;
+  const star = featuredInfo(game);
+  const starred = star?.content.id === content.id;
   const heroes = partyHeroes(game, index);
   const advice = partyAdvice(game, index);
   const free = freeHeroesFor(game, index).filter((h) => !party.heroes.includes(h.id));
@@ -542,6 +599,11 @@ const PartyCard = ({
         >
           avg lvl {heroes.length === 0 ? "—" : averageLevel.toFixed(1)} / {content.minLevel}
         </Chip>
+        {starred ? (
+          <Chip tone="gold" title="This area pays 50% more gold today.">
+            ★ star
+          </Chip>
+        ) : null}
         {advice.exhausted > 0 ? (
           <Chip
             tone="bad"

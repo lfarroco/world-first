@@ -21,7 +21,8 @@ import {
 } from "../../sim";
 import { useGameStore } from "../../store/gameStore";
 import { heroChecks, heroHistory, roleOptions, statusChips, traitChips } from "../../store/selectors";
-import { Chip, ClassIcon, Meter } from "../components/Primitives";
+import { Chip, Meter } from "../components/Primitives";
+import { Portrait } from "../components/Portrait";
 import { ConfirmButton } from "../components/Modal";
 
 const ATTR_LABEL: Record<AttrKey, string> = {
@@ -146,9 +147,7 @@ export const HeroSheet = ({ heroId, onClose }: { heroId: string; onClose: () => 
       <aside className="drawer" role="dialog" aria-modal="true" aria-label={`${hero.name} sheet`}>
         <div className="drawer-head">
           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <div style={{ paddingTop: 4 }}>
-              <ClassIcon klass={hero.klass} label={CLASS_LABEL[hero.klass]} />
-            </div>
+            <Portrait role={hero.naturalRole} klass={hero.klass} name={hero.name} size={84} height={105} />
             <div>
               <h2 className="screen-title" style={{ fontSize: 21 }}>
                 {hero.name}

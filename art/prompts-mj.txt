@@ -1,0 +1,293 @@
+# public/art/roles/bulwark.jpg
+oil-painted dark fantasy portrait, bust to mid-chest, three-quarter turn toward the light, single warm key light from the upper left, cool slate shadow, muted ash and old-gold palette, matte canvas texture, focus on the eyes, plain near-black background, no text, no border, a heavyset man of fifty, grey beard, scarred plate, tower shield edge-down, helm under one arm, patient --ar 4:5 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/roles/vanguard.jpg
+oil-painted dark fantasy portrait, bust to mid-chest, three-quarter turn toward the light, single warm key light from the upper left, cool slate shadow, muted ash and old-gold palette, matte canvas texture, focus on the eyes, plain near-black background, no text, no border, a wiry woman of twenty-eight, shaved at the sides, half-plate, two-handed axe across the shoulders, jaw set --ar 4:5 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/roles/lightbringer.jpg
+oil-painted dark fantasy portrait, bust to mid-chest, three-quarter turn toward the light, single warm key light from the upper left, cool slate shadow, muted ash and old-gold palette, matte canvas texture, focus on the eyes, plain near-black background, no text, no border, a young man from the southern desert, cropped hair, pale vestments over mail, hands cupped around a small steady flame --ar 4:5 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/roles/oracle.jpg
+oil-painted dark fantasy portrait, bust to mid-chest, three-quarter turn toward the light, single warm key light from the upper left, cool slate shadow, muted ash and old-gold palette, matte canvas texture, focus on the eyes, plain near-black background, no text, no border, an old woman, hooded, eyes closed, iron bells at the belt, ink-stained fingers, still --ar 4:5 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/roles/evoker.jpg
+oil-painted dark fantasy portrait, bust to mid-chest, three-quarter turn toward the light, single warm key light from the upper left, cool slate shadow, muted ash and old-gold palette, matte canvas texture, focus on the eyes, plain near-black background, no text, no border, a woman of forty with a burn scar on one cheek, scorched robes, an ember burning in her open palm, impatient --ar 4:5 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/roles/arcanist.jpg
+oil-painted dark fantasy portrait, bust to mid-chest, three-quarter turn toward the light, single warm key light from the upper left, cool slate shadow, muted ash and old-gold palette, matte canvas texture, focus on the eyes, plain near-black background, no text, no border, a heavyset man in his sixties, layered robes, a book chained to the wrist, tired and precise --ar 4:5 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/roles/assassin.jpg
+oil-painted dark fantasy portrait, bust to mid-chest, three-quarter turn toward the light, single warm key light from the upper left, cool slate shadow, muted ash and old-gold palette, matte canvas texture, focus on the eyes, plain near-black background, no text, no border, a young woman with dark skin and a shaved head, dark leathers, short blade reversed along the forearm, flat stare --ar 4:5 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/roles/trickster.jpg
+oil-painted dark fantasy portrait, bust to mid-chest, three-quarter turn toward the light, single warm key light from the upper left, cool slate shadow, muted ash and old-gold palette, matte canvas texture, focus on the eyes, plain near-black background, no text, no border, a lean man of thirty-five with a broken nose, road clothes, three knives and a coil of wire, half a smile --ar 4:5 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/emberwood.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, birch and pine wood at dusk, moss underfoot, a hunter's trail, embers of a dead campfire --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/old-quarry.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, abandoned stone quarry, terraced cut walls, rusted winch, black water at the bottom --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/whisper-glade.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, still glade ringed by old trees, low mist, pale flowers, one shaft of light --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/warrens.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, cellar under a tavern, brick vaults, straw and rat runs, a single lantern --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/wolf-den.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, rock den mouth under a root tangle, bones and shed fur, snow at the entrance --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/drowned-mill.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, watermill half-sunk in a millpond, wheel still turning, thick fog --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/bandit-road.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, muddy trade road through scrub, wagon ruts, a torn banner on a post, ambush ground --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/toll-house.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, stone toll house at a bridge approach, barred window, chain across the gate --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/plundered-vault.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, bank vault opened from the inside, coin scattered, iron door ajar --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/broken-bridge.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, stone bridge with a missing span over fast water, rope and loose planks --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/hollow-crypt.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, crypt stair descending into dark, carved arches, candle stubs, cold air --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/sallow-reach.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, flooded orchard, dead trees in shallow water, duckboards, yellow mist --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/wailing-mines.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, mine shaft entrance, timber frame, ore carts, blue-black dark --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/ragged-chapel.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, chapel roof fallen in, bell still hanging, pews in dust --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/sunken-temple.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, temple half underwater, steps to an idol, green light through the surface --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/ember-kilns.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, glassworks furnace hall, banked coals, glass shards on the floor --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/iron-tide.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, war galley beached on a reef at low tide, torn sails, salt crust --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/pale-market.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, market street closed by plague, shutters, quarantine marks, empty stalls --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/ashen-spire.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, black spire above an ash plain, stairs cut into rock, storm light --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/raid-gatewarden.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, citadel gate of black stone, two towers, portcullis, army scale --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/raid-covens.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, ritual chamber, two thrones of bone, candles, hex circles on the floor --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/raid-tyrant.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, throne room of obsidian, a giant seated figure, gold veins in black stone --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/ashen-verge.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, burn scar plain, charred trunks, ash drifting, low sun --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/sunken-shoals.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, low tide wreck field, ribs of ships, standing pools, gulls --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/glass-wastes.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, fused glass desert, shards underfoot, heat shimmer, bleached bone --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/obsidian-road.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, black stone road, toll gate, teeth nailed to the post --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/cinder-road.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, ash road through burnt country, checkpoint, smoke on the horizon --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/silent-abbey.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, abbey cloister at night, one lit window, snow --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/broken-standard.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, battlefield, a torn company banner on a spear, crows, mud --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/places/last-outpost.jpg
+oil-painted dark fantasy environment, wide establishing shot at eye level, overcast dusk, one warm light source cutting through cold air, muted slate and ash palette with a single gold accent, matte canvas, low haze, no figures in the foreground, no text, stone outpost gate on a black road, one watchfire --ar 16:9 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/salve.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, small stoneware jar of green salve, waxed cloth lid, salve smeared on the rim --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/rations.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, cloth-wrapped hard bread and dried meat tied with twine --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/tonic.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, glass flask of amber tonic, leather stopper, oil sheen on the glass --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/gear-weapon.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, plain but well-made arming sword, worn leather grip --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/gear-chest.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, steel cuirass, riveted plates, one dent, straps hanging --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/gear-helm.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, open-faced steel helm, hammered, padded liner visible --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/gear-trinket.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, small iron charm on a cord, scratched ward marks --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/warren-fang.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, crude dagger ground from a rat's tooth, wrapped hilt --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/wolf-fang-cleaver.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, broad cleaver with wolf teeth set along the spine --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/roadkeepers-blade.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, road-worn short sword, notched edge, guard stamped with a mile mark --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/vaultsteel-dirk.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, narrow dirk of pale steel, wire-wrapped grip --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/bridgewardens-hammer.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, iron sledge with a bridge-plank haft --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/cryptsteel-blade.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, long blade of cold blue steel, verdigris in the fuller --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/wailing-pick.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, mining pick with a war-hook welded on, ore dust --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/grave-silver-dirk.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, thin dirk of tarnished grave-silver --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/kilnforged-edge.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, blade still hot from the kiln, black scale on the steel --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/salt-etched-blade.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, curved blade eaten by salt, faint etched pattern --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/ashfall-greatblade.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, two-handed blade grey with ash, long grip --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/citadel-gateblade.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, greatsword of obsidian-edged steel, gate motif at the ricasso --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/coven-hexblade.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, curved blade with hex marks, two grips, ring pommel --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/worldbreaker.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, colossal maul, obsidian head, gold cracks through it --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/cinder-road-blade.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, road blade pitted by cinder, worn guard --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/reclaimed-blade.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, blade reforged from a broken one, seam visible down the centre --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/galley-rail-helm.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, helm hammered from a galley rail, salt-pitted --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/plague-mask.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, leather plague mask with glass eyes, straps hanging --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/veilwalkers-crown.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, thin circlet of dark metal with a veil attached --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/tyrants-obsidian-crown.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, crown of black glass with gold veins --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/outpost-wardens-helm.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, garrison helm, lamp hook on the side --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/cured-pelt-vest.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, wolf-pelt vest, stiff with curing, bone toggles --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/gilded-coffer-plate.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, gold-inlaid breastplate, coffer-lid pattern --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/riveted-span-plate.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, riveted iron plate, bridge-iron grey --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/tunnel-plate.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, plate scavenged from mine machinery, patched --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/chapelwardens-plate.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, chapel plate with a bell etched into the breast --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/wardens-bulwark.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, tomb-slab breastplate, a ward carved into the face, chipped edge --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/reedwoven-mantle.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, mantle of woven reed and hide, fen-water stained --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/tidebound-harness.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, harness of tarred rope and plate, tide-worn --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/tidewrought-harness.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, scale harness of iron and shell --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/market-wardens-aegis.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, aegis of market iron, quarantine seal stamped in the corner --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/spirebound-aegis.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, aegis of spire stone and iron, ash in the seams --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/gatewardens-bulwark.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, tower-shield plate, citadel gate motif, obsidian rivets --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/covenant-shroud.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, shroud-cloak over plate, coven marks at the hem --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/tyrantplate.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, black plate with gold seams, scaled like a reptile --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/ash-road-buckler.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, small ash-grey buckler, road-marked --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/vestals-mantle.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, white mantle, soot at the hem --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/standard-bearers-plate.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, plate with a torn banner painted across the breast --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/ratcatchers-charm.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, tin charm of a rat on a wire, cheap and old --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/bandits-purse.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, cut purse on a belt ring, coins spilling --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/vaultwardens-key.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, heavy brass key with vault teeth, broken chain --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/ferrymans-lantern.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, iron lantern, green glass, a coin in the base --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/gravewardens-sigil.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, stone sigil disc on a chain, grave dust in the grooves --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/fenlight-charm.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, glass vial of marsh light on a cord --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/miners-last-lamp.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, brass miner's lamp, soot-black glass, still lit --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/idol-of-the-deep.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, small drowned idol, coral and green stone --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/glassblowers-ring.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, glass ring with a bubble inside, scorched band --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/oros-iron-will.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, iron knot on a chain, worn smooth --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/twin-sigil.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, two interlocked sigils on one chain --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/obsidian-heart.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, fist-sized obsidian heart on a chain, warm glow inside --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/abbey-bell.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, hand bell of the abbey, silver, clapper wrapped in cloth --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/broken-standard.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, fragment of a company banner on a broken spear --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature
+
+# public/art/items/last-light.jpg
+oil-painted still life of a single object, centred, three-quarter view, one warm light from the upper left, cool shadow, muted ash and old-gold palette, matte canvas texture, worn rather than new, one gold or steel highlight, a single flat near-black field behind the object edge to edge, no vignette, no circular border, no backdrop texture, no text, small lamp on a chain, the last of its oil --ar 1:1 --style raw --s 50 --no text, letters, watermark, frame, border, signature

@@ -81,8 +81,9 @@ Before you call anything done:
 
 ```bash
 npm run typecheck     # tsc --noEmit
-npm test              # 153 tests: determinism, invariants, balance, content data
+npm test              # 171 tests: determinism, invariants, balance, content data
 npm run docs:check    # links + stale vocabulary
+npm run art:check     # prompt pack still covers the content (docs/art-prompts.md)
 ```
 
 For balance or content changes, also:
@@ -115,7 +116,7 @@ Never tune two dials at once. If you change a number, say what it was, what it i
 - Imperative mood, one line: `add raid prep to the AI planner`.
 - Body: why, and what it costs. Reference the doc you updated.
 - Docs and behaviour change in the same commit. A code change that invalidates a doc is a broken commit.
-- A pre-commit hook runs `typecheck`, `test` and `docs:check`. It lives in `.githooks/pre-commit`, is versioned, and is installed by `git config core.hooksPath .githooks` (an `npm install` does this via `prepare`).
+- A pre-commit hook runs `typecheck`, `test`, `docs:check` and `art:check`. It lives in `.githooks/pre-commit`, is versioned, and is installed by `git config core.hooksPath .githooks` (an `npm install` does this via `prepare`).
 - Bypass with `git commit --no-verify` only when the hook itself is broken, and fix it in the same commit.
 - Never commit `.save.json`, `tmp/`, or `node_modules/`.
 
@@ -140,3 +141,4 @@ Never tune two dials at once. If you change a number, say what it was, what it i
 - [ ] New numbers recorded with their measurement
 - [ ] Learnings added to [docs/learnings.md](docs/learnings.md)
 - [ ] `npm run docs:check` passes
+- [ ] `npm run art:check` passes (the prompt pack still covers the content)

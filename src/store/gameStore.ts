@@ -15,12 +15,13 @@ import { digestForDay } from "../sim/report";
 import { applyAction, logAction, type GameAction, type LoggedAction } from "./actions";
 import { clearSave, loadSave, writeSave } from "./save";
 
-export type Screen = "hall" | "roster" | "war" | "raid" | "report";
+export type Screen = "hall" | "roster" | "war" | "raid" | "guilds" | "report";
 
 export type Modal =
   | { kind: "attention" }
   | { kind: "inspect"; contentId: string }
   | { kind: "loot" }
+  | { kind: "market" }
   | { kind: "tavern" }
   | { kind: "new-run" }
   | { kind: "help" }
@@ -231,6 +232,8 @@ export const useGameStore = create<GameStore>()((set, get) => {
       set({
         screen: "report",
         seenReportDay: day,
+        // A clear queues drops for the player. The report carries the list, so
+        // the day ends on one screen instead of a sheet over it.
         modal: null,
         drawerHeroId: null,
         toast: next.finished

@@ -106,6 +106,13 @@ export type Hero = {
   daysBenched: number;
   traits: TraitId[];
   contract: Contract;
+  /**
+   * A bought tonic: `buffPower` is added to every check for `buffDays` more
+   * days. Optional so an old save loads unbuffed. `formMod` is the one place
+   * the multiplier is applied, so the screens show it as form.
+   */
+  buffPower?: number;
+  buffDays?: number;
 };
 
 export type Candidate = {
@@ -341,6 +348,11 @@ export type EncounterLog = {
   gold: number;
   /** 1 for full pay; the board's token rate when this mission was not posted. */
   payScale?: number;
+  /**
+   * The daily star's multiplier when this clear was on the starred area. The
+   * report prints the bonus; `payScale` stays the contract board's rule.
+   */
+  featuredBonus?: number;
   /** Items this clear dropped, for the report after the queue is empty. */
   loot?: LootItem[];
 };
@@ -496,6 +508,11 @@ export type GameState = {
    * loads with no history, and the hub shows progress without the pull rows.
    */
   raidLog?: RaidLogNight[];
+  /**
+   * The day the player last signed a rival's hero away. A rival answers with a
+   * counter-offer card inside two weeks; optional for old saves.
+   */
+  poachHeat?: number;
 };
 
 export type { Rng } from "./rng";

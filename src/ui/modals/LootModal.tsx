@@ -1,17 +1,28 @@
-import { lootTargets, type PendingLoot } from "../../sim";
+import { MARKET, craftCost, lootSellValue, lootTargets, type PendingLoot } from "../../sim";
 import { useGameStore } from "../../store/gameStore";
+import { Art, itemArtId } from "../components/Art";
 import { Modal } from "../components/Modal";
 import { Chip } from "../components/Primitives";
 
-const DropRow = ({ drop }: { drop: PendingLoot }) => {
+export const DropRow = ({ drop }: { drop: PendingLoot }) => {
   const game = useGameStore((s) => s.game);
   const dispatch = useGameStore((s) => s.dispatch);
   if (!game) return null;
   const targets = lootTargets(game, drop, 3);
   const top = targets[0];
+  const sell = lootSellValue(drop);
+  const forge = craftCost(drop);
   return (
     <div className="loot-row">
-      <div style={{ minWidth: 180 }}>
+      <Art
+        base={`/art/items/${drop.item ? itemArtId(drop.item) : `gear-${drop.slot}`}`}
+        alt=""
+        width={38}
+        height={38}
+        className="item-icon"
+        title={drop.item ?? `${drop.slot} iLvl ${drop.ilvl}`}
+      />
+      <div style={{ minWidth: 160 }}>
         <div className="small" style={{ fontWeight: 600 }}>
           {drop.item ?? `${drop.slot} ${drop.ilvl}`}
         </div>
@@ -31,6 +42,23 @@ const DropRow = ({ drop }: { drop: PendingLoot }) => {
             {target.hero.name.split(" ")[0]} +{target.gain}
           </button>
         ))}
+        {top ? (
+          <button
+            className="btn btn-sm"
+            disabled={game.gold < forge}
+            onClick={() => dispatch({ type: "craft-loot", lootId: drop.id, heroId: top.hero.id })}
+            title={`Forge it for ${top.hero.name}: ${drop.slot} +${MARKET.craftGain} over the better of the drop and his current gear. Costs ${forge}g.`}
+          >
+            Forge +{MARKET.craftGain} ({forge}g)
+          </button>
+        ) : null}
+        <button
+          className="btn btn-sm"
+          onClick={() => dispatch({ type: "sell-loot", lootId: drop.id })}
+          title={`Sell this drop for ${sell}g`}
+        >
+          Sell {sell}g
+        </button>
         <button
           className="btn btn-ghost btn-sm"
           onClick={() => dispatch({ type: "discard-loot", lootId: drop.id })}
@@ -79,7 +107,7 @@ export const LootModal = ({ onClose }: { onClose: () => void }) => {
             <DropRow key={drop.id} drop={drop} />
           ))}
           <div className="tiny dim" style={{ marginTop: 8 }}>
-            The suggestion is worked out again for each drop, so two drops for the same slot can go to two heroes. A drop with no gain is discarded.
+            The suggestion is worked out again for each drop, so two drops for the same slot can go to two heroes. Sell a drop for gold, or spend gold at the forge to turn it into +6 over the better gear. A drop with no gain is discarded.
           </div>
         </div>
       )}

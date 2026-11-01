@@ -36,6 +36,20 @@ import {
   assignParty,
   assignLoot,
   autoAssignLoot,
+  buyGood,
+  craftLoot,
+  featuredContentFor,
+  lootSellValue,
+  marketGearIlvl,
+  marketPrice,
+  marketStock,
+  poachFee,
+  poachHero,
+  poachTargets,
+  poachWage,
+  sellLoot,
+  FEATURED,
+  MARKET_GOODS,
   autoRaidTeam,
   bestRaidTeam,
   ensureRaidTeam,
@@ -284,6 +298,8 @@ const cmdStatus = (): void => {
         "dim",
       ),
     );
+    const star = featuredContentFor(state);
+    if (star) console.log(color(`Starred today: ${star.name} — +${Math.round((FEATURED.goldMult - 1) * 100)}% gold.`, "yellow"));
     console.log(color("\nToday", "dim"));
     table(
       ["#", "content", "heroes", "stance", "projected", "form", "weakest"],
@@ -373,6 +389,8 @@ const cmdToday = (): void => {
       "dim",
     ),
   );
+  const star = featuredContentFor(state);
+  if (star) console.log(color(`Starred today: ${star.name} — +${Math.round((FEATURED.goldMult - 1) * 100)}% gold.`, "yellow"));
   console.log();
   if (state.plan.parties.length === 0) {
     console.log(color("No parties assigned. Run: auto, or `party --content <id> --heroes 1,2,3`", "yellow"));
@@ -542,7 +560,7 @@ const cmdContent = (): void => {
             ? color("open", "cyan")
             : color("new", "bold");
       return [
-        c.name,
+        `${featuredContentFor(state)?.id === c.id ? "★ " : ""}${c.name}`,
         c.id,
         KIND_LABEL[c.kind],
         String(c.minLevel),
@@ -1037,6 +1055,9 @@ const cmdReport = (): void => {
   if (log.contentKind === "mission" && pay < 1) {
     console.log(color(`Contract   not posted — paid ${Math.round(pay * 100)}% of its gold and XP`, "yellow"));
   }
+  if (log.featuredBonus !== undefined && log.featuredBonus > 1) {
+    console.log(color(`Star       +${Math.round((log.featuredBonus - 1) * 100)}% gold`, "yellow"));
+  }
   if (log.loot && log.loot.length > 0) {
     console.log(
       color(
@@ -1276,6 +1297,36 @@ const cmdLoot = (): void => {
     return;
   }
 
+  if (sub === "sell") {
+    const drop = pending[Number(args[2]) - 1];
+    if (!drop) {
+      console.error(color("Usage: loot sell <n>", "red"));
+      process.exit(1);
+    }
+    const next = sellLoot(state, drop.id);
+    save({ ...next, attention: deriveAttention(next) });
+    console.log(color(`${drop.item ?? `${drop.slot} ${drop.ilvl}`} sold for ${lootSellValue(drop)}g`, "green"));
+    return;
+  }
+
+  if (sub === "craft") {
+    const drop = pending[Number(args[2]) - 1];
+    const token = args[3];
+    if (!drop || !token) {
+      console.error(color("Usage: loot craft <n> <hero>", "red"));
+      process.exit(1);
+    }
+    const hero = heroByToken(state, token);
+    const next = craftLoot(state, drop.id, hero.id);
+    if (!next) {
+      console.error(color("Cannot forge: the purse is short, or that hero or drop is gone.", "red"));
+      process.exit(1);
+    }
+    save({ ...next, attention: deriveAttention(next) });
+    console.log(color(`forged ${drop.item ?? `${drop.slot} ${drop.ilvl}`} for ${hero.name}`, "green"));
+    return;
+  }
+
   const index = Number(sub);
   const drop = pending[index - 1];
   const token = args[2];
@@ -1344,6 +1395,108 @@ const cmdRaidTeam = (): void => {
   console.log(color(`raid team: ${heroes.map((h) => h.name).join(", ")}`, "green"));
 };
 
+const cmdMarket = (): void => {
+  const state = load();
+  const goodToken = args[1];
+  const heroToken = args[2];
+
+  if (!goodToken) {
+    console.log(color(`\nMarket — gear iLvl ${marketGearIlvl(state)} · ${Math.round(state.gold)}g`, "bold"));
+    table(
+      ["good", "price", "what it does"],
+      marketStock(state).goods.map(({ good, price }) => [good.name, `${price}g`, good.blurb]),
+      ["l", "r", "l"],
+    );
+    console.log(color("market <good> <hero> — salve, rations, tonic, gear-weapon, gear-chest, gear-helm, gear-trinket", "dim"));
+    return;
+  }
+
+  const good = MARKET_GOODS.find((row) => row.id === goodToken || row.name.toLowerCase().startsWith(goodToken.toLowerCase()));
+  if (!good) {
+    console.error(color(`Unknown good: ${goodToken}`, "red"));
+    process.exit(1);
+  }
+  if (!heroToken) {
+    console.error(color("Usage: market <good> <hero>", "red"));
+    process.exit(1);
+  }
+  const hero = heroByToken(state, heroToken);
+  const next = buyGood(state, good.id, hero.id);
+  if (!next) {
+    console.error(color(`Cannot buy ${good.name} for ${hero.name}: the purse is short or it would change nothing.`, "red"));
+    process.exit(1);
+  }
+  save({ ...next, attention: deriveAttention(next) });
+  console.log(color(`${hero.name}: ${good.name} for ${marketPrice(state, good, hero)}g (${Math.round(next.gold)}g left).`, "green"));
+};
+
+const cmdGuilds = (): void => {
+  const state = load();
+  console.log();
+  console.log(color(`The other guilds — your roster ${state.roster.length}, ${Math.round(state.gold)}g`, "bold"));
+  for (const rival of state.rivals) {
+    console.log(
+      color(
+        `\n${rival.name} (${rival.personality}) — ${rival.activity} — ${rival.guild.roster.length} heroes`,
+        "cyan",
+      ),
+    );
+    table(
+      ["hero id", "name", "class", "role", "lvl", "iLvl", "pow", "fee", "wage"],
+      poachTargets(state, rival.id).map(({ hero, fee, wage }) => [
+        hero.id,
+        hero.name,
+        CLASS_LABEL[hero.klass],
+        hero.role,
+        String(hero.level),
+        String(itemLevel(hero.gear)),
+        String(Math.round(heroPower(hero))),
+        `${fee}g`,
+        `${wage}g/wk`,
+      ]),
+      ["l", "l", "l", "l", "r", "r", "r", "r", "r"],
+    );
+  }
+  console.log(color("\npoach <rival> <hero id> — a rival answers within ten days.", "dim"));
+};
+
+const cmdPoach = (): void => {
+  const state = load();
+  const rivalToken = args[1];
+  const heroToken = args[2];
+  if (!rivalToken || !heroToken) {
+    console.error(color("Usage: poach <rival> <hero id>", "red"));
+    process.exit(1);
+  }
+  const rival = state.rivals.find(
+    (row) => row.id === rivalToken || row.name.toLowerCase().startsWith(rivalToken.toLowerCase()),
+  );
+  if (!rival) {
+    console.error(color(`Unknown rival: ${rivalToken}`, "red"));
+    process.exit(1);
+  }
+  const target = poachTargets(state, rival.id).find(
+    (row) => row.hero.id === heroToken || row.hero.name.toLowerCase().startsWith(heroToken.toLowerCase()),
+  );
+  if (!target) {
+    console.error(color(`No hero ${heroToken} on ${rival.name}. Run: guilds`, "red"));
+    process.exit(1);
+  }
+  const next = poachHero(state, rival.id, target.hero.id);
+  if (!next) {
+    console.error(color(`Cannot sign ${target.hero.name}: ${target.reason || "the purse is short"}.`, "red"));
+    process.exit(1);
+  }
+  save({ ...next, attention: deriveAttention(next) });
+  console.log(
+    color(
+      `${target.hero.name} leaves ${rival.name} for ${poachFee(target.hero)}g and ${poachWage(target.hero)}g/week.`,
+      "green",
+    ),
+  );
+  console.log(color("A rival will answer within ten days.", "yellow"));
+};
+
 const cmdHelp = (): void => {
   console.log(`
 ${color("world-first", "bold")} — progression harness
@@ -1359,7 +1512,9 @@ ${color("world-first", "bold")} — progression harness
   ${color("inspect", "cyan")} <id>                phases, bestiary, drops and chances
   ${color("tavern", "cyan")} · ${color("hire", "cyan")} <n>
   ${color("party", "cyan")} --content <id> --heroes 1,2,3 [--stance push]
-  ${color("loot", "cyan")} [<n> <hero>|auto]         assign waiting drops
+  ${color("loot", "cyan")} [<n> <hero>|auto|sell <n>|craft <n> <hero>]
+  ${color("market", "cyan")} [<good> <hero>]          gear, salves, rations, tonics
+  ${color("guilds", "cyan")} · ${color("poach", "cyan")} <rival> <hero>   read and sign rival heroes
   ${color("raidteam", "cyan")} [auto|heroes]          the stable raid ten
   ${color("clear", "cyan")}                       unassign everyone (they rest)
   ${color("auto", "cyan")}                        let the AI plan today
@@ -1391,6 +1546,9 @@ switch (command) {
   case "attention": cmdAttention(); break;
   case "loot": cmdLoot(); break;
   case "raidteam": cmdRaidTeam(); break;
+  case "market": cmdMarket(); break;
+  case "guilds": cmdGuilds(); break;
+  case "poach": cmdPoach(); break;
   case "resolve": cmdResolve(); break;
   case "ai": cmdAi(); break;
   case "sim": cmdSim(); break;

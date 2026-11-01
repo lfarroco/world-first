@@ -72,11 +72,15 @@ Gold comes in daily from farm and dungeons; wages go out once a week. Nothing is
 
 **Fix:** wages should be a *budget line*, checked weekly, with a board that reacts. Add exactly one consumable sink (raid flasks: gold for +team power for one day) so gold has a decision attached, not just a number.
 
+> **Updated 2026-11-01.** The wage budget, arrears and the renewal negotiation shipped. The market adds the consumable decision: gear at the guild tier, a salve for injury days, rations for fatigue, and a three-day tonic. See [guild-manager-model.md](guild-manager-model.md) §5.6.
+
 ### 3.5 Rival guilds are a scoreboard, not opponents
 
 Three names whose boss progress advances on a script. They cannot be scouted, poached from, beaten with a strategy, or lost to for a reason. So the "race" is really a timer.
 
 **Fix for MVP (cheap):** rivals run the *same* power-growth and pull model as the player, with different personalities and different farming strategies. They must be simulated by the same code as you, or the race will always feel fake. You don't need to render them; you need them to be *explicable* ("Echoes killed boss 4 on day 12 by farming dungeons for 8 days straight — they out-geared us").
+
+> **Updated 2026-11-01.** Rivals are full guilds on the same planner and `resolveDay`, and the Guilds screen now exposes every rival roster. A hero can be signed away for a fee and a wage, and rivals sign each other's bench. See [guild-manager-model.md](guild-manager-model.md) §6.
 
 ### 3.6 Stance is a three-way global switch
 

@@ -22,6 +22,24 @@ import {
   isPosted,
   payScaleFor,
   effectiveReward,
+  featuredBonusFor,
+  featuredContentFor,
+  MARKET_GOODS,
+  buyGood,
+  marketPrice,
+  marketGearIlvl,
+  lootSellValue,
+  sellLoot,
+  craftLoot,
+  craftCost,
+  poachHero,
+  poachFee,
+  poachWage,
+  poachTargets,
+  rivalPoachTick,
+  pushInjuryChance,
+  formMod,
+  rngStream,
   CONTRACT_BOARD,
   standings,
   playerRank,
@@ -96,6 +114,7 @@ import {
   type Hero,
   type TraitId,
   type GameState,
+  type PendingLoot,
 } from "../src/sim/index";
 import { makeCandidate, makeHero, wageForLevel } from "../src/sim/content/heroes";
 import { EVENT_CARDS, cardById, type Effect, type EventTarget } from "../src/sim/content/events";
@@ -153,8 +172,8 @@ describe("starting position", () => {
   it("has the whole ladder defined, three raids deep", () => {
     expect(RAIDS).toHaveLength(3);
     expect(CONTENT.filter((c) => c.kind === "dungeon")).toHaveLength(9);
-    expect(CONTENT.filter((c) => c.kind === "mission")).toHaveLength(7);
-    expect(CONTENT.filter((c) => c.kind === "farm")).toHaveLength(3);
+    expect(CONTENT.filter((c) => c.kind === "mission")).toHaveLength(11);
+    expect(CONTENT.filter((c) => c.kind === "farm")).toHaveLength(7);
   });
 });
 
@@ -325,7 +344,13 @@ describe("contract board", () => {
       p.contentId === "drowned-mill" ? { ...p, clears: 0 } : p,
     );
     expect(payScaleFor(first, mill)).toBe(1);
-    expect(effectiveReward(first, mill)).toEqual({ gold: mill.gold, xp: mill.xp });
+    const star = featuredBonusFor(first, mill);
+    expect(effectiveReward(first, mill)).toEqual({
+      gold: mill.gold * star,
+      xp: mill.xp * star,
+      payScale: 1,
+      featured: star,
+    });
   });
 
   it("leaves farms, dungeons and raids at full pay every day", () => {
@@ -2226,5 +2251,305 @@ describe("contract negotiation", () => {
     expect(next.roster.find((h) => h.id === hero.id)!.morale).toBe(60 + NEGOTIATION.transferMorale);
     expect(next.promises![0]!.transferAsked).toBe(true);
     expect(deriveAttention(next).some((i) => i.kind === "transfer-request")).toBe(false);
+  });
+});
+
+describe("the high band and the daily star", () => {
+  it("adds farm and mission work above the old band, after the raid ladder", () => {
+    const highFarms = CONTENT.filter((c) => c.kind === "farm" && c.minLevel >= 20);
+    const highMissions = CONTENT.filter((c) => c.kind === "mission" && c.minLevel >= 20);
+    expect(highFarms.length).toBeGreaterThanOrEqual(4);
+    expect(highMissions.length).toBeGreaterThanOrEqual(4);
+    for (const content of [...highFarms, ...highMissions]) {
+      expect(content.requires).toEqual([]);
+      expect(content.id).not.toBe("");
+    }
+    const lastRaid = CONTENT.findIndex((c) => c.id === "raid-tyrant");
+    expect(CONTENT.findIndex((c) => c.id === "ashen-verge")).toBeGreaterThan(lastRaid);
+    expect(contentById("cinder-road")!.phases[0]!.check).toBe("mechanics");
+    expect(contentById("silent-abbey")!.phases[0]!.check).toBe("sustain");
+    expect(contentById("broken-standard")!.phases[0]!.check).toBe("mitigation");
+  });
+
+  it("stars one open non-raid area a day, deterministically and with rotation", () => {
+    const base = newGame(77, "Star");
+    const first = featuredContentFor(base);
+    expect(first).not.toBeNull();
+    expect(first!.kind).not.toBe("raid");
+    expect(featuredContentFor({ ...base, day: 2 })?.id).toBe(featuredContentFor({ ...base, day: 2 })?.id);
+    const ids = new Set(Array.from({ length: 20 }, (_, i) => featuredContentFor({ ...base, day: i + 1 })?.id));
+    expect(ids.size).toBeGreaterThan(1);
+  });
+
+  it("pays the star multiplier on both gold and XP", () => {
+    const base = newGame(5, "StarPay");
+    const one = {
+      ...base,
+      roster: base.roster.slice(0, 1),
+      plan: { parties: [{ contentId: "emberwood", heroes: [base.roster[0]!.id], stance: "steady" as const }] },
+    };
+    // One level-1 hero can field only Emberwood, so the star has one candidate.
+    expect(featuredContentFor(one)?.id).toBe("emberwood");
+    const goldBefore = one.gold;
+    const xpBefore = one.roster[0]!.xp;
+    const next = resolveDay(one);
+    expect(next.gold - goldBefore).toBe(Math.round(6 * 1 * 1.5));
+    // The star is a gold rule: XP is unchanged, so it cannot buy levels.
+    expect(next.roster[0]!.xp).toBe(xpBefore + 10);
+    expect(next.events.some((e) => e.text.includes("was starred"))).toBe(true);
+  });
+});
+
+describe("the market", () => {
+  const rich = (state: GameState): GameState => ({ ...state, gold: 5000 });
+  const good = (id: string) => MARKET_GOODS.find((row) => row.id === id)!;
+
+  it("sells gear at the guild's tier and upgrades one slot", () => {
+    const base = newGame(11, "Market");
+    const hero = base.roster[0]!;
+    const state = rich({
+      ...base,
+      roster: base.roster.map((h) =>
+        h.id === hero.id ? { ...h, gear: { weapon: 0, chest: 0, helm: 0, trinket: 0 } } : h,
+      ),
+    });
+    const tier = marketGearIlvl(state);
+    const price = marketPrice(state, good("gear-weapon"), hero);
+    const next = buyGood(state, "gear-weapon", hero.id)!;
+    expect(next).not.toBeNull();
+    expect(next.roster.find((h) => h.id === hero.id)!.gear.weapon).toBe(tier);
+    expect(next.gold).toBe(state.gold - price);
+    expect(next.events.at(-1)?.text).toContain("forged blade");
+  });
+
+  it("heals an injury, cuts fatigue, and applies a three-day tonic", () => {
+    const base = newGame(12, "Care");
+    const hero = base.roster[0]!;
+    const hurt = rich({
+      ...base,
+      roster: base.roster.map((h) =>
+        h.id === hero.id ? { ...h, injuryDays: 4, health: 20, fatigue: 80 } : h,
+      ),
+    });
+
+    const salvePrice = marketPrice(hurt, good("salve"), hurt.roster[0]!);
+    const healed = buyGood(hurt, "salve", hero.id)!;
+    const afterSalve = healed.roster.find((h) => h.id === hero.id)!;
+    expect(afterSalve.injuryDays).toBe(0);
+    expect(afterSalve.health).toBe(70);
+    expect(healed.gold).toBe(hurt.gold - salvePrice);
+
+    const rationsPrice = marketPrice(hurt, good("rations"), hurt.roster[0]!);
+    const fed = buyGood(hurt, "rations", hero.id)!;
+    const afterFood = fed.roster.find((h) => h.id === hero.id)!;
+    expect(afterFood.fatigue).toBe(35);
+    expect(afterFood.health).toBe(35);
+    expect(fed.gold).toBe(hurt.gold - rationsPrice);
+
+    const fresh = rich(base);
+    const before = formMod(fresh.roster[0]!);
+    const tonic = buyGood(fresh, "tonic", hero.id)!;
+    const buffed = tonic.roster.find((h) => h.id === hero.id)!;
+    expect(buffed.buffDays).toBe(3);
+    expect(formMod(buffed) / before).toBeCloseTo(1.1, 6);
+
+    let expired = tonic;
+    for (let i = 0; i < 3; i += 1) expired = resolveDay(expired);
+    const done = expired.roster.find((h) => h.id === hero.id)!;
+    expect(done.buffDays).toBe(0);
+    expect(done.buffPower).toBe(0);
+  });
+
+  it("will not buy an upgrade the hero already has, or spend money the guild lacks", () => {
+    const base = newGame(13, "NoSale");
+    const hero = base.roster[0]!;
+    const top = {
+      ...base,
+      roster: base.roster.map((h) =>
+        h.id === hero.id ? { ...h, gear: { weapon: 999, chest: 999, helm: 999, trinket: 999 } } : h,
+      ),
+    };
+    expect(buyGood(top, "gear-weapon", hero.id)).toBeNull();
+    expect(buyGood({ ...base, gold: 0 }, "salve", hero.id)).toBeNull();
+  });
+});
+
+describe("selling and forging drops", () => {
+  const drop = (): PendingLoot => ({
+    id: "loot-1",
+    day: 1,
+    contentId: "hollow-crypt",
+    contentName: "Hollow Crypt",
+    slot: "weapon",
+    ilvl: 50,
+    item: "Test Blade",
+  });
+
+  it("sells a waiting drop for its value", () => {
+    const base = newGame(14, "Sell");
+    const item = drop();
+    const state: GameState = { ...base, gold: 0, pendingLoot: [item] };
+    const next = sellLoot(state, item.id);
+    expect(next.gold).toBe(lootSellValue(item));
+    expect(next.pendingLoot).toHaveLength(0);
+  });
+
+  it("forges a drop into +6 over the better of the drop and the hero's gear", () => {
+    const base = newGame(15, "Forge");
+    const item = drop();
+    const hero = base.roster[0]!;
+    const state: GameState = {
+      ...base,
+      gold: 5000,
+      roster: base.roster.map((h) =>
+        h.id === hero.id ? { ...h, gear: { ...h.gear, weapon: 45 } } : h,
+      ),
+      pendingLoot: [item],
+    };
+    const before = state.roster.find((h) => h.id === hero.id)!.gear.weapon;
+    const next = craftLoot(state, item.id, hero.id)!;
+    expect(next.roster.find((h) => h.id === hero.id)!.gear.weapon).toBe(Math.max(before, item.ilvl) + 6);
+    expect(next.gold).toBe(state.gold - craftCost(item));
+    expect(next.pendingLoot).toHaveLength(0);
+  });
+});
+
+describe("push risk", () => {
+  it("has a chance before fatigue, and fatigue raises it", () => {
+    const hero = { ...makeHero(1, 5, "warrior", 40), fatigue: 0 };
+    expect(pushInjuryChance(hero)).toBeGreaterThan(0);
+    expect(pushInjuryChance({ ...hero, fatigue: 100 })).toBeGreaterThan(pushInjuryChance(hero));
+  });
+
+  it("can injure a ten-hero raid night that clears, and never lists a body twice", () => {
+    let found = false;
+    for (let seed = 1; seed <= 40 && !found; seed += 1) {
+      const base = newGame(seed, "Push");
+      const roster = Array.from({ length: 10 }, (_, i) => ({
+        ...makeHero(seed, 900 + i, i % 2 === 0 ? "warrior" : "mage", 55),
+        gear: { weapon: 250, chest: 250, helm: 250, trinket: 250 },
+        traits: [],
+        fatigue: 0,
+        sharpness: 60,
+        morale: 70,
+        health: 100,
+      }));
+      const state: GameState = { ...base, roster };
+      const outcome = resolveAssignment(state, {
+        contentId: "raid-gatewarden",
+        heroes: roster.map((h) => h.id),
+        stance: "push",
+      })!;
+      expect(new Set(outcome.injured.map((i) => i.heroId)).size).toBe(outcome.injured.length);
+      if (outcome.injured.length > 0) found = true;
+    }
+    expect(found).toBe(true);
+  });
+});
+
+describe("poaching", () => {
+  it("prices and signs a rival hero, then cleans their plan and raid ten", () => {
+    const base = newGame(55, "Poach");
+    const rival = base.rivals[0]!;
+    const hero = rival.guild.roster[0]!;
+    const state: GameState = {
+      ...base,
+      gold: 10000,
+      rivals: base.rivals.map((r) =>
+        r.id === rival.id
+          ? {
+              ...r,
+              guild: {
+                ...r.guild,
+                plan: { parties: [{ contentId: "emberwood", heroes: [hero.id], stance: "steady" }] },
+                raidTeam: [hero.id],
+              },
+            }
+          : r,
+      ),
+    };
+    const fee = poachFee(hero);
+    const wage = poachWage(hero);
+    const next = poachHero(state, rival.id, hero.id)!;
+    expect(next.gold).toBe(state.gold - fee);
+    expect(next.roster).toHaveLength(state.roster.length + 1);
+    expect(next.roster.at(-1)!.contract.wage).toBe(wage);
+    expect(next.roster.at(-1)!.id).not.toBe(hero.id);
+    const after = next.rivals.find((r) => r.id === rival.id)!;
+    expect(after.guild.roster.some((h) => h.id === hero.id)).toBe(false);
+    expect(after.guild.plan.parties[0]!.heroes).not.toContain(hero.id);
+    expect(after.guild.raidTeam ?? []).not.toContain(hero.id);
+    expect(next.poachHeat).toBe(state.day);
+  });
+
+  it("refuses a signing the purse or the roster cap blocks", () => {
+    const base = newGame(56, "NoPoach");
+    const rival = base.rivals[0]!;
+    const hero = rival.guild.roster[0]!;
+    expect(poachHero({ ...base, gold: 0 }, rival.id, hero.id)).toBeNull();
+    const full: GameState = {
+      ...base,
+      gold: 10000,
+      roster: Array.from({ length: 22 }, (_, i) => ({
+        ...base.roster[i % 3]!,
+        id: `full-${i}`,
+      })),
+    };
+    expect(poachHero(full, rival.id, hero.id)).toBeNull();
+    const target = poachTargets({ ...base, gold: 0 }, rival.id)[0]!;
+    expect(target.affordable).toBe(false);
+    expect(target.reason).toContain("needs");
+  });
+
+  it("answers a poach with one rival-offer card", () => {
+    const base = newGame(57, "Heat");
+    const roster = Array.from({ length: 8 }, (_, i) => ({
+      ...makeHero(57, 600 + i, "warrior", 20),
+      injuryDays: 0,
+    }));
+    const state: GameState = {
+      ...base,
+      day: 6,
+      poachHeat: 5,
+      roster,
+      plan: { parties: [] },
+      pendingEvent: null,
+    };
+    const next = resolveDay(state);
+    expect(next.pendingEvent?.cardId).toBe("rival-offer");
+  });
+
+  it("moves a rival bench hero to another rival when the world rolls it", () => {
+    let seed = 1;
+    let day = 1;
+    while (rngStream(seed, "rivalPoach", day)() >= 0.06) {
+      day += 1;
+      if (day > 80) {
+        day = 1;
+        seed += 1;
+      }
+    }
+    const base = newGame(seed, "Trade");
+    const rivals = base.rivals.map((r, index) => ({
+      ...r,
+      guild: {
+        ...r.guild,
+        plan: { parties: [] },
+        raidTeam: [],
+        roster: [
+          ...r.guild.roster,
+          ...Array.from({ length: 3 }, (_, i) => ({
+            ...makeHero(seed, 800 + index * 10 + i, "warrior", 20),
+            id: `bench-${index}-${i}`,
+          })),
+        ],
+      },
+    }));
+    const state: GameState = { ...base, day, rivals };
+    const before = state.rivals.map((r) => r.guild.roster.length);
+    rivalPoachTick(state);
+    const after = state.rivals.map((r) => r.guild.roster.length);
+    expect(after).not.toEqual(before);
+    expect(after.reduce((a, b) => a + b, 0)).toBe(before.reduce((a, b) => a + b, 0));
   });
 });

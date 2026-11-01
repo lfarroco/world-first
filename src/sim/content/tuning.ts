@@ -34,6 +34,14 @@ export const INJURY = {
   healthHit: 45,
   /** Injury chance rises with the hero's fatigue: ×1.8 at 100, ×1.0 at 0. */
   fatigueMultiplier: 0.8,
+  /**
+   * Push's unconditional risk, rolled once per hero per pull before vitality
+   * and fatigue. The scrape roll alone could never fire on a push night: the
+   * +12% check bonus moves a 0.92 party out of the scrape band exactly where
+   * the stance helps (L65). At 0.06 a ten-hero raid night expects about 0.6
+   * injuries per pull before the vitality and fatigue terms.
+   */
+  pushChance: 0.06,
 } as const;
 
 export const HEALTH_RECOVERY_PER_DAY = 14;
@@ -210,6 +218,63 @@ export const RENOWN = {
 export const LOOT = {
   /** Extra item-level-equivalent priority for a hero on the raid team. */
   teamBias: 4,
+  /** Gold a waiting drop sells for: a floor plus item level. */
+  sellBase: 20,
+  sellPerIlvl: 2,
+} as const;
+
+/**
+ * The daily star. One open non-raid area pays this multiplier on gold and XP
+ * for the day. It is derived from `(seed, day)`, so a save needs no field and
+ * the board, the planner and the payout read the same location.
+ */
+export const FEATURED = {
+  /** The daily star pays more gold, not more XP: a gold faucet the market can absorb. */
+  goldMult: 1.5,
+  xpMult: 1,
+} as const;
+
+/**
+ * The market. Prices are per hero level; gear is priced from its item level.
+ * The gear tier tracks the guild's best level, so the shop is an alternative
+ * to a bad drop rather than a private ladder.
+ */
+export const MARKET = {
+  gearIlvlPerLevel: 2.6,
+  gearIlvlBase: 12,
+  gearIlvlCap: 210,
+  gearBasePrice: 120,
+  gearPricePerIlvl: 9,
+  salveBase: 120,
+  salvePerLevel: 6,
+  rationsBase: 60,
+  rationsPerLevel: 3,
+  tonicBase: 180,
+  tonicPerLevel: 8,
+  rationsFatigue: 45,
+  rationsHealth: 15,
+  salveHealth: 50,
+  tonicPower: 0.1,
+  tonicDays: 3,
+  /** Recipes: gold plus a waiting drop's item level. */
+  craftBase: 100,
+  craftPerIlvl: 4,
+  craftGain: 6,
+} as const;
+
+/**
+ * Poaching a rival's hero. The fee is a multiple of the tavern's own price for
+ * that level; the wage is the market renewal wage plus the premium. A rival
+ * answers a poach with one counter-offer card inside `retaliationDays` (the
+ * existing rival-offer card), and rivals poach each other at
+ * `rivalPoachChance` a day.
+ */
+export const POACH = {
+  feeScale: 1.5,
+  wagePremium: 1.25,
+  retaliationDays: 10,
+  rivalPoachChance: 0.06,
+  minRivalLevel: 8,
 } as const;
 
 export const PLANNER_VALUE = {

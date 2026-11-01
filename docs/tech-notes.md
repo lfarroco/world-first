@@ -93,7 +93,7 @@ src/
     rng.ts                seeded PRNG, named streams
     types.ts              GameState, Hero, Boss, Event, Attention…
     content/              content.ts (the ladder), roles.ts, classes.ts,
-                          heroes.ts (generation + XP curve), tuning.ts  ← data, not logic
+                          heroes.ts (generation + XP curve), market.ts, tuning.ts  ← data, not logic
     hero.ts               attributes → roleScore → power; XP and levelling
     plan.ts               parties, unlocks, fieldableParty, validation
     encounter.ts          phase resolution + projections for any content
@@ -101,7 +101,11 @@ src/
     day.ts                the day pipeline for one guild; writes the raid log
     economy.ts
     founding.ts           the state every guild starts from (no rivals)
-    board.ts              the daily contract board and the token pay rule
+    board.ts              the daily contract board, the token pay rule, effective reward
+    featured.ts           the daily star: one open non-raid area, derived from (seed, day)
+    market.ts             gear tier, salve/rations/tonic, prices and purchases
+    loot.ts               the pending queue, assign, sell, forge
+    poach.ts              rival roster targets, signings, the rival-to-rival bench move
     rivals.ts             the three rival definitions, scores, standings, raidRace
     world.ts              tickRivals, advanceDay, runWorld
     events.ts             event + attention derivation
@@ -155,7 +159,7 @@ type Save = {
 - A save carries the three rival guilds, so it is 164–255 kB. That is the real cost of "the race is simulated"; see §8.
 - `raidLog` is optional and bounded at 40 nights; it adds 4 kB at day 85 (1.5% of the file). It is history, not derived data, so it belongs in the save and not in the action log.
 
-`pendingLoot` and `raidTeam` are optional fields on `GameState`; a save without them loads with an empty queue and no team. The queue's ids (`loot-<day>-<contentId>-<i>`) are content-derived; the assignment uses no RNG, so replaying the day gives the same items and the same suggestions. When replay lands, `loot <n> <hero>`, `loot auto` and `raidteam` are already actions in `store/actions.ts`, not direct state writes.
+`pendingLoot`, `raidTeam`, `buffDays`/`buffPower` and `poachHeat` are optional fields on `GameState`; a save without them loads with an empty queue, no team, no tonic and no poach debt. The queue's ids (`loot-<day>-<contentId>-<i>`) are content-derived; assign, sell and forge use no RNG, so replaying the day gives the same items and the same suggestions. When replay lands, `loot <n> <hero>`, `loot auto`, `loot sell`, `loot craft`, `market <good> <hero>`, `poach <rival> <hero>` and `raidteam` are already actions in `store/actions.ts`, not direct state writes.
 
 ---
 
@@ -197,11 +201,11 @@ The `perfect` policy is a small search/greedy bot. It's the single most valuable
 Measured 2026-10-31 on the shipped build:
 
 - **One guild day:** ~1 ms (`resolveDay`, 84 days in ~0.10 s).
-- **One world day:** ~13 ms at the board build, because `tickRivals` gives three full guilds an `aiTurn`. A full 84-day world run was 1.1 s over a 30-run sample on a quiet host; the first measurement on an earlier build was 0.84 s. The reward context adds one `bestPartyFor` per day; the current build was not re-measured on a quiet host.
-- **`sim --runs 20`** (60 world runs) is ~65 s at the board build. The unit tests use the player-only `aiRun`; three world runs cover the race.
+- **One world day:** ~24 ms after the 2026-11-01 feature pass, because `tickRivals` gives three full guilds an `aiTurn` and the ladder is 30 areas. A full 84-day world run measured 1.86–2.19 s (3 seeds) on the loaded dev host; the pre-pass build measured 1.1 s on a quiet host, so this is not a like-for-like comparison. The planner's `effectiveReward` takes the star id once per day instead of recomputing `availableContent` per area; that was the first fix when the pass measured 2.2 s.
+- **`sim --runs 20`** (60 world runs) is ~2 minutes on the current host. The unit tests use the player-only `aiRun`; three world runs cover the race.
 - The roster table is ≤ 22 rows. No virtualisation needed. Tavern is ≤ 3.
 - **The projection is the expensive interaction.** `projectAssignment` runs on every party/stance/content change. It is one pure call over the party (≤22 heroes), so the War Room recomputes it rather than caching a derived number; keep it pure. The 15-hero AI save rendered without a visible delay in the headless pass; no frame timing was taken.
-- **Production bundle:** 417.88 kB JS / 123.86 kB gzip and 35.56 kB CSS / 8.01 kB gzip, built in 0.72 s (`vite build`, 74 modules). No component library, no chart library, no drag library.
+- **Production bundle:** 454.06 kB JS / 133.37 kB gzip and 36.41 kB CSS / 8.17 kB gzip, built in 0.52 s (`vite build`, 80 modules). No component library, no chart library, no drag library.
 - **Save cost:** a day-41 save is 164 kB; a finished run is 255 kB because it carries three rival guilds and the player's raid log (4 kB for 17 nights). The end-of-run file stringifies in 3.4 ms and parses in 2.3 ms over 500 runs on the dev host; the log moves either by under 0.1 ms. The store writes on every game action, not on UI state, so a day costs one write on top of the ~13 ms world tick.
 - A 10,000-day batch is ~12 s with `aiRun` (player only, ~119 full runs) and ~100 s with the world attached. Optimise the rival planner first if that becomes the bottleneck; do not cut the race out of the sweep.
 

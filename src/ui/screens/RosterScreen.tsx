@@ -22,7 +22,8 @@ import {
   statusChips,
   type HeroView,
 } from "../../store/selectors";
-import { Chip, ClassIcon, Meter } from "../components/Primitives";
+import { Chip, Meter } from "../components/Primitives";
+import { Portrait } from "../components/Portrait";
 
 type SortKey = "name" | "level" | "power" | "ilvl" | "fatigue" | "sharpness" | "morale" | "wage" | "contract";
 
@@ -106,7 +107,7 @@ const HeroRow = ({ hero }: { hero: Hero }) => {
     >
       <td>
         <div className="hero-cell">
-          <ClassIcon klass={hero.klass} label={CLASS_LABEL[hero.klass]} />
+          <Portrait role={hero.naturalRole} klass={hero.klass} name={hero.name} size={26} />
           <span style={{ fontWeight: 600 }}>{team ? "★ " : ""}{hero.name}</span>
           {chips.map((chip) => (
             <Chip key={chip.label} tone={chip.tone as "good" | "warn" | "bad"}>

@@ -1,6 +1,7 @@
 import { CHECK_LABEL, KIND_LABEL } from "../../sim";
 import { useGameStore } from "../../store/gameStore";
 import { inspectInfo } from "../../store/selectors";
+import { Art } from "../components/Art";
 import { Modal } from "../components/Modal";
 import { Chip } from "../components/Primitives";
 
@@ -52,6 +53,12 @@ export const InspectModal = ({ contentId, onClose }: { contentId: string; onClos
         </>
       }
     >
+      <Art
+        base={`/art/places/${content.id}`}
+        alt={`${content.name} key art`}
+        width="100%"
+        className="inspect-banner"
+      />
       <p className="small muted" style={{ marginBottom: 10 }}>{content.blurb}</p>
       <div className="inspect-grid">
         <div>

@@ -12,7 +12,11 @@
     "typecheck": "tsc --noEmit",
     "docs:check": "node scripts/check-docs.mjs",
     "check": "npm run typecheck && npm test && npm run docs:check",
-    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "art:prompts": "node scripts/art/prompts.mjs",
+    "art:check": "node scripts/art/prompts.mjs --check",
+    "art:generate": "node scripts/art/generate.mjs",
+    "art:tidy": "node scripts/art/tidy.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

@@ -4,6 +4,7 @@ import {
   fieldableParty,
   freeHeroes,
   newGame,
+  poachTargets,
   unavailableContent,
   type GameState,
   type Hero,
@@ -89,6 +90,40 @@ describe("the UI action reducer", () => {
     expect(bought.gold).toBe(5_000 - 900);
   });
 
+  it("buys a market good and a forge, and sells a drop", () => {
+    const start = newGame(4242);
+    const hero = start.roster[0]!;
+    const rich = { ...start, gold: 5_000 };
+    const bought = applyAction(rich, { type: "buy-good", goodId: "tonic", heroId: hero.id });
+    expect(bought.gold).toBeLessThan(rich.gold);
+    const drop = {
+      id: "loot-test",
+      day: 1,
+      contentId: "hollow-crypt",
+      contentName: "Hollow Crypt",
+      slot: "weapon" as const,
+      ilvl: 50,
+    };
+    const waiting = { ...rich, pendingLoot: [drop] };
+    const sold = applyAction(waiting, { type: "sell-loot", lootId: drop.id });
+    expect(sold.gold).toBeGreaterThan(waiting.gold);
+    expect(sold.pendingLoot).toHaveLength(0);
+    const forged = applyAction(waiting, { type: "craft-loot", lootId: drop.id, heroId: hero.id });
+    expect(forged.gold).toBeLessThan(waiting.gold);
+    expect(forged.pendingLoot).toHaveLength(0);
+  });
+
+  it("poaches a rival hero through the reducer", () => {
+    const start = newGame(4242);
+    const rival = start.rivals[0]!;
+    const target = poachTargets(start, rival.id)[0]!;
+    const rich = { ...start, gold: 20_000 };
+    const next = applyAction(rich, { type: "poach", rivalId: rival.id, heroId: target.hero.id });
+    expect(next.roster).toHaveLength(start.roster.length + 1);
+    expect(next.gold).toBe(rich.gold - target.fee);
+    expect(next.poachHeat).toBe(start.day);
+  });
+
   it("sets a raid ten, keeps only real heroes and caps at ten", () => {
     const start = newGame(4242);
     const ids = start.roster.map((h) => h.id);
@@ -121,6 +156,12 @@ describe("the UI action reducer", () => {
 });
 
 describe("the fatigue readout", () => {
+  it("shows a tonic in the roster status chips", () => {
+    const start = newGame(4242);
+    const hero = start.roster[0]!;
+    expect(statusChips({ ...hero, buffDays: 2, buffPower: 0.1 }).some((c) => c.label === "Tonic 2d")).toBe(true);
+  });
+
   it("draws one line for the badge, the chip and the raid-ready filter", () => {
     const start = newGame(4242);
     const base = start.roster[0]!;
@@ -218,6 +259,47 @@ describe("the advance gate", () => {
     });
     useGameStore.getState().advance();
     expect(useGameStore.getState().game!.day).toBe(start.day + 1);
+  });
+});
+
+describe("the day report", () => {
+  it("keeps a clear's drops on the report instead of opening a sheet", () => {
+    useGameStore.getState().startRun(5, "Report");
+    const start = useGameStore.getState().game!;
+    const at = (hero: Hero): Hero => ({
+      ...hero,
+      level: 60,
+      attrs: {
+        might: 20, agility: 20, vitality: 20, endurance: 20,
+        focus: 20, discipline: 20, awareness: 20, composure: 20,
+      },
+      gear: { weapon: 10, chest: 10, helm: 10, trinket: 10 },
+      traits: [],
+      fatigue: 0,
+      sharpness: 60,
+      morale: 60,
+      health: 100,
+    });
+    const roster = start.roster.map(at);
+    const vault = contentById("plundered-vault")!;
+    useGameStore.setState({
+      game: {
+        ...start,
+        roster,
+        plan: { parties: [{ contentId: vault.id, heroes: roster.map((h) => h.id), stance: "steady" }] },
+        raidTeam: [roster[0]!.id],
+        attention: [],
+      },
+      screen: "hall",
+      modal: null,
+    });
+
+    useGameStore.getState().advance();
+    const after = useGameStore.getState();
+    expect(after.game!.pendingLoot?.length).toBe(vault.loot.count);
+    expect(after.screen).toBe("report");
+    expect(after.report?.day).toBe(start.day);
+    expect(after.modal).toBeNull();
   });
 });
 

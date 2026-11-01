@@ -18,7 +18,9 @@ import { randomSeed } from "../../app/clock";
 import { useGameStore } from "../../store/gameStore";
 import { guildSummary } from "../../store/selectors";
 import { EventLine } from "../components/EventLine";
+import { DropRow } from "../modals/LootModal";
 import { Chip } from "../components/Primitives";
+import { Art } from "../components/Art";
 
 const fmt = (value: number): string => Math.round(value).toLocaleString("en-US");
 
@@ -36,7 +38,14 @@ const EncounterReport = ({ game, encounter }: { game: GameState; encounter: Enco
   const traits = pullTraits(encounter);
 
   return (
-    <section className="panel">
+    <section className="panel" style={{ overflow: "hidden" }}>
+      <Art
+        base={`/art/places/${encounter.contentId}`}
+        alt=""
+        width="100%"
+        height={96}
+        className="encounter-banner"
+      />
       <div className="panel-head">
         <div>
           <div className="eyebrow">
@@ -47,6 +56,9 @@ const EncounterReport = ({ game, encounter }: { game: GameState; encounter: Enco
         <div className="row-wrap">
           {encounter.payScale !== undefined && encounter.payScale < 1 ? (
             <Chip tone="warn">token {Math.round(encounter.payScale * 100)}%</Chip>
+          ) : null}
+          {encounter.featuredBonus !== undefined && encounter.featuredBonus > 1 ? (
+            <Chip tone="gold">★ star +{Math.round((encounter.featuredBonus - 1) * 100)}%</Chip>
           ) : null}
           <Chip tone={encounter.cleared ? "good" : "bad"}>
             {encounter.cleared ? "cleared" : `wipe · best ${Math.round(encounter.bestPull * 100)}%`}
@@ -200,6 +212,31 @@ const momentsFor = (game: GameState): { day: number; text: string }[] => {
   return picks.slice(0, 3).sort((a, b) => a.day - b.day);
 };
 
+const LootWaiting = ({ game }: { game: GameState }) => {
+  const dispatch = useGameStore((s) => s.dispatch);
+  const loot = game.pendingLoot ?? [];
+  if (loot.length === 0) return null;
+  return (
+    <section className="panel" style={{ borderColor: "rgba(216,179,95,0.4)" }}>
+      <div className="panel-head">
+        <span className="eyebrow">Drops waiting</span>
+        <Chip tone="warn">{loot.length}</Chip>
+      </div>
+      <div className="stack" style={{ gap: 6, padding: 10 }}>
+        {loot.map((drop) => <DropRow key={drop.id} drop={drop} />)}
+        <div className="row" style={{ marginTop: 4 }}>
+          <button className="btn btn-primary btn-sm" onClick={() => dispatch({ type: "auto-loot" })}>
+            Auto — need pick
+          </button>
+          <span className="tiny dim">
+            Assign, sell, or forge each drop. Anything left when you advance takes the need default.
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const RunEnd = ({ game }: { game: GameState }) => {
   const startRun = useGameStore((s) => s.startRun);
   const openModal = useGameStore((s) => s.openModal);
@@ -324,7 +361,7 @@ export const ReportScreen = () => {
           <p className="screen-sub">
             {game.finished
               ? "The verdict, the components, and the moments that made the run. The next run can use the same seed."
-              : "The digest, the pull that decided the night, and what would close the gap. A wipe names the failed check."}
+              : "The drops to assign, the digest, the pull that decided the day, and what would close the gap. A wipe names the failed check."}
           </p>
         </div>
         <div className="row-wrap small">
@@ -343,6 +380,10 @@ export const ReportScreen = () => {
 
       <div className="report-grid">
         <div className="stack" style={{ gap: 12 }}>
+          {/* The drops sit at the top: a clear's loot is the decision the day
+              hands back, and it must not be a panel to scroll for. */}
+          <LootWaiting game={game} />
+
           <section className="panel">
             <div className="panel-head">
               <span className="eyebrow">{report ? `Digest · day ${report.day}` : "Digest"}</span>

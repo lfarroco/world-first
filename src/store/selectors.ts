@@ -4,6 +4,7 @@ import {
   CLASS_LABEL,
   CONTRACT_BOARD,
   FATIGUE_LINES,
+  FEATURED,
   ROLES,
   ROSTER_CAP,
   abilityById,
@@ -14,6 +15,8 @@ import {
   contentAvailability,
   contentById,
   fieldableParty,
+  featuredContentFor,
+  featuredLine,
   fitFor,
   formMod,
   heroPower,
@@ -101,6 +104,9 @@ export type ContentChoice = {
   attempts: number;
   posted: boolean;
   payScale: number;
+  /** The daily star: one open non-raid area pays more gold and XP today. */
+  featured: boolean;
+  featuredBonus: number;
   /** Best legal party from the whole roster, and its steady-stance projection. */
   projection: Projection | null;
   party: Hero[] | null;
@@ -108,6 +114,7 @@ export type ContentChoice = {
 
 export const contentChoices = (state: GameState): ContentChoice[] => {
   const posted = postedContractIds(state);
+  const star = featuredContentFor(state);
   return availableContent(state).map((content) => {
     const progress = state.progress.find((p) => p.contentId === content.id);
     const party = fieldableParty(state, content);
@@ -126,10 +133,18 @@ export const contentChoices = (state: GameState): ContentChoice[] => {
       attempts: progress?.attempts ?? 0,
       posted: isPosted(state, content, posted),
       payScale: payScaleFor(state, content, posted),
+      featured: star?.id === content.id,
+      featuredBonus: star?.id === content.id ? FEATURED.goldMult : 1,
       projection,
       party,
     };
   });
+};
+
+/** Today's star, formatted once for the Hall and the War Room. */
+export const featuredInfo = (state: GameState): { content: ContentDef; line: string } | null => {
+  const content = featuredContentFor(state);
+  return content ? { content, line: featuredLine(content) } : null;
 };
 
 export const contractInfo = (state: GameState) => {
@@ -474,6 +489,7 @@ export const filterHeroes = (state: GameState, heroes: Hero[], view: HeroView): 
 export const statusChips = (hero: Hero): { label: string; tone: string }[] => {
   const chips: { label: string; tone: string }[] = [];
   if (hero.injuryDays > 0) chips.push({ label: `OUT ${hero.injuryDays}d`, tone: "bad" });
+  if ((hero.buffDays ?? 0) > 0) chips.push({ label: `Tonic ${hero.buffDays}d`, tone: "good" });
   const fatigue = fatigueState(hero);
   if (fatigue === "exhausted") chips.push({ label: "Exhausted", tone: "bad" });
   else if (fatigue === "tired") chips.push({ label: "Tired", tone: "warn" });

@@ -10,6 +10,7 @@ import { rosterCapFor, wageBudgetFor, nextCost, buyFacility, FACILITIES, type Fa
 import { roleById, rolesForClass } from "../content/roles";
 import type { Personality } from "./personalities";
 import { effectiveReward, postedContractIds } from "../board";
+import { featuredContentFor } from "../featured";
 import { rewardContext, rewardValue, type RewardContext } from "./reward";
 import { stableRaidParty } from "../team";
 
@@ -41,6 +42,7 @@ const scoreContent = (
   personality: Personality,
   posted: ReadonlySet<string>,
   valueCtx: RewardContext,
+  featuredId: string | undefined,
 ): AiChoice | null => {
   if (pool.length < content.minHeroes) return null;
 
@@ -65,7 +67,7 @@ const scoreContent = (
   if (content.kind === "farm") {
     // A farm is a real choice, not a floor. The old constant "1" meant the main
     // loop always took Emberwood and `fallbackFarm` never compared gold farms.
-    const farmReward = effectiveReward(state, content, posted);
+    const farmReward = effectiveReward(state, content, posted, featuredId);
     const farmValue = rewardValue(state, content, party, farmReward, valueCtx);
     return { content, party, stance: "steady", ratio, score: farmValue };
   }
@@ -77,7 +79,7 @@ const scoreContent = (
   if (cleared > 0 && content.kind === "mission" && !posted.has(content.id)) return null;
 
   // Value is mostly XP and gold, at today's contract pay.
-  const reward = effectiveReward(state, content, posted);
+  const reward = effectiveReward(state, content, posted, featuredId);
   const value = rewardValue(state, content, party, reward, valueCtx);
   // A clear chance above 100% is not extra reward. The uncapped term made the
   // easiest cleared mission beat the gold run the guild needed, because a
@@ -118,6 +120,7 @@ const fallbackFarm = (
   usedContent: ReadonlySet<string>,
   posted: ReadonlySet<string>,
   valueCtx: RewardContext,
+  featuredId: string | undefined,
 ): AiChoice | null => {
   let bestContent: ContentDef | null = null;
   let bestParty: Hero[] = [];
@@ -130,7 +133,7 @@ const fallbackFarm = (
     }
     const party = bestPartyFor(state, content, pool);
     if (party.length < content.minHeroes || !levelOk(content, party)) continue;
-    const reward = effectiveReward(state, content, posted);
+    const reward = effectiveReward(state, content, posted, featuredId);
     const value = rewardValue(state, content, party, reward, valueCtx);
     if (value > bestValue) {
       bestValue = value;
@@ -160,6 +163,9 @@ export const planDay = (
   const candidates = availableContent(state);
   const posted = postedContractIds(state, candidates);
   const valueCtx = rewardContext(state);
+  // An empty id means "no star today", which avoids the default parameter in
+  // `effectiveReward` recomputing `availableContent` for every area.
+  const featuredId = featuredContentFor(state, candidates)?.id ?? "";
   const resting = new Set<string>();
   const daysLeft = RUN_DAYS - state.day;
 
@@ -219,14 +225,14 @@ export const planDay = (
       // One party per content per day. Two parties on the same dungeon
       // double-dips loot, XP and mastery, and a human cannot do it.
       if (usedContent.has(content.id)) continue;
-      const pick = scoreContent(state, content, pool, personality, posted, valueCtx);
+      const pick = scoreContent(state, content, pool, personality, posted, valueCtx, featuredId);
       if (!pick) continue;
       if (!best || pick.score > best.score) best = pick;
     }
 
     if (!best) {
       // Nothing viable: farm with whoever is left, in a zone nobody is using.
-      const farm = fallbackFarm(state, pool, usedContent, posted, valueCtx);
+      const farm = fallbackFarm(state, pool, usedContent, posted, valueCtx, featuredId);
       if (!farm) break;
       best = farm;
     }
@@ -238,7 +244,7 @@ export const planDay = (
       stance: best.stance,
     });
     if (projection && projection.minRatio < 0.75 && best.content.kind !== "farm") {
-      const farm = fallbackFarm(state, pool, usedContent, posted, valueCtx);
+      const farm = fallbackFarm(state, pool, usedContent, posted, valueCtx, featuredId);
       if (!farm) break;
       best = farm;
     }
@@ -263,7 +269,7 @@ export const planDay = (
   if (exhausted.length > 0) notes.push(`${exhausted.length} heroes resting`);
   const lightTired = light;
   if (lightTired.length > 0 && parties.length < MAX_PARTIES) {
-    const zone = fallbackFarm(state, lightTired, usedContent, posted, valueCtx);
+    const zone = fallbackFarm(state, lightTired, usedContent, posted, valueCtx, featuredId);
     if (zone && zone.party.length >= zone.content.minHeroes) {
       parties.push({ contentId: zone.content.id, heroes: zone.party.map((h) => h.id), stance: "steady" });
       usedContent.add(zone.content.id);

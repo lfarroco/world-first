@@ -1136,6 +1136,20 @@ hr.sep {
   min-width: 0;
 }
 
+.market-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.3fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.guild-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.7fr) minmax(0, 1.5fr);
+  gap: 14px;
+  align-items: start;
+}
+
 .standings-row {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) 60px 54px 1.3fr;
@@ -1561,7 +1575,7 @@ hr.sep {
 
 .raid-row {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) 110px;
+  grid-template-columns: 24px 62px minmax(0, 1fr) 110px;
   gap: 10px;
   align-items: center;
   width: 100%;
@@ -1919,6 +1933,14 @@ hr.sep {
   border-top: 0;
 }
 
+.guild-hero-row {
+  grid-template-columns: minmax(0, 1.7fr) 56px 54px 52px 64px auto;
+}
+
+.market-hero-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
 .picker-row:hover {
   background: rgba(255, 255, 255, 0.04);
 }
@@ -2073,6 +2095,8 @@ hr.sep {
 
 @media (max-width: 1180px) {
   .hall-grid,
+  .market-grid,
+  .guild-grid,
   .war-grid,
   .raid-grid,
   .report-grid {
@@ -2239,4 +2263,74 @@ hr.sep {
   .drawer {
     width: 100vw;
   }
+}
+
+/* ---------------------------------------------------------------- portraits */
+
+.art {
+  display: block;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  border: 1px solid var(--color-line);
+  background: #12161c;
+  object-fit: cover;
+  object-position: 50% 16%;
+}
+
+.art-empty {
+  display: grid;
+  place-items: center;
+  color: #5a616c;
+  background: #171b21;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.portrait-warrior {
+  border-color: rgba(190, 124, 92, 0.42);
+}
+.portrait-cleric {
+  border-color: rgba(216, 179, 95, 0.42);
+}
+.portrait-mage {
+  border-color: rgba(130, 168, 208, 0.42);
+}
+.portrait-rogue {
+  border-color: rgba(171, 141, 203, 0.42);
+}
+
+/* Generated icons pad the object — a 1024 px canvas with the subject in the
+   middle third — so they are drawn larger than a text-sized glyph would be. */
+.item-icon {
+  object-position: 50% 50%;
+  border-color: rgba(216, 179, 95, 0.18);
+  background: #1a1f26;
+}
+
+
+.inspect-banner {
+  aspect-ratio: 16 / 9;
+  margin: -14px -16px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  border-radius: 0;
+  object-position: 50% 45%;
+}
+
+.encounter-banner {
+  object-position: 50% 45%;
+  border-radius: 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.place-thumb {
+  border-radius: 3px;
+  object-position: 50% 50%;
+}
+
+.raid-thumb {
+  border-radius: 3px;
+  object-position: 50% 50%;
+  opacity: 0.9;
 }

@@ -112,6 +112,42 @@ Every personality clears 9.00 dungeons. Scores rise 4–14% and raids hold or ri
 
 **Rejected:** moving the Ashen Spire down to 30 (it is the last dungeon before raiding and its requirements were measured at 35; moving it invalidates the three phase numbers), adding dungeons past 35 (the raid band is the endgame, not more five-mans), and a full re-space to one dungeon every 3 levels from 10 to 60 (fifteen dungeons; the player never reached the top half of that range, and every one needs its own measurement).
 
+### 1.4 The high band and the daily star (2026-11-01)
+
+**Why.** The first human run ([learnings.md](learnings.md) L108–L109) ended with a raid ten it could not fill and a list of dungeons it could not field. The target list also stopped offering farm and mission work after level 18, so a guild with three spare bodies had nothing to do but dive a dungeon short-handed. The playtest asked for high-level farm and mission options, tabs, and a daily starred area.
+
+**The high band.** Four farms at levels 20, 28, 36 and 44; four missions at 22, 28, 34 and 42. They sit after the raid ladder in `CONTENT`, so `nextDoor` still names the main step. The farms are gold-first: 18/26/34/42 gold per hero and 8 XP per hero. The missions are the usual one-night trade.
+
+**Requirements came from a 40-seed probe, not intuition.** The probe built three `makeHero` parties (warrior/cleric/mage) at each level, with the gear the creator gives them, and took the median check sum. The requirement is that median times 1.02–1.03:
+
+| Mission | Lvl | Check | Median | Requirement | Ratio |
+|---|---|---:|---:|---:|---:|
+| The Cinder Road | 22 | mechanics | 60 | 62 | 1.03 |
+| The Silent Abbey | 28 | sustain | 51 | 52 | 1.02 |
+| The Broken Standard | 34 | mitigation | 58 | 60 | 1.03 |
+| The Last Outpost | 42 | mechanics | 118 | 122 | 1.03 |
+
+The first draft set the Last Outpost at 112, below the median, and was corrected before the sweep. **The probe is a floor, not the AI's first legal party**; the next content pass should run the Steward until it can field the area and use that party, as §1.3 did for dungeons.
+
+**The daily star.** One open non-raid area is starred each day and pays +50% gold. The first implementation paid +50% gold *and* XP. That was a difficulty dial: the 20-seed sweep put the Steward at 3.00 raids and added roughly 1.1k–3.5k score. Gold-only is the shipped rule; the measured sweep is §3.9. Raids are excluded because a 1.5× raid purse would price the endgame, not a spare party.
+
+**Measured clears, 20 seeds per personality, after the pass:**
+
+| Content | Kind | Clears/run |
+|---|---|---:|
+| The Ashen Verge | farm 20 | 3.63 |
+| The Sunken Shoals | farm 28 | 4.70 |
+| The Glass Wastes | farm 36 | 10.73 |
+| The Obsidian Road | farm 44 | 23.95 |
+| The Cinder Road | mission 22 | 2.00 |
+| The Silent Abbey | mission 28 | 1.70 |
+| The Broken Standard | mission 34 | 1.85 |
+| The Last Outpost | mission 42 | 1.98 |
+
+The high-band farms are used heavily late (Obsidian Road ~24 clears/run). That is the spare-party niche the playtest asked for, but it is also a gold faucet: 24 clears at 42g/hero × 5 heroes is ~5k gold a run. The next balance pass owns it; the star is not the dial.
+
+**Rejected:** adding the high band before the raid ladder (it would make `nextDoor` name a level-44 farm instead of the next raid); XP-paying high-band farms (free levels, no decision); naming all high-band areas at once (the closed-list rule); and moving the Ashen Spire gate instead (one feature pass, one dial).
+
 ---
 
 ## 2. The AI
@@ -360,6 +396,24 @@ The total is unchanged. The Gambler gains a full clear and 1.9%, the Quartermast
 
 **Rejected:** a three-round escalating negotiation (the queue has no numeric input and the extra state would live on the hero for no measured gain); a seeded roll (unpriceable by the bot and unnecessary when a threshold works); a transfer with no fee (granting would be strictly worse than refusing); a rival-purse model (rival gold is a separate `GameState`); RNG in `deriveAttention` (it runs several times a day and would reshuffle the world).
 
+### 3.9 The feature pass: market, star, poaching (2026-11-01)
+
+**What changed.** The market and forge (gold sinks), the gold-only daily star, the four high-band farms and four missions, the unconditional Push injury roll, loot assignment with sell and forge, and the Guilds screen with poaching. The full feature list is in [roadmap.md](roadmap.md) and the rules are in [guild-manager-model.md](guild-manager-model.md) §5.6 and §6.
+
+**The sweep.** 20 seeds per personality, seeds 1+17i, `runWorld`, after the changes:
+
+| Build | Steward | Gambler | Quartermaster | Raids (S/G/Q) | World First (S/G/Q) | Avg rank (S/G/Q) |
+|---|---:|---:|---:|---:|---:|---:|
+| 2026-10-31 baseline | 28,439 | 24,136 | 27,413 | 2.95 / 2.60 / 2.85 | 6 / 2 / 3 | 2.45 / 3.35 / 2.90 |
+| XP-paying star + high band | 29,604 | 27,678 | 28,309 | 3.00 / 2.85 / 2.90 | 9 / 7 / 4 | 2.45 / 2.80 / 3.05 |
+| Gold-only star + gold-first farms | 28,234 | 26,888 | 28,238 | 2.90 / 2.80 / 2.95 | 5 / 5 / 1 | 2.90 / 2.90 / 3.25 |
+
+The XP-paying middle row is why the star is gold-only: it put the Steward at 3.00 raids and the Quartermaster at 2.90, flattening the ladder. The shipped row returns those two to the baseline band (28.2k and 28.2k against 28.4k and 27.4k) and gives the Gambler 2.7k. The Gambler is the personality that spends, so a gold faucet is worth more to it; the star is doing what a daily opportunity should do, but the race is harder to win for the cautious bots: the Steward's rank slips from 2.45 to 2.90 and the Quartermaster's from 2.90 to 3.25. That is the first item for the next balance pass.
+
+**Push risk, measured separately.** A controlled 10-hero level-55 party with 250 iLvl, clearing Gatewarden on push: 45 injuries over 100 seeds (0.45 a night); the same parties on steady took 0 because every check was clean. This is the measurement that justifies `INJURY.pushChance = 0.06` and L114. It is not a balance dial for the raid ladder; do not raise it to make the run harder (L57).
+
+**What is not measured.** The market is a human-only lever: the AI still spends only on facilities, so the sweep does not price the shop. The poach is human-only except for the 6%/day rival-to-rival bench move; its effect on the race is inside the three rival guilds' own days, not a separate arm. Both need a human playtest, not another sweep.
+
 ---
 
 ## 4. What the numbers taught
@@ -587,11 +641,19 @@ Incidence over 10 runs: 54% of heroes carry at least one trait, 107 traits acros
 
 Ten seeds is a small sample and the ladder is sensitive: moving one trait's fatigue from "before Endurance" to "after Endurance" shifts this average by about 900. Treat differences under ~1k as unresolved.
 
+### 6.6 Push's unconditional risk (2026-11-01)
+
+Push added +12% to every check and a 1.55× injury multiplier that only fired on a scrape. The bonus moved a 0.92 party out of the scrape band, so the stance was safest exactly where it helped most: the first measured run used Push on raid nights and took no injuries. L65 named the hole; this pass closes it.
+
+`INJURY.pushChance = 0.06` is rolled once per hero per pull on Push, before vitality and fatigue. It is separate from the scrape roll, so a clean kill still costs bodies. In a controlled 10-hero level-55 party at 250 iLvl that cleared Gatewarden on every seed, Push took 45 injuries over 100 seeds (0.45 a night); the same parties on steady took none. Injuries are deduplicated per assignment: a hero hurt on two phases is one injury day, not two 45-health hits.
+
+**Rejected:** raising the scrape multiplier (it does not fire where Push is used); applying the risk only on failure (a clean push would still be free); a per-phase roll (a ten-hero party would take several injuries a night); and making Push a raid-only rule (missions and dungeons use the same stance).
+
 ---
 
 ## 7. Known gaps
 
-- **The world run costs ~10× the guild run.** Three rivals × 84 planner turns is 1.1 s per run on a quiet host; `sim --runs 20` is ~65 s. The race is real, not free.
+- **The world run costs ~20× the guild run.** Three rivals × 84 planner turns is 1.86–2.19 s per run on the loaded dev host after the feature pass (1.1 s was the pre-pass quiet-host number); `sim --runs 20` is ~2 minutes. The race is real, not free.
 - **The AI's auto is the floor, not the ceiling.** A clear queues untargeted drops; the player assigns them, or the next Advance takes the need suggestion. The AI's own auto keeps the old lowest-geared-in-the-party pick, which wastes 24% of items (514/2,158 on the Steward, 10 seeds); the player's need pick wastes 0 and adds 10 full clears in the all-need lab (§3.6).
 - **The need model is coarse.** The planner now prices the purse, the next wall's level gate and the raid party's gear gap (§3.5), and assignment prices the actual slot (§3.6), but the planner's `lootValue` still measures the band against the worst hero's average, named drops and forge `lootIlvl` are ignored, the purse has no facility/hire reserve, and the value does not price `traitEconomy` or the rival `rewardScale`. The gear gap is the sharp one: on the board-only build 129/129 Tyrant attempts were below the 225 recommendation (mean 151, −33%); the day-40 team is 46–55 against the 65 target. The purse is smaller: the mean run ended 2,509g short of its cheapest unbought facility tier. Both are gear-rate problems, not content-choice ones.
 - **Repeatable missions are capped by the contract board, not by a decay.** The Drowned Mill is 26.4 → 13.75 clears/run; the board costs ~2.5% of score and three Steward full clears (§3.4). Four of seven missions are mechanics; The Broken Bridge now adds the missing mitigation job (§3.7). Its gold is the ceiling, not the fix: 160–220g all produce the same ladder. See [open-questions.md](open-questions.md) O7.
@@ -600,13 +662,15 @@ Ten seeds is a small sample and the ladder is sensitive: moving one trait's fati
 - **Promises are a debt, and a broken one now asks to leave.** The ledger writes a due day, counts starts, and settles kept/broken (§7.1a). The missing half also ships: a renewal is a 12% counter with a 25% raise on refusal, and a broken promise raises a one-shot transfer request whose grant pays half the recruit fee. The planner still does not read `contract.status`, so the bot cannot plan around a promise it made; that is the remaining hole. The counter fires on almost every renewal the AI takes (269–324 accepted and 57–68 refused per 10 runs), so it is a real risk, not a rare event.
 - **The counter is a wage cut, not a wage reset.** A hero who takes 12% off is renewed on the cut wage, but the next renewal re-prices from `renewalWage`, which never goes below market. The saving lasts one contract. If it should compound, the mechanism is a stored market discount, not a lower `wage`.
 - **Facilities now compete with wages.** Before the re-pricing the AI maxed the tree by ~day 70 and ended with ~10k; now it ends with ~2k and one tier short. That is the intended tension, but the facility prices were set against the old, broken wage bill.
-- **No early-game pressure.** The first ten days are pleasant but consequence-free; there is no wage crisis until the roster is expensive.
+- **The high-band farm is a gold faucet.** The Obsidian Road (level 44, 42g/hero) is cleared 24 times a run; the four high-band farms together are ~43 clears a run. That is the spare-party niche the playtest asked for, but it is also the largest new source of gold. The star is not the dial (it is gold-only); the farm tier is. Next balance pass: one dial, 20 seeds.
+- **The market and poaching are human-only levers.** The AI still spends only on facilities and never signs a rival's hero. The sweep does not price either. The 20-seed feature-pass row (`§3.9`) is the AI-only baseline; a human run is the only test that can say whether the shop makes gold interesting or just mandatory.
+- **The poach answer is one card, not a relationship.** A poach raises `poachHeat`; one rival-offer card fires inside ten days and the ledger is cleared. There is no grudge, no repeat, and no counter-bid from the rival whose hero left. That is enough for v0.1; a rival that remembers is a post-MVP feature, not a bug.
 
 ---
 
 ## 8. What to do next
 
 1. **The vertical-slice UI.** The non-UI backlog is done: the role reviewer, the contract board, the reward-aware planner, loot assignment, the mitigation mission (§3.7) and the contract/promise half (§3.8) all ship. [ADR 0002](adr/0002-ui-framework.md) accepted React + Vite on 2026-10-30, so the framework gate is closed; what is left is the screen that makes the queue playable.
-2. **The wall is still the balance item.** The Quartermaster clears 18/20 on the shipped build (19/20 with the bridge alone); the day-40 ten is 46–55 iLvl against 65. The next non-UI lever, if the UI waits, is the gear rate or the wall-change re-pick (§3.6), not another mission.
+2. **The wall is still the balance item.** The Quartermaster clears 18/20 on the shipped build (19/20 with the bridge alone); the day-40 ten is 46–55 iLvl against 65. The next non-UI lever, if the UI waits, is the gear rate or the wall-change re-pick (§3.6), not another mission. The feature pass (§3.9) moved the race: the Gambler is +2.7k and the Steward's average rank is 2.90. The high-band farm tier is the first dial to test, 20 seeds, one change at a time.
 
 The role reviewer and the check readout are done; the affinity table stays 1.15 until a party-level mechanic is designed.

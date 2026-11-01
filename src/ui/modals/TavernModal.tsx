@@ -9,7 +9,8 @@ import {
 } from "../../sim";
 import { useGameStore } from "../../store/gameStore";
 import { Modal } from "../components/Modal";
-import { Chip, ClassIcon } from "../components/Primitives";
+import { Chip } from "../components/Primitives";
+import { Portrait } from "../components/Portrait";
 
 const ATTRS = [
   "might",
@@ -37,7 +38,7 @@ const CandidateCard = ({ candidate }: { candidate: Candidate }) => {
     <div className="panel-2" style={{ padding: 12, marginTop: 10 }}>
       <div className="spread" style={{ alignItems: "flex-start" }}>
         <div className="row" style={{ alignItems: "flex-start", gap: 9 }}>
-          <ClassIcon klass={hero.klass} label={CLASS_LABEL[hero.klass]} />
+          <Portrait role={hero.naturalRole} klass={hero.klass} name={hero.name} size={34} />
           <div>
             <div className="row" style={{ gap: 6 }}>
               <span style={{ fontWeight: 700, fontSize: 14 }}>{hero.name}</span>

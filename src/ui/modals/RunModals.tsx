@@ -97,8 +97,8 @@ export const HelpModal = ({ onClose }: { onClose: () => void }) => (
             <dd>Advance the day</dd>
           </div>
           <div className="kv">
-            <dt>1 – 5</dt>
-            <dd>Hall · Roster · War Room · Raid · Report</dd>
+            <dt>1 – 6</dt>
+            <dd>Hall · Roster · War Room · Raid · Guilds · Report</dd>
           </div>
           <div className="kv">
             <dt>
@@ -125,7 +125,7 @@ export const HelpModal = ({ onClose }: { onClose: () => void }) => (
           </div>
           <div className="kv">
             <dt>Form</dt>
-            <dd>Condition × sharpness × morale × health</dd>
+            <dd>Condition × sharpness × morale × health × a bought tonic</dd>
           </div>
           <div className="kv">
             <dt>Projected</dt>
@@ -152,7 +152,7 @@ export const HelpModal = ({ onClose }: { onClose: () => void }) => (
     </div>
     <hr className="sep" />
     <p className="small muted">
-      A blocking item holds Advance until you answer it. The count on a tab is what waits inside it. The Report dot means an unopened day report. Drops never block: the next Advance takes the default. A phase ratio of 0.92–1.00 can clear or wipe, and a wipe can injure a hero.
+      A blocking item holds Advance until you answer it. The count on a tab is what waits inside it. The Report dot means an unopened day report. Drops never block: the next Advance takes the default. A phase ratio of 0.92–1.00 can clear or wipe, and a wipe can injure a hero. Push rolls its own injury risk on every pull. Drops can be assigned, sold, or forged; the market sells gear at the guild's tier.
     </p>
   </Modal>
 );

@@ -1,6 +1,7 @@
 import type { ContentDef, GameState } from "./types";
-import { CONTRACT_BOARD } from "./content/tuning";
+import { CONTRACT_BOARD, FEATURED } from "./content/tuning";
 import { availableContent } from "./plan";
+import { featuredContentFor } from "./featured";
 import { rngStream } from "./rng";
 
 /**
@@ -81,9 +82,19 @@ export const effectiveReward = (
   state: GameState,
   content: ContentDef,
   posted: ReadonlySet<string> = postedContractIds(state),
-): { gold: number; xp: number } => {
-  const scale = payScaleFor(state, content, posted);
-  return { gold: content.gold * scale, xp: content.xp * scale };
+  /**
+   * The star id, when the caller already computed it. The planner prices every
+   * open area each day; letting each call recompute the star through
+   * `availableContent` made a world run 2.2 s instead of 1.1 s. A caller with
+   * one state should compute the id once.
+   */
+  featuredId: string | undefined = featuredContentFor(state)?.id,
+): { gold: number; xp: number; payScale: number; featured: number } => {
+  const payScale = payScaleFor(state, content, posted);
+  const starred = content.id === featuredId;
+  const featured = starred ? FEATURED.goldMult : 1;
+  const featuredXp = starred ? FEATURED.xpMult : 1;
+  return { gold: content.gold * payScale * featured, xp: content.xp * payScale * featuredXp, payScale, featured };
 };
 
 /** A short, stable board line for the CLI and the report. */

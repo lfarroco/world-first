@@ -1,10 +1,12 @@
 import {
   FACILITIES,
+  FEATURED,
   PROMISE,
   RUN_DAYS,
   contentById,
   digestForDay,
   lootUpgrade,
+  marketGearIlvl,
   nextCost,
   partySizeProblems,
   sizeProblemLine,
@@ -15,6 +17,7 @@ import {
 import { useGameStore } from "../../store/gameStore";
 import {
   contractInfo,
+  featuredInfo,
   guildSummary,
   weekCells,
   wageInfo,
@@ -172,6 +175,9 @@ const Standings = () => {
         <span className="eyebrow">The race</span>
         <div className="row" style={{ gap: 8 }}>
           <span className="tiny dim">same planner, same day</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => setScreen("guilds")}>
+            Guilds ▸
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={() => setScreen("raid")}>
             Raid hub ▸
           </button>
@@ -214,7 +220,7 @@ const WeekPanel = () => {
     <section className="panel">
       <div className="panel-head">
         <span className="eyebrow">The week</span>
-        <span className="tiny dim">wages + market refresh every 7th day</span>
+        <span className="tiny dim">wages + tavern refresh every 7th day</span>
       </div>
       <div className="panel-body">
         <div className="spread" style={{ marginBottom: 9 }}>
@@ -352,6 +358,50 @@ const LootPanel = () => {
   );
 };
 
+const StarPanel = () => {
+  const game = useGameStore((s) => s.game);
+  if (!game) return null;
+  const star = featuredInfo(game);
+  if (!star) return null;
+  const progress = game.progress.find((p) => p.contentId === star.content.id);
+  return (
+    <section className="panel" style={{ borderColor: "rgba(216,179,95,0.4)" }}>
+      <div className="panel-head">
+        <span className="eyebrow">Today&apos;s star</span>
+        <Chip tone="gold">+{Math.round((FEATURED.goldMult - 1) * 100)}% gold</Chip>
+      </div>
+      <div className="panel-body stack" style={{ gap: 5 }}>
+        <span className="small" style={{ fontWeight: 600 }}>{star.content.name}</span>
+        <span className="tiny dim">
+          {star.content.kind} · rewards {star.content.gold}g and {star.content.xp} xp
+          {progress?.clears ? ` · cleared ×${progress.clears}` : ""}
+        </span>
+        <span className="tiny gold">Gold is multiplied on this area today. XP is unchanged.</span>
+      </div>
+    </section>
+  );
+};
+
+const MarketPanel = () => {
+  const game = useGameStore((s) => s.game);
+  const openModal = useGameStore((s) => s.openModal);
+  if (!game) return null;
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <span className="eyebrow">Market</span>
+        <span className="tiny dim">gear iLvl {marketGearIlvl(game)}</span>
+      </div>
+      <div className="panel-body stack" style={{ gap: 6 }}>
+        <div className="small">Buy gear for the tier, salves for injuries, rations for fatigue, and tonics for three days of sharper checks.</div>
+        <button className="btn btn-sm" onClick={() => openModal({ kind: "market" })}>
+          Visit the market
+        </button>
+      </div>
+    </section>
+  );
+};
+
 const Facilities = () => {
   const game = useGameStore((s) => s.game);
   const dispatch = useGameStore((s) => s.dispatch);
@@ -483,6 +533,8 @@ export const HallScreen = () => {
         </div>
         <div className="hall-col">
           <WeekPanel />
+          <StarPanel />
+          <MarketPanel />
           <RunPanel />
           <Contracts />
           <LootPanel />

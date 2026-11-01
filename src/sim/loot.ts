@@ -1,6 +1,7 @@
 import type { ContentDef, GameState, Hero, LootItem, PendingLoot } from "./types";
 import { itemLevel } from "./hero";
 import { event, push } from "./events";
+import { LOOT, MARKET } from "./content/tuning";
 import { lootUpgrade, suggestLootTarget } from "./loot-target";
 
 export * from "./loot-target";
@@ -69,6 +70,67 @@ export const discardLoot = (state: GameState, drop: PendingLoot): GameState => {
   };
   const label = drop.item ? `${drop.item} (${drop.slot} ${drop.ilvl})` : `${drop.slot} ${drop.ilvl}`;
   push(next, event(state.day, "loot", "info", `${drop.contentName}: ${label} — no hero gains; discarded.`));
+  return next;
+};
+
+/** What a waiting drop is worth in gold. A floor plus item level. */
+export const lootSellValue = (drop: LootItem): number =>
+  Math.round(LOOT.sellBase + drop.ilvl * LOOT.sellPerIlvl);
+
+/** Sell a waiting drop instead of assigning it. */
+export const sellLoot = (state: GameState, lootId: string): GameState => {
+  const pending = state.pendingLoot ?? [];
+  const drop = pending.find((l) => l.id === lootId);
+  if (!drop) return state;
+  const value = lootSellValue(drop);
+  const next: GameState = {
+    ...state,
+    gold: state.gold + value,
+    pendingLoot: pending.filter((l) => l.id !== lootId),
+    events: [...state.events],
+  };
+  const label = drop.item ? `${drop.item} (${drop.slot} ${drop.ilvl})` : `${drop.slot} ${drop.ilvl}`;
+  push(next, event(state.day, "economy", "good", `${drop.contentName}: ${label} sold for ${value}g.`));
+  return next;
+};
+
+/** What a craft costs: gold plus the drop's item level. */
+export const craftCost = (drop: LootItem): number =>
+  Math.round(MARKET.craftBase + drop.ilvl * MARKET.craftPerIlvl);
+
+/**
+ * Spend one waiting drop plus gold at the forge. The hero's slot ends
+ * `craftGain` above the better of the drop and the gear already there, so a
+ * drop that is not an upgrade can still be turned into one. This is the second
+ * use for a bad drop and the second gold sink next to the market.
+ */
+export const craftLoot = (state: GameState, lootId: string, heroId: string): GameState | null => {
+  const pending = state.pendingLoot ?? [];
+  const drop = pending.find((l) => l.id === lootId);
+  const hero = state.roster.find((h) => h.id === heroId);
+  if (!drop || !hero) return null;
+  const cost = craftCost(drop);
+  if (state.gold < cost) return null;
+  const before = hero.gear[drop.slot];
+  const after = Math.max(before, drop.ilvl) + MARKET.craftGain;
+  const nextHero: Hero = { ...hero, gear: { ...hero.gear, [drop.slot]: after } };
+  const next: GameState = {
+    ...state,
+    gold: state.gold - cost,
+    roster: state.roster.map((h) => (h.id === heroId ? nextHero : h)),
+    pendingLoot: pending.filter((l) => l.id !== lootId),
+    events: [...state.events],
+  };
+  push(
+    next,
+    event(
+      state.day,
+      "loot",
+      "good",
+      `${hero.name} forges ${drop.item ?? `${drop.slot} ${drop.ilvl}`} into ${drop.slot} ${before} → ${after} for ${cost}g.`,
+      hero.id,
+    ),
+  );
   return next;
 };
 

@@ -4,12 +4,14 @@ import { HeroSheet } from "../ui/screens/HeroSheet";
 import { HallScreen } from "../ui/screens/HallScreen";
 import { RosterScreen } from "../ui/screens/RosterScreen";
 import { RaidScreen } from "../ui/screens/RaidScreen";
+import { GuildsScreen } from "../ui/screens/GuildsScreen";
 import { WarRoomScreen } from "../ui/screens/WarRoomScreen";
 import { ReportScreen } from "../ui/screens/ReportScreen";
 import { TitleScreen } from "../ui/screens/TitleScreen";
 import { AttentionModal } from "../ui/modals/AttentionModal";
 import { InspectModal } from "../ui/modals/InspectModal";
 import { LootModal } from "../ui/modals/LootModal";
+import { MarketModal } from "../ui/modals/MarketModal";
 import { TavernModal } from "../ui/modals/TavernModal";
 import { HelpModal, NewRunModal } from "../ui/modals/RunModals";
 import { useGameStore } from "../store/gameStore";
@@ -34,6 +36,7 @@ const Screen = () => {
   if (screen === "roster") return <RosterScreen />;
   if (screen === "war") return <WarRoomScreen />;
   if (screen === "raid") return <RaidScreen />;
+  if (screen === "guilds") return <GuildsScreen />;
   if (screen === "report") return <ReportScreen />;
   return <HallScreen />;
 };
@@ -52,6 +55,7 @@ const Overlays = () => {
       {modal?.kind === "attention" ? <AttentionModal onClose={closeModal} /> : null}
       {modal?.kind === "inspect" ? <InspectModal contentId={modal.contentId} onClose={closeModal} /> : null}
       {modal?.kind === "loot" ? <LootModal onClose={closeModal} /> : null}
+      {modal?.kind === "market" ? <MarketModal onClose={closeModal} /> : null}
       {modal?.kind === "tavern" ? <TavernModal onClose={closeModal} /> : null}
       {modal?.kind === "new-run" ? <NewRunModal onClose={closeModal} /> : null}
       {modal?.kind === "help" ? <HelpModal onClose={closeModal} /> : null}
@@ -63,10 +67,17 @@ export const App = () => {
   const boot = useGameStore((s) => s.boot);
   const booting = useGameStore((s) => s.booting);
   const game = useGameStore((s) => s.game);
+  const reportDay = useGameStore((s) => s.report?.day ?? null);
 
   useEffect(() => {
     boot();
   }, [boot]);
+
+  useEffect(() => {
+    // A new day's report opens at the top: its first panel is the loot the day
+    // handed back, and the Hall can be scrolled far enough to hide it.
+    if (reportDay !== null) window.scrollTo(0, 0);
+  }, [reportDay]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -95,7 +106,8 @@ export const App = () => {
       if (event.key === "2") state.setScreen("roster");
       if (event.key === "3") state.setScreen("war");
       if (event.key === "4") state.setScreen("raid");
-      if (event.key === "5") state.setScreen("report");
+      if (event.key === "5") state.setScreen("guilds");
+      if (event.key === "6") state.setScreen("report");
       if (event.key.toLowerCase() === "r") state.setScreen("roster");
       if (event.key.toLowerCase() === "w") state.setScreen("war");
       if (event.key === "?") state.openModal({ kind: "help" });

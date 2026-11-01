@@ -5,3 +5,5 @@ coverage/
 tmp/
 *.log
 .DS_Store
+art/raw/
+.env

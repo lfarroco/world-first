@@ -81,8 +81,12 @@ export const moraleMod = (morale: number): number => 0.94 + (morale / 100) * 0.1
 
 export const healthMod = (health: number): number => 0.6 + health / 250;
 
+/** A bought tonic, shown as form because it moves every check the same way. */
+export const buffMod = (hero: Hero): number =>
+  (hero.buffDays ?? 0) > 0 ? 1 + (hero.buffPower ?? 0) : 1;
+
 export const formMod = (hero: Hero): number =>
-  condMod(hero.fatigue) * sharpMod(hero.sharpness) * moraleMod(hero.morale) * healthMod(hero.health);
+  condMod(hero.fatigue) * sharpMod(hero.sharpness) * moraleMod(hero.morale) * healthMod(hero.health) * buffMod(hero);
 
 /** What the roster table shows: quality at the hero's best role. */
 export const heroPower = (hero: Hero): number =>

@@ -131,7 +131,8 @@ const TABS = [
   { id: "roster", label: "Roster", short: "Roster", key: "2" },
   { id: "war", label: "War Room", short: "War", key: "3" },
   { id: "raid", label: "Raid", short: "Raid", key: "4" },
-  { id: "report", label: "Report", short: "Report", key: "5" },
+  { id: "guilds", label: "Guilds", short: "Guilds", key: "5" },
+  { id: "report", label: "Report", short: "Report", key: "6" },
 ] as const;
 
 export const Nav = () => {

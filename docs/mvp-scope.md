@@ -4,6 +4,8 @@
 
 Everything below is measured against that sentence. If a feature doesn't help produce it, it's not in the MVP.
 
+> **Post-v0.1 (2026-11-01).** The first human run asked for loot as a moment, high-band work and tabs, a gold sink, a Push stance that bites, and readable rival rosters with poaching. All five shipped after this scope was written. The v0.1 in/out table below is kept as the record of the first slice; the current feature set is in [roadmap.md](roadmap.md) §1.
+
 ---
 
 ## 1. The vertical slice (build this first)
@@ -28,7 +30,7 @@ If those three are fun with no art, the game is real. Everything else is amplifi
 |---|---|
 | Heroes | **8 attributes** · 8 roles · 4 classes · 5 hidden attributes · level 1–60 · XP curve · gear (4 slots, iLvl) |
 | Party | Up to **3 parties**, any mix of farm / mission / dungeon / raid · 3 stances |
-| Combat | 22 content entries (3 farms, 7 missions, 9 dungeons, 3 raids) · 1–3 phases each · 4 check types · mastery · consistency rolls · fatigue/sharpness/morale · bestiary and named drops |
+| Combat | 22 content entries at v0.1 (3 farms, 7 missions, 9 dungeons, 3 raids), 30 after the high band (7 farms, 11 missions) · 1–3 phases each · 4 check types · mastery · consistency rolls · fatigue/sharpness/morale · bestiary and named drops |
 | Content gate | **Only fieldable content is listed** — prerequisite clears, roster size and party average level · one `unlock` event per area · `inspect <id>` shows phases, mobs, drops and per-clear chances |
 | Day loop | 9-stage pipeline · digest · **attention queue (max 3 blocking)** · Advance Day |
 | Progression | level gates + prerequisite clears · locked content hidden · free recruits on the three ladder dungeons (55% of your best; side dungeon excluded) · tavern recruits ≈ 62–80% of your best |

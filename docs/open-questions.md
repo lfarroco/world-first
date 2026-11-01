@@ -35,6 +35,8 @@ Implement the loop — *assess → plan → advance → digest → react* — in
 
 Cut from v0.1 by this rule: split runs, doctrine toggles, doctrine familiarity, two-audience grades, board objectives, training sessions, youth, scouting network, staff, press, poaching, loans, multi-tier seasons, 2D replay. Four facilities (infirmary, forge, tavern, hall) shipped as the gold sink.
 
+**Post-v0.1 (2026-11-01):** the market, the forge, the daily star, the high-band farms and missions, and rival poaching shipped after the first human run. They are amplification of the same loop, not a new loop; the v0.1 cut list above is kept as the record of what the first slice did not need.
+
 ---
 
 ## Defaults (proceeding unless you object)
@@ -119,3 +121,6 @@ Mission nights spread across all six three-hero missions (Mill 13.75, Warrens 14
 **Still better long-term:** a new three-hero activity with a check the missions do not use. The board rotates pay and level, not the check; four of the seven missions are mechanics. That is a content addition, not a rework.
 
 **Shipped 2026-10-31: The Broken Bridge.** A level-18 three-hero mission with a **mitigation 36** check, 220g, 60xp and one 26–40 item. The 300g candidate was measured at 20/20 for the Quartermaster on 10 seeds and reverted; the second pass ran 20 seeds and found **gold is not the lever**: 160g, 200g and 220g all produce 44/60, with the Steward 15–16/20, the Quartermaster 19/20 and the Gambler 9–10/20. Requirement 40 leaves the Quartermaster at 19/20 and costs the Gambler a full clear. The 300g arm's 20/20 did not survive 20 seeds (18/20). The check is right — a 3-hero party at level 20/iLvl 30 sums ~32 mitigation with one warrior and ~47 with two — and 36 stays. The shipped gold is the 220g ceiling, below the Toll House's 260. The Quartermaster is one clear below the failure gate, above L86's 15–17 expectation. Full table in [progression-report.md](progression-report.md) §3.7.
+
+### O8. The feature pass moved the race — what owns it now?
+The 20-seed sweep after the market/star/high-band/poach pass is Steward 28,234 / 2.90 raids / 5/20 World First / 2.90 rank; Quartermaster 28,238 / 2.95 / 1/20 / 3.25; Gambler 26,888 / 2.80 / 5/20 / 2.90. Against the 2026-10-31 baseline (28,439 / 2.95 / 6/20 / 2.45; 27,413 / 2.85 / 3/20 / 2.90; 24,136 / 2.60 / 2/20 / 3.35), the Gambler gains 2.7k, and the two cautious personalities lose about half a rank. The star pays gold only for this reason: the XP-paying first pass put the Steward at 3.00 raids and flattened the ladder. The remaining dial is the high-band farm tier (24 clears a run at 42g/hero), not the star. **Do not tune it with an injury dial.** Next balance pass: one dial, 20 seeds.

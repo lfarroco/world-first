@@ -6,18 +6,24 @@ import {
   autoAssignLoot,
   autoRaidTeam,
   buyFacility,
+  buyGood,
   clearPlan,
+  craftLoot,
   discardLoot,
   hireCandidate,
   newGame,
+  poachHero,
   refreshAttention,
   releaseHero,
   resolveAttention,
+  sellLoot,
   setParty,
   type Assignment,
   type FacilityId,
   type GameState,
+  type MarketGoodId,
   type RoleId,
+  type RivalId,
   type Stance,
 } from "../sim";
 
@@ -37,9 +43,13 @@ export type GameAction =
   | { type: "hire"; heroId: string }
   | { type: "release"; heroId: string }
   | { type: "buy-facility"; id: FacilityId }
+  | { type: "buy-good"; goodId: MarketGoodId; heroId: string }
+  | { type: "poach"; rivalId: RivalId; heroId: string }
   | { type: "resolve-attention"; itemId: string; optionKey: string }
   | { type: "assign-loot"; lootId: string; heroId: string }
   | { type: "auto-loot" }
+  | { type: "sell-loot"; lootId: string }
+  | { type: "craft-loot"; lootId: string; heroId: string }
   | { type: "discard-loot"; lootId: string }
   | { type: "set-raid-team"; heroIds: string[] }
   | { type: "auto-raid-team" };
@@ -85,6 +95,16 @@ export const applyAction = (state: GameState, action: GameAction): GameState => 
     case "buy-facility":
       return buyFacility(state, action.id) ?? state;
 
+    case "buy-good": {
+      const next = buyGood(state, action.goodId, action.heroId);
+      return next ? withAttention(next) : state;
+    }
+
+    case "poach": {
+      const next = poachHero(state, action.rivalId, action.heroId);
+      return next ? withAttention(next) : state;
+    }
+
     case "resolve-attention": {
       const next = resolveAttention(state, action.itemId, action.optionKey);
       return next === state ? state : withAttention(next);
@@ -98,6 +118,16 @@ export const applyAction = (state: GameState, action: GameAction): GameState => 
     case "auto-loot": {
       const next = autoAssignLoot(state);
       return next === state ? state : withAttention(next);
+    }
+
+    case "sell-loot": {
+      const next = sellLoot(state, action.lootId);
+      return next === state ? state : withAttention(next);
+    }
+
+    case "craft-loot": {
+      const next = craftLoot(state, action.lootId, action.heroId);
+      return next ? withAttention(next) : state;
     }
 
     case "discard-loot": {

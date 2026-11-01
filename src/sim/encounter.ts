@@ -93,6 +93,19 @@ export const injuryChanceFor = (hero: Hero, stance: Stance, economyMult = 1): nu
 };
 
 /**
+ * Push's own risk, rolled once per hero per pull regardless of the phase
+ * result. The scrape roll cannot carry the stance: the same +12% that makes
+ * Push useful moves the party out of the scrape band first (L65). This chance
+ * is before the resistance and fatigue terms, and it is lower than the scrape
+ * chance so a push night is a risk, not a guaranteed casualty.
+ */
+export const pushInjuryChance = (hero: Hero, economyMult = 1): number => {
+  const resist = 1 - hero.attrs.vitality / INJURY.vitalityDivisor;
+  const fatigueMult = 1 + (hero.fatigue / 100) * INJURY.fatigueMultiplier;
+  return clamp(INJURY.pushChance * resist * economyMult * fatigueMult, 0.005, 0.5);
+};
+
+/**
  * Roll a content's named drop for one clear. At most one drops, so every
  * `chance` is the exact per-clear probability. The data test keeps a
  * content's chances at or below 1.
@@ -141,6 +154,14 @@ export const resolveAssignment = (state: GameState, assignment: Assignment): Enc
   const pullCount = attemptsFor(content, party, assignment.stance);
   const pulls: EncounterPullLog[] = [];
   const injured: { heroId: string; name: string; days: number }[] = [];
+  const injuredIds = new Set<string>();
+  const addInjury = (hero: Hero, days: number): void => {
+    // A body is out once, not once per phase. Before this, a scrape on two
+    // phases could set the same hero twice and the day took two 45-health hits.
+    if (injuredIds.has(hero.id)) return;
+    injuredIds.add(hero.id);
+    injured.push({ heroId: hero.id, name: hero.name, days });
+  };
   let cleared = false;
   let bestPull = 0;
   let lastFailed = false;
@@ -220,10 +241,21 @@ export const resolveAssignment = (state: GameState, assignment: Assignment): Enc
           const injuryRoll = rngStream(state.seed, "injuryRoll", state.day, pull, hero.id);
           const chance = injuryChanceFor(hero, assignment.stance, economy.injuryMult);
           if (injuryRoll() < chance) {
-            const days = 1 + Math.floor(injuryRoll() * 4);
-            injured.push({ heroId: hero.id, name: hero.name, days });
+            addInjury(hero, 1 + Math.floor(injuryRoll() * 4));
           }
         }
+      }
+    }
+
+    // Push carries its own risk on every pull, not only on a scrape. A party
+    // that turns a 0.92 fail into a 1.03 pass has still taken the risk that
+    // bought the pass, and the report must show the body it cost.
+    if (assignment.stance === "push") {
+      for (const hero of party) {
+        const roll = rngStream(state.seed, "pushInjury", state.day, pull, hero.id)();
+        if (roll >= pushInjuryChance(hero, economy.injuryMult)) continue;
+        const daysRoll = rngStream(state.seed, "pushInjuryDays", state.day, pull, hero.id)();
+        addInjury(hero, 1 + Math.floor(daysRoll * 4));
       }
     }
 

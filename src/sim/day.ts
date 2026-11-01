@@ -3,6 +3,7 @@ import type { ContentKind, GameState, Hero, LootItem, RaidLogNight, Stance } fro
 import {
   FATIGUE,
   HEALTH_RECOVERY_PER_DAY,
+  POACH,
   PROMISE,
   RAID_LOG,
   RUN_DAYS,
@@ -19,6 +20,7 @@ import { computeScore } from "./score";
 import { CONTENT, contentById } from "./content/content";
 import { rngStream } from "./rng";
 import { payScaleFor } from "./board";
+import { featuredBonusFor, featuredContentFor, featuredLine, featuredXpBonusFor } from "./featured";
 import { autoAssignLoot, queueLoot } from "./loot";
 import { pruneRaidTeam } from "./team";
 import { healthRecoveryFor, injuryDaysFor, recruitLevelFactor } from "./facilities";
@@ -106,9 +108,14 @@ export const resolveDay = (input: GameState): GameState => {
     const economy = result.economy;
     // The day's contract board decides the pay for a repeated mission. The
     // first clear is always full; the scale is read before `progress.clears`
-    // moves below, so the night that clears an area is never taxed.
+    // moves below, so the night that clears an area is never taxed. The daily
+    // star multiplies gold on one area; XP stays on the contract scale.
     const pay = payScaleFor(state, content);
-    state.gold += Math.round(result.gold * (1 + economy.goldPct) * pay);
+    const featured = featuredBonusFor(state, content);
+    const featuredXp = featuredXpBonusFor(state, content);
+    const rewardScale = pay * featured;
+    const xpScale = pay * featuredXp;
+    state.gold += Math.round(result.gold * (1 + economy.goldPct) * rewardScale);
     const lowestId = [...party].sort((a, b) => a.level - b.level)[0]?.id;
 
     for (const hero of party) {
@@ -117,7 +124,7 @@ export const resolveDay = (input: GameState): GameState => {
         result.xp *
           (1 + economy.xpPct + (hero.id === lowestId ? economy.mentorPct : 0)) *
           (state.rewardScale ?? 1) *
-          pay,
+          xpScale,
       );
       const grown = gainXp(hero, xp, xpRng);
       hero.level = grown.hero.level;
@@ -126,6 +133,10 @@ export const resolveDay = (input: GameState): GameState => {
       if (grown.levels > 0) {
         push(state, event(today, "level", "good", `${hero.name} reached level ${hero.level}.`, hero.id));
       }
+    }
+
+    if (featured > 1) {
+      push(state, event(today, "progress", "good", `${content.name} was starred: +${Math.round((featured - 1) * 100)}% gold.`));
     }
 
     if (result.loot.length > 0) {
@@ -141,7 +152,7 @@ export const resolveDay = (input: GameState): GameState => {
             "good",
             `${content.name}: ${queued
               .map((l) => (l.item ? `${l.item} (${l.slot} ${l.ilvl})` : `${l.slot} ${l.ilvl}`))
-              .join(", ")} — run loot to assign.`,
+              .join(", ")} — waiting to assign.`,
           ),
         );
       }
@@ -271,9 +282,10 @@ export const resolveDay = (input: GameState): GameState => {
         bestPull: result.bestPull,
         injured: result.injured.map((i) => i.name),
         stance,
-        xp: Math.round(result.xp * pay),
-        gold: Math.round(result.gold * pay),
+        xp: Math.round(result.xp * xpScale),
+        gold: Math.round(result.gold * rewardScale),
         payScale: pay,
+        featuredBonus: featured,
         loot: result.loot as LootItem[],
       };
     }
@@ -340,6 +352,17 @@ export const resolveDay = (input: GameState): GameState => {
   const pruned = pruneUnavailable(state);
   state.plan = pruned.plan;
   for (const note of pruned.notes) push(state, event(today, "run", "info", note));
+
+  // A tonic lasts the day it is drunk and the next two. Expire it after the
+  // day has used it, so the last day's form is the buffed one.
+  for (const hero of state.roster) {
+    if ((hero.buffDays ?? 0) <= 0) continue;
+    hero.buffDays = (hero.buffDays ?? 0) - 1;
+    if (hero.buffDays <= 0) {
+      hero.buffDays = 0;
+      hero.buffPower = 0;
+    }
+  }
 
   // ── 2b. PROMISES ───────────────────────────────────────────────────────────
   // A promise is a debt with a date. Starts are counted while the window is
@@ -436,7 +459,36 @@ export const resolveDay = (input: GameState): GameState => {
     state.band = result.band;
     state.attention = [];
   } else {
-    state.pendingEvent = state.pendingEvent ?? rollEvent(state);
+    // The star is derived per day. Announce tomorrow's so the player plans
+    // around it, not after the fact. The digest is the one place a new day's
+    // rules are read before the next Advance.
+    const star = featuredContentFor(state);
+    if (star) push(state, event(state.day, "progress", "good", featuredLine(star)));
+
+    // A poach has an answer. One rival card inside the retaliation window,
+    // then the debt is settled; the existing rival-offer card is the offer.
+    if (state.poachHeat !== undefined && state.day - state.poachHeat > POACH.retaliationDays) {
+      state.poachHeat = undefined;
+    }
+    const best = [...state.roster].sort((a, b) => b.level - a.level)[0];
+    if (
+      state.poachHeat !== undefined &&
+      state.day - state.poachHeat <= POACH.retaliationDays &&
+      state.roster.length >= 8 &&
+      best !== undefined &&
+      bestLevel(state.roster) >= 18 &&
+      state.pendingEvent === null
+    ) {
+      state.pendingEvent = {
+        cardId: "rival-offer",
+        day: state.day,
+        targetHeroId: best.id,
+      };
+      state.poachHeat = undefined;
+      push(state, event(state.day, "rival", "bad", "A rival agent is at the door. They know whom you signed."));
+    } else {
+      state.pendingEvent = state.pendingEvent ?? rollEvent(state);
+    }
     state.attention = deriveAttention(state);
   }
 

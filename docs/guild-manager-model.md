@@ -24,7 +24,7 @@ resolveDay(state, plan, rng) -> { state', events[], attention[] }
 | 4 | **Farming** | Farm party generates gold and materials |
 | 5 | **Rest & recovery** | Resting heroes recover fatigue; infirmary heals injuries |
 | 6 | **World tick** | Rival guilds resolve their own day; leaderboard updates |
-| 7 | **Upkeep** | Contracts advance; on day 7, wages are paid and markets refresh |
+| 7 | **Upkeep** | Contracts advance; on day 7, wages are paid and the tavern refreshes |
 | 8 | **Digest** | Events rolled into the day report, ranked by importance |
 | 9 | **Attention items** | 2–5 actionable items derived from the day (see §7) |
 
@@ -77,7 +77,7 @@ Level growth is deliberately steep: a level-60 hero has gained ~118 attribute po
 ```
 gearFactor  = 0.55 + (itemLevel / 260)          // 0.55 at iLvl 0 → 1.35 at iLvl 208
 roleScore   = Σ (weight_i × attribute_i / 20)   // 0..1, weights per role sum to 1.0
-formMod     = condMod × sharpMod × moraleMod × healthMod   // see §2.5
+formMod     = condMod × sharpMod × moraleMod × healthMod × buffMod   // see §2.5
 heroPower   = roleScore × gearFactor × formMod × 100
 ```
 
@@ -198,7 +198,7 @@ FM has thirteen hidden attributes. Five of them do almost all of the emotional w
 | **Consistency** | 1–20 | Odds of performing at full power on a given pull | Behaviour ("he's brilliant every third night") |
 | **Professionalism** | 1–20 | Attribute growth rate; how badly being benched stings | Rumour card, training results |
 | **Ambition** | 1–20 | Wage demands, status demands, poaching vulnerability | Contract negotiations |
-| **Loyalty** | 1–20 | Threshold before requesting a transfer / accepting a poach | Long-run behaviour |
+| **Loyalty** | 1–20 | Threshold before accepting a renewal cut / requesting a transfer | Long-run behaviour |
 | **Pressure** | 1–20 | Performance penalty after consecutive wipes | Late-night collapse patterns |
 
 **Consistency is the best mechanic in FM and we should copy it almost exactly.** FM's published behaviour: Consistency 20 performs at full ability in ~20 of 25 matches; Consistency 1 in ~1 of 25; an off-game costs roughly 10 CA, hitting technical and mental attributes but not physical.
@@ -434,6 +434,10 @@ A content is a record in `src/sim/content/content.ts`. The fields the player mee
 
 **Rewards are a choice, not a stack.** Each band carries more than one job. The XP run pays no loot, the gold run pays no XP, and the loot run pays neither. The shipped numbers and the measured effect are in [progression-report.md](progression-report.md) §1.1; the rule is that a new option must take something away, or it is free progression.
 
+**The high band is spare-party work.** Four farms (levels 20, 28, 36 and 44) and four missions (22, 28, 34 and 42) sit after the raid ladder in `CONTENT`, so `nextDoor` still names the main step. They exist for the night when the raid ten is resting and three or four bodies are left. The farms are gold-first by design: 8 XP per hero, 18–42 gold per hero. That keeps them a purse faucet, not a second XP ladder. The missions are one-night contracts with the same gold/XP/loot split as the old band: Cinder Road (mechanics 62), Silent Abbey (sustain 52), Broken Standard (mitigation 60) and Last Outpost (mechanics 122). Requirements were measured against the party a real 3-hero level-20/28/34/42 roster fields; the full table is in [progression-report.md](progression-report.md) §1.4.
+
+**The daily star adds a reason to look down the list.** One open non-raid area is starred each day and pays 50% more gold. It can land on a level-1 farm, which is the point: a spare party has a reason to take a low-level job, and a guild that kept recruiting has more bodies to send. The star is derived from `(seed, day)`, so it needs no save field; the Hall, the War Room, the report and the planner read the same location.
+
 **The mission band has one non-mechanics job.** The Broken Bridge (level 18, three heroes, mitigation 36, 220g/60xp/one item) gives the spare party a check the other four mechanics missions do not: a tank-pair line that a one-tank party fails without gear or a Bulwark. It was added after the contract board exposed the gap; the measured arms and the reason 220g is the ceiling are in [progression-report.md](progression-report.md) §3.7.
 
 **Missions are on a daily contract board.** Two of the guild's open missions are posted at full pay. Every other mission still exists, but a repeated clear pays `CONTRACT_BOARD.tokenPay` (25%) of its gold and XP. First clears are always full, and loot and mastery are untouched: the board is a pay rule, not a drop rule.
@@ -467,9 +471,9 @@ Each hero can be in exactly one slot. That single constraint is the daily puzzle
 |---|---|
 | **Cautious** | −10% to all checks, **0.4× injury risk**, −4 fatigue |
 | **Steady** | no modifier |
-| **Push** | +12% to all checks, **1.55× injury risk**, +8 fatigue |
+| **Push** | +12% to all checks, **1.55× scrape injury risk plus a 6% push roll per hero per pull**, +8 fatigue |
 
-That's the whole tactical layer for v0.1, and it is enough: it creates the "do we risk the tank's health to beat the enrage timer?" decision every raid night, and it interacts with the two clocks (pushing costs tomorrow's condition).
+That's the whole tactical layer for v0.1, and it is enough: it creates the "do we risk the tank's health to beat the enrage timer?" decision every raid night, and it interacts with the two clocks (pushing costs tomorrow's condition). The push roll is unconditional on purpose: the +12% moves a 0.92 party out of the scrape band exactly where the stance helps, so the scrape roll alone could never carry the risk (L65, L114). At 100 controlled level-55 raid nights the push roll injured 0.45 heroes a night and the same parties on steady took none.
 
 **Post-MVP, deliberately deferred** (documented so we don't forget the good ideas):
 
@@ -503,7 +507,10 @@ That's the whole tactical layer for v0.1, and it is enough: it creates the "do w
 | Renewal counter | A 12% cut when the hero takes it; a refusal raises his number 25% instead. The one way a wage goes down |
 | Recruitment | `40 + 0.35 × level²` (level 1 ≈ 40g, level 60 ≈ 1300g). The fee does not track power: the tavern prints role, item level, power and traits so the purchase is legible |
 | Facilities | 800–4800g per level (see [progression-report.md](progression-report.md) §5.2) |
-| Flasks, healing fees, tavern refresh | **design, not built** |
+| Market gear | 255g at the starting tier (iLvl 15) to 1,398g at iLvl 142. One slot, one hero |
+| Market consumables | Salve 126–420g (clears an injury), rations 63–210g (−45 fatigue), tonic 188–580g (+10% checks for 3 days) |
+| Forge | A waiting drop plus 100g + 4× its iLvl to add +6 iLvl over the better of the drop and the hero's gear |
+| Tavern refresh | 120g; new faces also arrive free every 7th day |
 
 ### 5.2 The wage budget is the real constraint
 
@@ -570,6 +577,23 @@ The default need target ranks the whole roster by `max(0, ilvl - gear[slot])`, w
 
 The gear gap is not closed: day-40 team iLvl is 46–55 against the 65 target, and the team is fixed at the wall. The next lever is the loot rate or a wall-change re-pick, not a larger team bias.
 
+### 5.6 The market, the forge and the daily star
+
+**The market is the gold sink with a decision.** It sells four pieces at the guild's gear tier and three consumables. The tier is `12 + 2.6 × best level`, capped at 210 iLvl. It is deliberately below the dungeon band at the same level: a shop item is a fallback for a bad drop, not a private ladder. Prices:
+
+| Good | Price | Effect |
+|---|---|---|
+| Gear (weapon / chest / helm / trinket) | 120g + 9 × tier | Sets one slot to the tier if that is an upgrade |
+| Field Salve | 120g + 6 × level | Clears all injury days and restores 50 health |
+| Trail Rations | 60g + 3 × level | −45 fatigue, +15 health |
+| Oiled Tonic | 180g + 8 × level | +10% to every check for 3 days, shown as form; a second tonic refreshes, it does not stack |
+
+The measured price points: 255g for the starting gear tier, 462g at level 10, 930g at level 30 and 1,398g at level 50. The starting purse is 250g, so the first shop item is a choice after a night's work, not a free upgrade.
+
+**The forge is the second use for a drop.** A waiting drop can be sold for `20 + 2 × iLvl` gold, or forged into `max(current, drop) + 6` iLvl in its slot for `100 + 4 × drop iLvl` gold. Selling is the low-risk floor; forging is the way to turn a duplicate into an upgrade. A drop no hero can use is still discarded at queue time, so the forge never has a use the assign screen does not.
+
+**The daily star is a gold rule.** One open non-raid area is starred each day, derived from `(seed, day)`. It pays `FEATURED.goldMult = 1.5` on gold and `1.0` on XP. The gold-only choice is measured: the first pass paid +50% on both and added about 0.9k–3.5k score and 0.05–0.25 raids per personality; the gold-only pass returned the Steward and Quartermaster to 28,234 and 28,238 while keeping the star as a reason to run a low-level area. Raids are excluded: a 1.5× raid purse would be a difficulty dial, not a daily incentive.
+
 ---
 
 ## 6. Rival guilds — simulated, not scripted
@@ -589,6 +613,8 @@ Rival difficulty is one dial: **`RIVAL.pace`, the multiplier on XP a rival earns
 The leaderboard reads each rival's own state: `rivalRaidsCleared`, the cached `activity` line ("The Tyrant — best 62%", "resting", "cleared Gatewarden"), and `computeScore(rival.guild)`. `standings` scores all four guilds and sorts them; `playerRank` returns the player's position.
 
 **Determinism beats surprise.** Rival guilds are seeded from the player's seed with an odd multiplier per guild, so the same save replays identically — and a rival's progress is a *pace* the player can learn rather than a dice roll they can resent. Only their activity and score are exposed; their roster stays hidden.
+
+**Poaching.** The Guilds screen reads every rival roster: name, class, role, level, iLvl, power, wage and the signing fee. A fee is `feeForLevel(level) × 1.5`; the contract is `wageForLevel(level) × 1.25` for 28 days. A signing removes the hero from the rival's roster, plan and raid ten in the same action; the player pays the fee and gains a rotation hero. `state.poachHeat` records the day; one rival-offer card answers inside ten days, then the debt is settled. Rivals also sign each other's bench at 6% a day, so the rosters move without the player, and the event log names the move. The player's own heroes are still offered the existing rival-offer card; the poach only makes that card's threat legible, not more frequent.
 
 **Publish the tie-breakers.** The code implements a shorter order than the design first proposed, and the doc has to say what the code does:
 
