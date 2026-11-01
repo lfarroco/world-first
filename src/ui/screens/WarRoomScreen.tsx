@@ -206,6 +206,11 @@ const HeroPicker = ({
     ? ranked.filter((h) => h.name.toLowerCase().includes(query.trim().toLowerCase()))
     : ranked;
   const atMax = party.heroes.length >= content.maxHeroes;
+  // One average, computed in the selector, so the picker and the card cannot
+  // disagree about the gate.
+  const partyAverage = partyAdvice(game, partyIndex).averageLevel;
+  const partyAverageLabel = party.heroes.length === 0 ? "—" : partyAverage.toFixed(1);
+  const belowGate = party.heroes.length > 0 && partyAverage < content.minLevel;
 
   const pick = (hero: Hero): void => {
     let heroes: string[];
@@ -222,7 +227,7 @@ const HeroPicker = ({
   return (
     <Dialog
       title={replaceId ? "Swap a hero" : "Add a hero"}
-      subtitle={`${content.name} · ${party.heroes.length}/${content.maxHeroes} slots · ranked by contribution to its checks`}
+      subtitle={`${content.name} · ${party.heroes.length}/${content.maxHeroes} slots · needs avg lvl ${content.minLevel} · party avg ${partyAverageLabel} · ranked by contribution to its checks`}
       onClose={onClose}
       footer={
         <>
@@ -243,6 +248,12 @@ const HeroPicker = ({
         onChange={(event) => setQuery(event.target.value)}
         autoFocus
       />
+      {belowGate ? (
+        <p className="tiny bad" style={{ marginBottom: 8 }}>
+          This party averages level {partyAverage.toFixed(1)}; {content.name} needs {content.minLevel}.
+          A higher-level hero can carry the average.
+        </p>
+      ) : null}
       <div className="hero-picker">
         {filtered.length === 0 ? (
           <div className="empty">No free hero. An injured or resting hero does not appear until he can fight.</div>
@@ -251,7 +262,13 @@ const HeroPicker = ({
             const already = current.has(hero.id);
             const disabled = already && !replaceId;
             return (
-              <button className="picker-row" key={hero.id} onClick={() => pick(hero)} disabled={disabled}>
+              <button
+                className="picker-row"
+                key={hero.id}
+                onClick={() => pick(hero)}
+                disabled={disabled}
+                title={`${hero.name} · lvl ${hero.level} · power ${Math.round(heroPower(hero))} · iLvl ${itemLevel(hero.gear)}`}
+              >
                 <span className="hero-cell">
                   <span className={`class-dot class-${hero.klass}`}>{hero.klass.slice(0, 1).toUpperCase()}</span>
                   <span style={{ fontWeight: 600 }}>{hero.name}</span>
@@ -262,7 +279,7 @@ const HeroPicker = ({
                   lvl {hero.level}
                 </span>
                 <span className="dim">iLvl {itemLevel(hero.gear)}</span>
-                <span className="mono">{Math.round(heroPower(hero))}</span>
+                <span className="mono">pow {Math.round(heroPower(hero))}</span>
                 <span className="tiny dim">{Math.round(hero.fatigue)} fat</span>
               </button>
             );
@@ -395,6 +412,10 @@ const PartyCard = ({
   const advice = partyAdvice(game, index);
   const free = freeHeroesFor(game, index).filter((h) => !party.heroes.includes(h.id));
   const rows: SlotRow[] = ["front", "mid", "back"];
+  // The gate is the party average, not a per-hero minimum. The selector owns
+  // the number so the card and the picker cannot disagree about it.
+  const averageLevel = advice.averageLevel;
+  const levelMet = heroes.length > 0 && averageLevel >= content.minLevel;
 
   const autoFill = (): void => {
     const pool = freeHeroesFor(game, index);
@@ -431,6 +452,12 @@ const PartyCard = ({
         <ContentButton partyIndex={index} onOpen={() => onContent(index)} />
         <Chip tone="info">
           {heroes.length}/{content.maxHeroes}
+        </Chip>
+        <Chip
+          tone={heroes.length === 0 ? "info" : levelMet ? "good" : "bad"}
+          title={`The area needs a party average of level ${content.minLevel}. This party averages ${averageLevel.toFixed(1)}.`}
+        >
+          avg lvl {heroes.length === 0 ? "—" : averageLevel.toFixed(1)} / {content.minLevel}
         </Chip>
         <div className="seg" onClick={(event) => event.stopPropagation()}>
           {STANCES.map((stance) => (
@@ -479,7 +506,7 @@ const PartyCard = ({
                     className="hero-slot"
                     key={hero.id}
                     data-team={(game.raidTeam ?? []).includes(hero.id)}
-                    title={`${hero.name} · ${hero.role} · lvl ${hero.level} · iLvl ${itemLevel(hero.gear)}`}
+                    title={`${hero.name} · ${hero.role} · lvl ${hero.level} · power ${Math.round(heroPower(hero))} · iLvl ${itemLevel(hero.gear)}`}
                   >
                     <button
                       className="btn-ghost"
@@ -495,7 +522,7 @@ const PartyCard = ({
                         {hero.name}
                       </span>
                     </button>
-                    <span className="tiny dim">{Math.round(heroPower(hero))}</span>
+                    <span className="tiny dim">lvl {hero.level}</span>
                     <button
                       className="hero-slot-remove"
                       disabled={heroes.length <= content.minHeroes}
@@ -546,7 +573,7 @@ const PartyCard = ({
               title={`Add ${hero.name} · lvl ${hero.level} · power ${Math.round(heroPower(hero))}`}
               disabled={heroes.length >= content.maxHeroes}
             >
-              {hero.name.split(" ")[0]} <span className="dim">{hero.level}</span>
+              {hero.name.split(" ")[0]} <span className="dim">lvl {hero.level}</span>
             </button>
           ))
         )}

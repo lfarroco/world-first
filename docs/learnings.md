@@ -619,3 +619,11 @@ The Guild Hall tab showed a red `1` with `title="Guild Hall (1)"`: the number in
 **Evidence:** player screenshot, day 15 — the Hall tab read `GUILD HALL 1`, the top bar read `1 ITEM NEEDS YOU`, and the panel read `NEEDS YOU (1)`; the only hover text was `Guild Hall (1)`.
 **Changes:** the tab title and accessible name now say what the badge counts (`1 item needs you before Advance`, `2 contracts expiring, 1 injury`, `no party planned for tonight`); the count hides on the open tab; the Help modal names the count and the report dot.
 **Rejected:** relying on the top-bar sub-label (it is present but small and does not name the tab badge), and replacing the count with a dot (the Hall can hold up to three blocking items; the count is the useful part).
+
+## The level gate in the War Room (2026-10-31)
+
+### L101. A gate that only warns when it fails is invisible when it decides
+The War Room printed the area's average-level requirement only in `partyAdvice.warnings`, which fires after the party is already below the line. While assigning, the card showed a bare number after each name (power, easily read as iLvl) and the picker showed levels without the requirement, so a player choosing the last hero could not see the average the area gates on.
+**Evidence:** player screenshot, day 15 — The Wolf Den card lists three heroes and no level requirement; the only place the gate appears is the target picker's `Avg lvl` column, which is closed while assigning.
+**Changes:** every party card prints `avg lvl X / N` beside its size, red when below; the hero picker repeats `needs avg lvl N · party avg X` and warns when the current party is under; deployed and bench chips label the number `lvl`; the picker row labels `lvl · iLvl · pow` and keeps the full line in its tooltip.
+**Rejected:** a per-hero "below level" badge (the gate is an average, so a low hero can be carried), and putting the requirement only in the inspect sheet (it is closed during assignment).

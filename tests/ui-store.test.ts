@@ -8,6 +8,7 @@ import {
 import { focusPull, nextLevers } from "../src/sim/report";
 import { applyAction, logAction, type GameAction } from "../src/store/actions";
 import { SAVE_KEY, loadSave, writeSave, type StorageLike } from "../src/store/save";
+import { partyAdvice } from "../src/store/selectors";
 
 const memoryStorage = (): StorageLike => {
   const values = new Map<string, string>();
@@ -175,5 +176,34 @@ describe("the report helpers used by the UI and the CLI", () => {
     expect(levers.length).toBeGreaterThanOrEqual(3);
     expect(levers[0]?.label).toContain("DPS");
     expect(levers.some((lever) => lever.detail.includes("Push"))).toBe(true);
+  });
+});
+
+describe("party advice for the level gate", () => {
+  it("exposes the party average and keeps the gate out of the warning list", () => {
+    const start = newGame(4242);
+    const party = start.plan.parties[0]!;
+    const advice = partyAdvice(start, 0);
+    const levels = party.heroes.map(
+      (id) => start.roster.find((hero) => hero.id === id)!.level,
+    );
+    const average = levels.reduce((total, level) => total + level, 0) / levels.length;
+    expect(advice.averageLevel).toBeCloseTo(average, 5);
+    // The card prints the gate on every party, not only when it is missed.
+    expect(advice.warnings.some((warning) => warning.includes("average level"))).toBe(false);
+
+    const below: GameState = {
+      ...start,
+      plan: {
+        parties: [{ contentId: "old-quarry", heroes: party.heroes, stance: "steady" }],
+      },
+    };
+    expect(partyAdvice(below, 0).averageLevel).toBeLessThan(
+      contentById("old-quarry")!.minLevel,
+    );
+    expect(partyAdvice(below, 0).warnings.some((warning) => warning.includes("average level"))).toBe(
+      false,
+    );
+    expect(partyAdvice({ ...start, plan: { parties: [] } }, 0).averageLevel).toBe(0);
   });
 });

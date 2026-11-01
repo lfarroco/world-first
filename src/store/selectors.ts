@@ -19,7 +19,6 @@ import {
   isAvailable,
   isPosted,
   itemLevel,
-  levelOk,
   payScaleFor,
   playerRank,
   postedContractIds,
@@ -192,7 +191,8 @@ export type PartyAdvice = {
   projection: Projection | null;
   weakest: Projection["phases"][number] | null;
   sizeProblem: string | null;
-  levelProblem: string | null;
+  /** Party average level; 0 for an empty party. The War Room gates on this. */
+  averageLevel: number;
   payScale: number;
   warnings: string[];
 };
@@ -204,7 +204,7 @@ export const partyAdvice = (state: GameState, index: number): PartyAdvice => {
       projection: null,
       weakest: null,
       sizeProblem: null,
-      levelProblem: null,
+      averageLevel: 0,
       payScale: 1,
       warnings: [],
     };
@@ -217,15 +217,15 @@ export const partyAdvice = (state: GameState, index: number): PartyAdvice => {
   const weakest = projection
     ? [...projection.phases].sort((a, b) => a.ratio - b.ratio)[0] ?? null
     : null;
+  const averageLevel =
+    heroes.length === 0 ? 0 : heroes.reduce((total, hero) => total + hero.level, 0) / heroes.length;
   const warnings: string[] = [];
   if (content) {
     if (heroes.length < content.minHeroes) {
       warnings.push(`needs ${content.minHeroes} heroes — has ${heroes.length}`);
     }
-    if (heroes.length > 0 && !levelOk(content, heroes)) {
-      const average = heroes.reduce((a, h) => a + h.level, 0) / heroes.length;
-      warnings.push(`party average level ${average.toFixed(1)}, needs ${content.minLevel}`);
-    }
+    // The level gate is printed on every party card, so it is not repeated in
+    // this list; the card needs the number whether the gate passes or not.
     const payScale = payScaleFor(state, content);
     if (payScale < 1) {
       warnings.push(
@@ -240,7 +240,7 @@ export const partyAdvice = (state: GameState, index: number): PartyAdvice => {
       content && heroes.length < content.minHeroes
         ? `${heroes.length}/${content.minHeroes} heroes`
         : null,
-    levelProblem: null,
+    averageLevel,
     payScale: content ? payScaleFor(state, content) : 1,
     warnings,
   };
