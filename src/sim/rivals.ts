@@ -79,3 +79,53 @@ export const standings = (state: GameState): Standing[] => {
 
 export const playerRank = (state: GameState): number =>
   standings(state).findIndex((row) => row.isPlayer) + 1;
+
+/** One guild's line on one raid, for the raid hub's map and race strip. */
+export type RaidRaceRow = {
+  name: string;
+  isPlayer: boolean;
+  score: number;
+  clearedOnDay: number | null;
+  bestPull: number;
+  /** Attempts, which is what the mastery readout is counted from. */
+  pulls: number;
+};
+
+const raidProgressOf = (
+  state: GameState,
+  contentId: string,
+): Pick<RaidRaceRow, "clearedOnDay" | "bestPull" | "pulls"> => {
+  const row = state.progress.find((p) => p.contentId === contentId);
+  return {
+    clearedOnDay: row?.clearedOnDay ?? null,
+    bestPull: row?.bestPull ?? 0,
+    pulls: row?.attempts ?? 0,
+  };
+};
+
+/**
+ * The race on one raid. A guild that cleared it ranks by the day it killed it;
+ * the rest rank by their best pull. A guild that has not pulled it sorts last
+ * at 0%, which is what its progress row says. The player's row keeps its name
+ * so a table can render all four without a special case.
+ */
+export const raidRace = (state: GameState, contentId: string): RaidRaceRow[] => {
+  const rows: RaidRaceRow[] = [
+    {
+      name: state.guildName,
+      isPlayer: true,
+      score: state.score ?? computeScore(state).total,
+      ...raidProgressOf(state, contentId),
+    },
+    ...state.rivals.map((rival) => ({
+      name: rival.name,
+      isPlayer: false,
+      score: rival.guild.score ?? computeScore(rival.guild).total,
+      ...raidProgressOf(rival.guild, contentId),
+    })),
+  ];
+  const killDay = (row: RaidRaceRow): number => row.clearedOnDay ?? Number.MAX_SAFE_INTEGER;
+  return rows.sort(
+    (a, b) => killDay(a) - killDay(b) || b.bestPull - a.bestPull || b.score - a.score,
+  );
+};

@@ -3,6 +3,7 @@ import { TopBar, Nav } from "../ui/components/Chrome";
 import { HeroSheet } from "../ui/screens/HeroSheet";
 import { HallScreen } from "../ui/screens/HallScreen";
 import { RosterScreen } from "../ui/screens/RosterScreen";
+import { RaidScreen } from "../ui/screens/RaidScreen";
 import { WarRoomScreen } from "../ui/screens/WarRoomScreen";
 import { ReportScreen } from "../ui/screens/ReportScreen";
 import { TitleScreen } from "../ui/screens/TitleScreen";
@@ -32,6 +33,7 @@ const Screen = () => {
   const screen = useGameStore((s) => s.screen);
   if (screen === "roster") return <RosterScreen />;
   if (screen === "war") return <WarRoomScreen />;
+  if (screen === "raid") return <RaidScreen />;
   if (screen === "report") return <ReportScreen />;
   return <HallScreen />;
 };
@@ -92,7 +94,8 @@ export const App = () => {
       if (event.key === "1") state.setScreen("hall");
       if (event.key === "2") state.setScreen("roster");
       if (event.key === "3") state.setScreen("war");
-      if (event.key === "4") state.setScreen("report");
+      if (event.key === "4") state.setScreen("raid");
+      if (event.key === "5") state.setScreen("report");
       if (event.key.toLowerCase() === "r") state.setScreen("roster");
       if (event.key.toLowerCase() === "w") state.setScreen("war");
       if (event.key === "?") state.openModal({ kind: "help" });

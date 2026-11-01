@@ -63,6 +63,10 @@ export const tickRivals = (state: GameState): void => {
     if (rival.guild.events.length > 120) {
       rival.guild.events = rival.guild.events.slice(-120);
     }
+    // The raid hub's history is the player's screen. A rival is summarised by
+    // its activity line and its progress rows; keeping three more bounded logs
+    // (40 nights each) only made every save bigger.
+    rival.guild.raidLog = [];
 
     const afterRaids = rivalRaidsCleared(rival);
     if (afterRaids > beforeRaids) {

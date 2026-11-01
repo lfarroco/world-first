@@ -159,6 +159,7 @@ const Yesterday = () => {
 
 const Standings = () => {
   const game = useGameStore((s) => s.game);
+  const setScreen = useGameStore((s) => s.setScreen);
   if (!game) return null;
   const summary = guildSummary(game);
   const activities = new Map(game.rivals.map((r) => [r.name, r.activity]));
@@ -167,7 +168,12 @@ const Standings = () => {
     <section className="panel">
       <div className="panel-head">
         <span className="eyebrow">The race</span>
-        <span className="tiny dim">same planner, same day</span>
+        <div className="row" style={{ gap: 8 }}>
+          <span className="tiny dim">same planner, same day</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => setScreen("raid")}>
+            Raid hub ▸
+          </button>
+        </div>
       </div>
       {summary.standings.map((row, index) => (
         <div className="standings-row" key={row.name} data-player={row.isPlayer}>

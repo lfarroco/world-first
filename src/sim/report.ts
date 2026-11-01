@@ -1,4 +1,4 @@
-import type { EncounterLog, EncounterPullLog, GameEvent, GameState } from "./types";
+import type { EncounterLog, EncounterPullLog, GameEvent, GameState, RaidLogNight } from "./types";
 import { STANCE } from "./content/tuning";
 import { masteryFor } from "./encounter";
 
@@ -7,6 +7,14 @@ export const GEAR_TIER_GAIN = 0.15;
 
 export const digestForDay = (state: GameState, day: number): GameEvent[] =>
   state.events.filter((e) => e.day === day);
+
+/**
+ * The raid hub's history for one raid, oldest night first. A save written
+ * before the log existed has no rows; the screen then shows progress without a
+ * pull list, which is honest rather than a fabricated empty night.
+ */
+export const raidNights = (state: GameState, contentId: string): RaidLogNight[] =>
+  (state.raidLog ?? []).filter((night) => night.contentId === contentId);
 
 /**
  * The pull worth reading. A clear must show the pull that killed the boss; a

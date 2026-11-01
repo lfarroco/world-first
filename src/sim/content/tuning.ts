@@ -58,6 +58,19 @@ export const MASTERY = {
   cap: 0.3,
 } as const;
 
+/**
+ * The raid hub's history. One entry is one raid night: its pulls, the best
+ * pull and the check that stopped each one. Forty nights is more than a full
+ * run's raid nights for one guild, and the log is a screen, not a replay file.
+ *
+ * Rivals are cleared by the world tick: their race line and progress rows
+ * already answer "what are they doing", and three more logs only grew the save
+ * (L94 measured a 164–251 kB save).
+ */
+export const RAID_LOG = {
+  maxNights: 40,
+} as const;
+
 export const ECONOMY = {
   startGold: 250,
   wageBudgetBase: 200,

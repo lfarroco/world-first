@@ -39,12 +39,12 @@ If those three are fun with no art, the game is real. Everything else is amplifi
 | Run | **84-day deadline** · 3 raids · World First · **final score, band and rank** |
 | Retention | morale deltas · transfer requests · contract expiry · squad-status promises |
 | Persistence | localStorage save, versioned, deterministic from seed + action log |
-| UI | **Browser vertical slice:** Guild Hall, Roster + Hero Sheet, War Room with live projection, Report + Run End, attention queue, loot assignment, tavern (immediate signing), four facility upgrades, keyboard and responsive layout |
+| UI | **Browser vertical slice:** Guild Hall, Roster + Hero Sheet, War Room with live projection, Raid hub with the per-boss pull log, Report + Run End, attention queue, loot assignment, tavern (immediate signing), four facility upgrades, keyboard and responsive layout |
 | Dev tooling | headless CLI: `new`, `content`, `inspect <id>`, `party`, `advance`, `ai`, `sim --runs N [--clears]`, `status` · **AI planner** (`src/sim/ai`) with personalities |
 
 ### Out (v0.1, explicitly)
 
-Split runs · doctrine toggles · doctrine familiarity · two-audience grades (board vs heroes) · board objectives/firing · training sessions · youth academy · scouting network and scouts as entities · staff · press/media · poaching · loans · multi-tier seasons · 2D replay · multiplayer · cosmetics · mobile-native layout (responsive only) · localisation · save export. Also cut from the first UI pass: drag-and-drop parties, bulk roster actions, comparison drawer, signing negotiation, scouting fog, raid hub, contracts table and settings.
+Split runs · doctrine toggles · doctrine familiarity · two-audience grades (board vs heroes) · board objectives/firing · training sessions · youth academy · scouting network and scouts as entities · staff · press/media · poaching · loans · multi-tier seasons · 2D replay · multiplayer · cosmetics · mobile-native layout (responsive only) · localisation · save export. Also cut from the first UI pass: drag-and-drop parties, bulk roster actions, comparison drawer, signing negotiation, scouting fog, contracts table and settings.
 
 Each of these is in [vision.md](vision.md) §5 with a phase.
 
@@ -79,9 +79,9 @@ Shipped when: the CLI can play a full run in a terminal and print a readable wip
 Roster table + hero sheet drawer → War Room (click-to-fill, projection strip) → Report screen → Wipe analysis. The attention queue, loot assignment, tavern and facilities were pulled forward because a guild that cannot hire is stuck at three heroes.
 Ship when: a stranger can play a week without asking what a number means. **Not verified.** The build is the instrument for that test, not the result.
 
-**Phase 2 — the loop becomes a game**
+**Phase 2 — the loop becomes a game** ✅ *built 2026-10-31 (the raid hub was the last surface)*
 Guild Hall + attention queue → Advance Day gating → Tavern + signing → Raid/RWF screen.
-Ship when: the player opens the game, sees "3 things need you", and *wants* to answer them.
+Ship when: the player opens the game, sees "3 things need you", and *wants* to answer them. **Not verified with a human.**
 
 **Phase 3 — pressure and polish**
 Wage budget and arrears → contracts/renewals → guild-hall tier → **run-end score + ranking + summary screen** → onboarding week (one concept per day) → juice (transitions, sounds, number animations).

@@ -98,8 +98,8 @@ export const HelpModal = ({ onClose }: { onClose: () => void }) => (
             <dd>Advance the day</dd>
           </div>
           <div className="kv">
-            <dt>1 – 4</dt>
-            <dd>Hall · Roster · War Room · Report</dd>
+            <dt>1 – 5</dt>
+            <dd>Hall · Roster · War Room · Raid · Report</dd>
           </div>
           <div className="kv">
             <dt>

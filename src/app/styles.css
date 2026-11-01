@@ -357,6 +357,10 @@ hr.sep {
   border-bottom-color: var(--color-gold);
 }
 
+.tab-label-short {
+  display: none;
+}
+
 .tab-badge {
   min-width: 16px;
   height: 16px;
@@ -1438,6 +1442,226 @@ hr.sep {
   background: rgba(216, 179, 95, 0.07);
 }
 
+/* -------------------------------------------------------------------- raid */
+
+.raid-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.8fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.raid-main,
+.raid-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.race-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 58px 44px;
+  gap: 2px 8px;
+  align-items: center;
+  padding: 7px 12px;
+  border-top: 1px solid var(--color-line-soft);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.race-row:first-child {
+  border-top: 0;
+}
+
+.race-row[data-player="true"] {
+  background: rgba(216, 179, 95, 0.06);
+  box-shadow: inset 2px 0 0 var(--color-gold);
+}
+
+.race-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.race-name > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.race-detail {
+  grid-column: 2 / -1;
+  min-width: 0;
+  font-size: 10px;
+  color: var(--color-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.raid-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 110px;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-top: 1px solid var(--color-line-soft);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.raid-row:first-child {
+  border-top: 0;
+}
+
+.raid-row:hover {
+  background: var(--color-panel-2);
+}
+
+.raid-row[data-selected="true"] {
+  background: rgba(216, 179, 95, 0.06);
+  box-shadow: inset 2px 0 0 var(--color-gold);
+}
+
+.raid-row[data-locked="true"] {
+  opacity: 0.62;
+}
+
+.raid-index {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--color-dim);
+  text-align: center;
+}
+
+.raid-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.raid-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.raid-name {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+.raid-state {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+
+.raid-meta {
+  font-size: 10px;
+  color: var(--color-muted);
+}
+
+.raid-race {
+  font-size: 10.5px;
+}
+
+.raid-reason {
+  font-size: 10px;
+}
+
+.raid-bar {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-panel-3);
+  overflow: hidden;
+}
+
+.raid-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--color-dim);
+}
+
+.raid-bar > span.good {
+  background: var(--color-good);
+}
+
+.raid-bar > span.warn {
+  background: var(--color-warn);
+}
+
+.raid-bar > span.bad {
+  background: var(--color-bad);
+}
+
+.pull-stats {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.pull-stats b {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.pull-log {
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.pull-head,
+.pull-row {
+  display: grid;
+  grid-template-columns: 54px 38px 44px minmax(0, 1fr) 58px;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.pull-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-top: 1px solid var(--color-line-soft);
+  border-bottom: 1px solid var(--color-line-soft);
+  background: var(--color-panel);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+
+.pull-row {
+  border-top: 1px solid var(--color-line-soft);
+}
+
+.pull-head + .pull-row {
+  border-top: 0;
+}
+
+.pull-row[data-outcome="kill"] {
+  background: rgba(124, 185, 141, 0.07);
+}
+
+.pull-check {
+  min-width: 0;
+}
+
 /* ------------------------------------------------------------------- report */
 
 .report-grid {
@@ -1793,6 +2017,7 @@ hr.sep {
 @media (max-width: 1180px) {
   .hall-grid,
   .war-grid,
+  .raid-grid,
   .report-grid {
     grid-template-columns: 1fr;
   }
@@ -1873,6 +2098,28 @@ hr.sep {
     display: none;
   }
 
+  .raid-row {
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+
+  .raid-bar {
+    display: none;
+  }
+
+  .pull-head,
+  .pull-row {
+    grid-template-columns: 48px 32px 40px minmax(0, 1fr);
+  }
+
+  .pull-head > span:last-child,
+  .pull-row > span:last-child {
+    display: none;
+  }
+
+  .pull-log {
+    max-height: 340px;
+  }
+
   .title-form {
     grid-template-columns: 1fr;
   }
@@ -1893,6 +2140,18 @@ hr.sep {
     font-size: 10px;
     letter-spacing: 0.1em;
     gap: 5px;
+  }
+
+  .nav .tab-optional {
+    display: none;
+  }
+
+  .tab-label {
+    display: none;
+  }
+
+  .tab-label-short {
+    display: inline;
   }
 
   .title-card {

@@ -345,6 +345,51 @@ export type EncounterLog = {
   loot?: LootItem[];
 };
 
+/**
+ * The check that stopped a pull, reduced to what the raid hub prints. The
+ * full phase lives in `EncounterLog` on the report; the log needs the number
+ * and the name, not a copy of the whole encounter.
+ */
+export type RaidLogCheck = {
+  name: string;
+  check: CheckType;
+  value: number;
+  requirement: number;
+  ratio: number;
+  /** The phase's threat, already resolved against the party. */
+  ability?: {
+    name: string;
+    countered: boolean;
+    mult: number;
+    counterHero?: string;
+  };
+};
+
+/** One pull in a raid night. `failed` is null when the pull killed the boss. */
+export type RaidLogPull = {
+  /** 1-based within the night. */
+  index: number;
+  /** The furthest phase the pull banked, 0..1. */
+  progress: number;
+  killed: boolean;
+  failed: RaidLogCheck | null;
+};
+
+/**
+ * One raid night in the hub's history. `lastEncounter` answers "what happened
+ * last night"; the log answers "how long have we been stuck", which is the
+ * question the race screen exists for. A night is one party's raid pull, not a
+ * whole day: two raid parties in one day write two nights.
+ */
+export type RaidLogNight = {
+  day: number;
+  contentId: string;
+  stance: Stance;
+  cleared: boolean;
+  bestPull: number;
+  pulls: RaidLogPull[];
+};
+
 export type ScoreLine = {
   label: string;
   value: number;
@@ -445,6 +490,12 @@ export type GameState = {
    * and the loot default funnels gear to them. Optional for old saves.
    */
   raidTeam?: string[];
+  /**
+   * The last raid nights, oldest first. Written by `resolveDay`, bounded by
+   * `RAID_LOG.maxNights`. Optional: a save written before the field existed
+   * loads with no history, and the hub shows progress without the pull rows.
+   */
+  raidLog?: RaidLogNight[];
 };
 
 export type { Rng } from "./rng";

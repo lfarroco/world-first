@@ -72,14 +72,16 @@ The dependency decision is [ADR 0003](adr/0003-ui-shell-dependencies.md). The UI
 |---|---|---|
 | Pure actions | `store/actions.ts` | `applyAction(state, action) → state`. The entire UI vocabulary (assign, stance, hire, release, facility, attention, loot, team, advance) is one reducer. The store calls it; the tests call it without a DOM. |
 | Store | `store/gameStore.ts` | Zustand. UI state (screen, drawer, modal, report, toast) lives here and never enters the save. Game mutations go through `applyAction`, re-derive the attention queue, then write. |
-| Save | `store/save.ts` | Versioned localStorage file; validation rejects an unknown version or a broken state instead of crashing the boot. |
+| Save | `store/save.ts` | Versioned localStorage file; validation rejects an unknown version or a broken state instead of crashing the boot. New fields are optional (`raidLog`) so a save written before them loads with the feature's empty state. |
 | Selectors | `store/selectors.ts` | Presentation composition (wage info, content rows, party advice, week strip, role chips). It calls sim functions; it does not reimplement them. |
-| Screens | `ui/screens/` | `Hall`, `Roster` + `HeroSheet`, `WarRoom`, `Report`, `Title`. |
+| Screens | `ui/screens/` | `Hall`, `Roster` + `HeroSheet`, `WarRoom`, `Raid`, `Report`, `Title`. |
 | Modals | `ui/modals/` | attention, inspect, loot, tavern, new run, help. |
 | Chrome | `ui/components/` | top bar, tabs, primitives, event line. |
 | Shell | `app/App.tsx`, `app/styles.css`, `app/clock.ts` | keyboard, overlays, design tokens. `clock.ts` is the only place the shell reads `Date` / `Math.random`. |
 
-**Three additions to the sim for the UI, all shared with the CLI:** `fieldableParty` in `plan.ts` (the best legal party, or null), and `focusPull` / `nextLevers` / `pullTraits` / `masteryReport` in `report.ts`. The browser and the terminal now read the same report logic.
+**Sim helpers added for the UI, shared with the CLI:** `fieldableParty` in `plan.ts` (the best legal party, or null); `focusPull` / `nextLevers` / `pullTraits` / `masteryReport` / `raidNights` in `report.ts`; and `raidRace` in `rivals.ts`, which ranks the four guilds on one boss by kill day, then best pull. The browser and the terminal read the same report logic.
+
+**The raid log.** `resolveDay` writes one `RaidLogNight` per raid party (day, stance, best pull, and one row per pull with the failed check's name, numbers and shortfall). `RAID_LOG.maxNights = 40` bounds it; `tickRivals` clears a rival's log after its day because the hub only reads the player's history. At day 85 the log is 4 kB for 17 nights, 1.5% of a 255 kB save.
 
 **Two rules the UI keeps:** blocking attention is checked *before* `advanceDay`, never after; and drops never block. A click on Advance with a blocking item opens the queue and resolves nothing.
 
@@ -95,12 +97,12 @@ src/
     hero.ts               attributes → roleScore → power; XP and levelling
     plan.ts               parties, unlocks, fieldableParty, validation
     encounter.ts          phase resolution + projections for any content
-    report.ts             focusPull, nextLevers, pullTraits, digestForDay
-    day.ts                the day pipeline for one guild
+    report.ts             focusPull, nextLevers, pullTraits, digestForDay, raidNights
+    day.ts                the day pipeline for one guild; writes the raid log
     economy.ts
     founding.ts           the state every guild starts from (no rivals)
     board.ts              the daily contract board and the token pay rule
-    rivals.ts             the three rival definitions, scores and standings
+    rivals.ts             the three rival definitions, scores, standings, raidRace
     world.ts              tickRivals, advanceDay, runWorld
     events.ts             event + attention derivation
     ai/                   personalities.ts · planner.ts · reward.ts · turn.ts (aiTurn, aiRun)
@@ -150,7 +152,8 @@ type Save = {
 - Migrations are `migrate(save): Save` functions chained by version. The browser gate is at version 1 and rejects anything it does not recognise rather than loading a partial state (`store/save.ts`). Never mutate a save in place.
 - Keep the log small: actions only (assign, stance, sign, advance, resolve, loot), never derived data. The UI's `GameAction` union is the vocabulary.
 - **One slot**, `world-first.save` in localStorage. The seed and the guild name are in the file. There is no export yet.
-- A save carries the three rival guilds, so it is 164–251 kB. That is the real cost of "the race is simulated"; see §8.
+- A save carries the three rival guilds, so it is 164–255 kB. That is the real cost of "the race is simulated"; see §8.
+- `raidLog` is optional and bounded at 40 nights; it adds 4 kB at day 85 (1.5% of the file). It is history, not derived data, so it belongs in the save and not in the action log.
 
 `pendingLoot` and `raidTeam` are optional fields on `GameState`; a save without them loads with an empty queue and no team. The queue's ids (`loot-<day>-<contentId>-<i>`) are content-derived; the assignment uses no RNG, so replaying the day gives the same items and the same suggestions. When replay lands, `loot <n> <hero>`, `loot auto` and `raidteam` are already actions in `store/actions.ts`, not direct state writes.
 
@@ -198,8 +201,8 @@ Measured 2026-10-31 on the shipped build:
 - **`sim --runs 20`** (60 world runs) is ~65 s at the board build. The unit tests use the player-only `aiRun`; three world runs cover the race.
 - The roster table is ≤ 22 rows. No virtualisation needed. Tavern is ≤ 3.
 - **The projection is the expensive interaction.** `projectAssignment` runs on every party/stance/content change. It is one pure call over the party (≤22 heroes), so the War Room recomputes it rather than caching a derived number; keep it pure. The 15-hero AI save rendered without a visible delay in the headless pass; no frame timing was taken.
-- **Production bundle:** 402.79 kB JS / 120.57 kB gzip and 32.12 kB CSS / 7.47 kB gzip, built in 0.32 s (`vite build`, 73 modules). No component library, no chart library, no drag library.
-- **Save cost:** a day-41 save is 164 kB; a finished run is 251 kB because it carries three rival guilds. JSON.stringify is 4.7 / 6.3 ms and parse is 3.3 / 4.9 ms over 200 runs on the dev host. The store writes on every game action, not on UI state, so a day costs one write (~5 ms) on top of the ~13 ms world tick.
+- **Production bundle:** 415.12 kB JS / 123.15 kB gzip and 35.27 kB CSS / 7.98 kB gzip, built in 0.54 s (`vite build`, 74 modules). No component library, no chart library, no drag library.
+- **Save cost:** a day-41 save is 164 kB; a finished run is 255 kB because it carries three rival guilds and the player's raid log (4 kB for 17 nights). The end-of-run file stringifies in 3.4 ms and parses in 2.3 ms over 500 runs on the dev host; the log moves either by under 0.1 ms. The store writes on every game action, not on UI state, so a day costs one write on top of the ~13 ms world tick.
 - A 10,000-day batch is ~12 s with `aiRun` (player only, ~119 full runs) and ~100 s with the world attached. Optimise the rival planner first if that becomes the bottleneck; do not cut the race out of the sweep.
 
 ---

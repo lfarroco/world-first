@@ -113,10 +113,11 @@ export const TopBar = () => {
 };
 
 const TABS = [
-  { id: "hall", label: "Guild Hall", key: "1" },
-  { id: "roster", label: "Roster", key: "2" },
-  { id: "war", label: "War Room", key: "3" },
-  { id: "report", label: "Report", key: "4" },
+  { id: "hall", label: "Guild Hall", short: "Hall", key: "1" },
+  { id: "roster", label: "Roster", short: "Roster", key: "2" },
+  { id: "war", label: "War Room", short: "War", key: "3" },
+  { id: "raid", label: "Raid", short: "Raid", key: "4" },
+  { id: "report", label: "Report", short: "Report", key: "5" },
 ] as const;
 
 export const Nav = () => {
@@ -154,7 +155,8 @@ export const Nav = () => {
               onClick={() => setScreen(tab.id)}
               title={`${tab.label} (${tab.key})`}
             >
-              {tab.label}
+              <span className="tab-label">{tab.label}</span>
+              <span className="tab-label-short">{tab.short}</span>
               {count > 0 ? <span className="tab-badge">{count > 9 ? "9+" : count}</span> : null}
               {tab.id === "report" && report && report.day !== seenReportDay ? (
                 <span className="tab-badge soft" title="A day report is waiting">
@@ -165,7 +167,11 @@ export const Nav = () => {
           );
         })}
         <div className="grow" />
-        <button className="tab" onClick={() => openModal({ kind: "new-run" })} title="Start a new seed">
+        <button
+          className="tab tab-optional"
+          onClick={() => openModal({ kind: "new-run" })}
+          title="Start a new seed"
+        >
           New run
         </button>
       </div>

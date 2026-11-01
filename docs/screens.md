@@ -2,31 +2,33 @@
 
 Every screen below is specified as: **purpose → regions → data/Lists → actions → modals → edge states → mobile**. The architecture follows the FM26 six-hub model ([fm-blueprint.md](fm-blueprint.md) §1.3) because it is the right size for us.
 
-> **Build status (2026-10-31).** The vertical slice ships, plus the three surfaces a run cannot do without: the attention queue, the tavern and the facilities. The screenshots below come from seed 1234: a day-41 state and the day-84 verdict, both produced by the AI planner and loaded into the browser.
+> **Build status (2026-10-31).** The vertical slice ships, plus the surfaces the loop needs: the attention queue, the tavern, the facilities and the raid hub. The screenshots below come from seed 1234 and seed 7: a day-41 state, the day-84 verdict and the finished run, all produced by the AI planner and loaded into the browser.
 >
 > | Screen | State | Where it differs from this spec |
 > |---|---|---|
-> | Global chrome | Built | Gold, day, wages, score, rank, raids; tab badges; Space to advance; `1–4`, `R`, `W`, `Esc`. The advance button is sticky, not fixed to the bottom on mobile. |
-> | Guild Hall | Built, compact | Queue-first layout, digest, standings, week strip, contract board, promises, loot, facilities, tavern. The week strip reads the event log, so a routine farm night with no events is blank. |
+> | Global chrome | Built | Gold, day, wages, score, rank, raids; tab badges; Space to advance; `1–5`, `R`, `W`, `Esc`. The advance button is sticky, not fixed to the bottom on mobile. |
+> | Guild Hall | Built, compact | Queue-first layout, digest, standings with a link to the raid hub, week strip, contract board, promises, loot, facilities, tavern. The week strip reads the event log, so a routine farm night with no events is blank. |
 > | Roster | Built | Table, six views, class filter, search, sort, group-by-class, status chips, last five events. No bulk selection, column chooser, compare mode or power trend (there is no 7-day history in the sim). |
 > | Hero Sheet | Built | Attributes, all eight role chips with fit multipliers, previewed check contributions, gear, condition, contract, traits, ten-day event strip. Potential is shown as unscouted, not scouted; no portrait and no compare drawer. |
 > | Tavern | Built, reduced | Candidate list and immediate signing at the listed fee. No scouting fog, no watchlist, and no three-round wage negotiation: the sim's `hireCandidate` has no negotiation state. |
 > | War Room | Built | Click-to-fill slots in Front/Mid/Back order, target picker, inspect sheet, live projection, stance, auto-fill, standing raid ten, loot strip, rest day. No drag-and-drop, no flasks (no prep purchase exists in the sim), no split-run funnel. |
 > | Report | Built | Digest, killing/failed pull, per-phase checks, threat counter, traits, injuries, drops, next levers, live score breakdown. It is a **screen**, not a modal: a report the player can leave and come back to survives reload; a modal does not. |
+> | Raid hub | Built, reduced | The three-boss ladder with lock reasons, the four-guild race with live activity, the best pull on the selected boss for every guild, and a per-pull log of the guild's raid nights. The boss map is a vertical list, not a spatial map; the analysis link opens the Report screen; rivals carry no pull log of their own. |
 > | Run End | Built | Rank, band, score, component bars, three moments generated from the data, the four-guild table, same-seed and new-seed buttons. It is a card on the Report screen, not a full-screen takeover. |
-> | Raid hub | Not built | Standings and rival activity live on the Hall and Report. The pull log and analysis view are the next screen. |
 > | Guild / finances | Partial | Wage bill, roster cap, promises and the four facility upgrades are on the Hall. No contracts table and no settings modal. |
-> | Mobile | Responsive | One column, stacked top bar, horizontally scrollable table and week strip. The roster becomes a scrolling table rather than the specified card list; Advance is in the sticky header, not a fixed bottom bar. |
+> | Mobile | Responsive | One column, stacked top bar, horizontally scrollable table and week strip; the pull log drops the stance column. The roster becomes a scrolling table rather than the specified card list; Advance is in the sticky header, not a fixed bottom bar. The nav hides its optional "New run" tab and shortens Guild Hall / War Room to Hall / War below 560px. |
 >
-> **Screens pulled forward, and why.** The slice spec stops at Roster, War Room and Report. A run that cannot hire is stuck at three heroes: the first dungeon needs four and the first raid needs ten, and the first dungeon is also the first free recruit. The tavern is therefore part of "playable", not amplification. Facilities came with it because the AI's surplus gold had a sink and the player's did not.
+> **Screens pulled forward, and why.** The slice spec stops at Roster, War Room and Report. A run that cannot hire is stuck at three heroes: the first dungeon needs four and the first raid needs ten, and the first dungeon is also the first free recruit. The tavern is therefore part of "playable", not amplification. Facilities came with it because the AI's surplus gold had a sink and the player's did not. The raid hub came after the slice because standings alone answer "who is winning"; the hub answers "who killed which boss, on which day, and how long have we been stuck".
 >
-> **Deliberately not built:** drag-and-drop, bulk roster actions, comparison drawer, column chooser, scouting fog, wage negotiation, split runs, flasks, raid hub, board objectives, settings. Each needs either a sim field or a real playtest first.
+> **Deliberately not built:** drag-and-drop, bulk roster actions, comparison drawer, column chooser, scouting fog, wage negotiation, split runs, flasks, board objectives, settings. Each needs either a sim field or a real playtest first.
 >
-> Screenshots: [Guild Hall](screenshots/hall.png) · [Roster](screenshots/roster.png) · [Hero Sheet](screenshots/hero-sheet.png) · [War Room](screenshots/war-room.png) · [Report](screenshots/report.png) · [Run End](screenshots/run-end.png).
+> Screenshots: [Guild Hall](screenshots/hall.png) · [Roster](screenshots/roster.png) · [Hero Sheet](screenshots/hero-sheet.png) · [War Room](screenshots/war-room.png) · [Raid hub](screenshots/raid-hub.png) · [Report](screenshots/report.png) · [Run End](screenshots/run-end.png).
 >
 > ![Guild Hall](screenshots/hall.png)
 >
 > ![War Room](screenshots/war-room.png)
+>
+> ![Raid hub](screenshots/raid-hub.png)
 
 ---
 
@@ -298,6 +300,8 @@ This is the screen that answers "what is in there, and is it worth tonight?" wit
 - **Pull log** per boss: every pull, its best %, and the failed check. This is the historical record that lets a player say "we've been stuck at 41% for four days".
 - **Analysis** opens the Wipe Report modal with the "next lever" block.
 
+> **Built 2026-10-31, reduced.** The map is a vertical ladder with the lock reason printed on each row; the race table adds each guild's kill day or best pull on the selected boss, on a second line so both fit; the pull log reads `GameState.raidLog` (the last 40 raid nights, one row per pull, with the failed check's shortfall and stance). The analysis link opens the Report screen rather than a modal, because the report is the thing that survives a reload. Rivals are summarised by `Rival.activity` and their progress rows; they carry no pull log, which keeps the log at 4 kB for 17 nights (1.5% of a 255 kB save). The first draft printed `best rival Ravensguard 100%` for a boss they had already killed, and a rounded `0.92` next to a failed pull at `688/750`; both now read as a kill day and a shortfall. See [learnings.md](learnings.md) L96–L98.
+
 ---
 
 ## 7. Guild
@@ -380,14 +384,14 @@ Design notes:
 
 ## Screen build order (and why)
 
-**Status 2026-10-31:** 1–5 and 8 are built; 6 is missing and 7 is a card on the Hall.
+**Status 2026-10-31:** 1–6 and 8 are built; 7 is a card on the Hall.
 
 1. ✅ **Roster + Hero Sheet** — the data model has to be right before anything else; this is also where the attribute/role system proves itself.
 2. ✅ **War Room + Day Report** — proves the core loop and the projection numbers. The report is a screen, not a modal.
 3. ✅ **Wipe Report** — proves the game is a puzzle, not a slot machine. *If this screen isn't good, stop and fix the model.*
 4. ✅ **Guild Hall + attention queue** — converts the loop from a report into a game.
 5. ◐ **Tavern + Signing** — the recruitment loop. List, fee and signing ship; fog and negotiation wait for sim fields.
-6. ✗ **Raid/RWF** — the scoreboard and the endgame framing. This is the largest missing surface; standings exist, the pull log does not.
+6. ✅ **Raid/RWF** — the scoreboard and the endgame framing. The ladder, the race and the pull log ship; the map is a list and the analysis is a link to the Report.
 7. ◐ **Guild/finances** — wages, roster cap and facilities on the Hall; no contracts table.
 8. ✅ **Run End** — the verdict and the story, as a card on the report. It is what makes a run worth repeating.
 

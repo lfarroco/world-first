@@ -1,9 +1,10 @@
 import { clamp, sum } from "./prelude";
-import type { ContentKind, GameState, Hero, LootItem, Stance } from "./types";
+import type { ContentKind, GameState, Hero, LootItem, RaidLogNight, Stance } from "./types";
 import {
   FATIGUE,
   HEALTH_RECOVERY_PER_DAY,
   PROMISE,
+  RAID_LOG,
   RUN_DAYS,
   SHARPNESS,
   STANCE,
@@ -275,6 +276,49 @@ export const resolveDay = (input: GameState): GameState => {
         payScale: pay,
         loot: result.loot as LootItem[],
       };
+    }
+
+    // `lastEncounter` answers "what happened last night"; the hub's log answers
+    // "how long have we been stuck". A report is overwritten every night, so a
+    // six-night stall reads as the same 41% six times with nothing to compare
+    // it to. Raids only: the report screen carries the other kinds.
+    if (content.kind === "raid" && result.pulls.length > 0) {
+      const night: RaidLogNight = {
+        day: today,
+        contentId: content.id,
+        stance,
+        cleared: result.cleared,
+        bestPull: result.bestPull,
+        pulls: result.pulls.map((pull, index) => {
+          // A pull fails at the first phase below the pass line. A kill has no
+          // failed phase, even when an earlier phase scraped.
+          const stopped = pull.phases.find((phase) => phase.outcome === "fail");
+          const ability = stopped?.ability;
+          return {
+            index: index + 1,
+            progress: pull.progress,
+            killed: pull.killed,
+            failed: stopped
+              ? {
+                  name: stopped.name,
+                  check: stopped.check,
+                  value: stopped.value,
+                  requirement: stopped.requirement,
+                  ratio: stopped.ratio,
+                  ability: ability
+                    ? {
+                        name: ability.name,
+                        countered: ability.countered,
+                        mult: ability.mult,
+                        counterHero: ability.counterHero,
+                      }
+                    : undefined,
+                }
+              : null,
+          };
+        }),
+      };
+      state.raidLog = [...(state.raidLog ?? []), night].slice(-RAID_LOG.maxNights);
     }
   }
 

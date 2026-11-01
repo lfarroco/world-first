@@ -86,6 +86,9 @@ import {
   counterDemand,
   counterOffer,
   transferFee,
+  raidNights,
+  raidRace,
+  RAID_LOG,
   type ClassId,
   type Hero,
   type TraitId,
@@ -1463,6 +1466,98 @@ describe("rewards and clear-ups", () => {
     expect(scores).toEqual([...scores].sort((a, b) => b - a));
     expect(playerRank(s)).toBeGreaterThanOrEqual(1);
     expect(playerRank(s)).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("raid hub history", () => {
+  const withRaidProgress = (
+    state: GameState,
+    contentId: string,
+    clearedOnDay: number | null,
+    bestPull: number,
+    attempts: number,
+  ): GameState => ({
+    ...state,
+    progress: state.progress.map((row) =>
+      row.contentId === contentId
+        ? { ...row, clears: clearedOnDay === null ? 0 : 1, clearedOnDay, bestPull, attempts }
+        : row,
+    ),
+  });
+
+  it("records every pull of a raid night, and the check that stopped it", () => {
+    const state = playAi(7);
+    const log = state.raidLog ?? [];
+    expect(log.length).toBeGreaterThan(0);
+    for (const night of log) {
+      expect(contentById(night.contentId)?.kind).toBe("raid");
+      expect(night.pulls.length).toBeGreaterThan(0);
+      expect(night.pulls.map((pull) => pull.index)).toEqual(
+        night.pulls.map((_, index) => index + 1),
+      );
+      // A night can kill once; a second killed pull in one night is a bug.
+      expect(night.pulls.filter((pull) => pull.killed).length).toBeLessThanOrEqual(1);
+      for (const pull of night.pulls) {
+        if (pull.killed) {
+          expect(pull.failed).toBeNull();
+        } else if (pull.failed) {
+          // The failed check names both numbers, the same rule the report keeps.
+          expect(pull.failed.requirement).toBeGreaterThan(pull.failed.value);
+          expect(pull.failed.ratio).toBeLessThan(1);
+        }
+      }
+    }
+    expect(log.flatMap((night) => night.pulls).some((pull) => pull.failed !== null)).toBe(true);
+  });
+
+  it("keeps the log bounded, deterministic and raid-only", () => {
+    const a = playAi(18);
+    const b = playAi(18);
+    expect(a.raidLog).toEqual(b.raidLog);
+    expect((a.raidLog ?? []).length).toBeLessThanOrEqual(RAID_LOG.maxNights);
+    // Dungeons leave a report; only raids write the hub's history.
+    expect((a.raidLog ?? []).every((night) => contentById(night.contentId)?.kind === "raid")).toBe(
+      true,
+    );
+    expect(
+      a.progress.some((row) => contentById(row.contentId)?.kind === "dungeon" && row.clears > 0),
+    ).toBe(true);
+  });
+
+  it("does not carry three rival histories into the save", () => {
+    const state = playWorld(18);
+    expect(state.raidLog?.length).toBeGreaterThan(0);
+    for (const rival of state.rivals) expect(rival.guild.raidLog).toEqual([]);
+  });
+
+  it("filters the history by boss and reads an old save as empty", () => {
+    const state = playAi(7);
+    const nights = raidNights(state, "raid-tyrant");
+    expect(nights.length).toBeGreaterThan(0);
+    expect(nights.every((night) => night.contentId === "raid-tyrant")).toBe(true);
+    expect(raidNights({ ...state, raidLog: undefined }, "raid-tyrant")).toEqual([]);
+  });
+
+  it("orders the race on a boss by kill day, then best pull", () => {
+    const base = newGame(7, "Race");
+    const player = withRaidProgress(base, "raid-covens", 60, 1, 8);
+    const state: GameState = {
+      ...player,
+      rivals: base.rivals.map((rival) => {
+        const cleared = rival.name === "Echoes" ? withRaidProgress(rival.guild, "raid-covens", 40, 1, 5) : null;
+        const contesting = withRaidProgress(
+          rival.guild,
+          "raid-covens",
+          null,
+          rival.name === "Methodical" ? 0.55 : 0.42,
+          3,
+        );
+        return { ...rival, guild: cleared ?? contesting };
+      }),
+    };
+    const rows = raidRace(state, "raid-covens");
+    expect(rows.map((row) => row.name)).toEqual(["Echoes", "Race", "Methodical", "Ravensguard"]);
+    expect(rows.find((row) => row.isPlayer)?.clearedOnDay).toBe(60);
   });
 });
 

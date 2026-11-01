@@ -13,7 +13,7 @@ import { digestForDay } from "../sim/report";
 import { applyAction, logAction, type GameAction, type LoggedAction } from "./actions";
 import { clearSave, loadSave, writeSave } from "./save";
 
-export type Screen = "hall" | "roster" | "war" | "report";
+export type Screen = "hall" | "roster" | "war" | "raid" | "report";
 
 export type Modal =
   | { kind: "attention" }

@@ -585,3 +585,29 @@ The UI is a projection: React 19, Zustand 5, Tailwind 4 and Vite 8 add build wei
 **Evidence:** production build 73 modules, 402.79 kB JS / 120.57 kB gzip, 32.12 kB CSS / 7.47 kB gzip, 0.32 s. No component library, chart library or drag library. `sim/` gained two shared helpers (`fieldableParty`, `report.ts`) and no framework import. The 84-day UI run finished at day 85 with the run-end card and no console errors; the same-seed button started a fresh day-1 run.
 **Changes:** dependencies are React, React DOM, Zustand and Tailwind plus their Vite plugins and type packages. Tailwind 4 needs no config file; tokens live in `src/app/styles.css` under `@theme`. The design direction is recorded in `screens.md`, and `open-questions` O2 is closed.
 **Rejected:** a component library (it fights the dense table), a drag library (the first pass uses click-to-fill; drag needs layout and hit-testing work), and CSS-in-JS (one stylesheet plus tokens is enough).
+
+## The raid hub (2026-10-31)
+
+### L96. A last-encounter field is a report, not a history
+`GameState.lastEncounter` is overwritten every night. The report can say why *that* pull failed; it cannot answer "how long have we been stuck at 41%", which is the question the race screen exists for. The first hub draft printed the report and called it a log: a six-night stall was the same 41% six times with nothing to compare.
+**Evidence:** seed 1, day 84 — the Tyrant at 28% after 11 pulls across two nights; `lastEncounter` held only the day-83 night. The hub needs every night, not the last one.
+**Changes:** `GameState.raidLog` holds up to 40 `RaidLogNight` entries (one per raid party: day, stance, best pull, one row per pull with the failed check's name, numbers and shortfall). `resolveDay` appends; `RAID_LOG.maxNights` bounds it. `tickRivals` clears each rival's log after its turn, because the hub reads only the player's history. At day 85 the log is 4 kB for 17 nights, 1.5% of a 255 kB save.
+**Rejected:** storing the full `EncounterLog` per night (phases, abilities, traits — 35+ kB per guild over a run for data the report already shows) and deriving the log from `events` (the digest text carries no numbers).
+
+### L97. A race screen needs kill days, not only best pulls
+`bestPull` is 1 for every guild that cleared the boss, so a "best rival 100%" line reads as a rival at the wall — not a rival past it. The race is decided by *when* the door opened, not by the pull percentage afterwards.
+**Evidence:** seed 1, day 84 — the first hub draft printed `you 28% · best rival Ravensguard 100%` on the Tyrant; Ravensguard had killed it on day 77. The same line on the wall panel compared `Math.round(0.28)` with `Math.round(1)` and said "1 points ahead".
+**Changes:** `raidRace` ranks a boss by kill day first, then best pull. The map and the wall print `killed it day N` and compare the two days when both guilds cleared. A failed pull prints the shortfall (`DPS 688/750 · short 62`) instead of a two-decimal ratio; 688/750 is 0.917, which `toFixed(2)` prints as `0.92` — the scrape boundary, next to a FAIL.
+**Rejected:** sorting the race by score (it tells you who is winning the run, not who is ahead on the boss) and printing a single 0–100% bar for a guild that has killed the boss (the bar saturates and stops telling the difference).
+
+### L98. Round at the edge, and never against a decision boundary
+Two numbers were wrong for the same reason: the value was rounded before it was compared or subtracted. `Math.round(0.28) - Math.round(1)` is −1, so a 72-point gap printed as `1 points ahead`. And rendering a failed `688/750` ratio as `0.92` puts the scrape threshold next to a FAIL.
+**Evidence:** `WallPanel` in the first hub build; the day-84 Tyrant log row `First Blood DPS 688/750 · 0.92` where 0.92 is the pass/scrape line (`encounter.ts` fails below 0.92).
+**Changes:** the gap is `Math.round((a - b) * 100)`, and the log prints `short N` rather than a ratio. Keep full precision in state; format the smallest unit the screen acts on.
+**Rejected:** printing three decimals (`0.917`) — it is precise but the player acts on "how much am I short", not on the ratio.
+
+### L99. A new tab is a mobile layout change, and a descendant selector is not a cell
+Adding the fifth tab pushed "New run" off a 390 px viewport, and the mobile rule that hides the stance column (`.pull-row span:last-child`) also hid the nested shortfall span, so the log read "Obsidian" with no numbers. Both were invisible at 1440 px.
+**Evidence:** day-84 hub at 390 × 844 — the nav overflowed to "NE"; the pull rows showed the phase name and an empty cell.
+**Changes:** the nav's "New run" is `.tab-optional` and hidden below 560 px (the Hall and the title screen still start a run), the two long tab labels become `Hall` / `War`, and the hide rule is `.pull-row > span:last-child`. Check both breakpoints whenever a screen or a tab is added.
+**Rejected:** shrinking all five tab labels — the labels are the navigation, and a scroll bar that starts mid-word looks broken.
