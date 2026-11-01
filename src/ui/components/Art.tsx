@@ -10,11 +10,19 @@ import { useState, type ReactNode } from "react";
  */
 const EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"] as const;
 
+/**
+ * Public files live beside the app, not at the domain root: GitHub Pages serves
+ * this build from `/world-first/`. Vite rewrites the paths it can see at build
+ * time, but a template string is invisible to it, so the base is applied here.
+ */
+const assetUrl = (base: string, ext: string): string =>
+  `${import.meta.env.BASE_URL}${base.replace(/^\//, "")}${ext}`;
+
 /** base → the extension that loaded, or null when every one was missing. */
 const resolved = new Map<string, string | null>();
 
 type Props = {
-  /** Path without an extension: `/art/items/salve`. */
+  /** Site-absolute path without an extension: `/art/items/salve`. */
   base: string;
   alt: string;
   /** Pixels, or "100%" for a banner that stretches. */
@@ -47,7 +55,7 @@ export const Art = ({ base, alt, width, height, className = "", title, children 
     <img
       className={`art ${className}`}
       style={box}
-      src={`${base}${ext}`}
+      src={assetUrl(base, ext)}
       alt={alt}
       title={title}
       loading="lazy"

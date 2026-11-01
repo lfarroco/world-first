@@ -2,7 +2,16 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-export default defineConfig({
+/**
+ * GitHub Pages serves this repo as a project site, so the built app lives under
+ * /world-first/. Development stays at "/" so localhost:5173 keeps working, and
+ * preview uses the build's base so the production bundle can be checked locally.
+ * If the site moves to a user site or a custom domain, change this constant.
+ */
+const BASE = "/world-first/";
+
+export default defineConfig(({ command, isPreview }) => ({
+  base: command === "build" || isPreview ? BASE : "/",
   plugins: [react(), tailwindcss()],
   server: { port: 5173 },
   build: { outDir: "dist" },
@@ -14,4 +23,4 @@ export default defineConfig({
     // fails, just later.
     testTimeout: 20000,
   },
-});
+}));

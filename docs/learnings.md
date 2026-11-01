@@ -892,3 +892,12 @@ The first off-nights tooltip said "Consistency is hidden; the report is how the 
 **Evidence:** the player's reaction to that line: "the player will understand nothing."
 **Changes:** every report hint now answers the number it sits on, with that pull's own numbers: "Each hero can have a bad pull. These did on this check, so they counted for 86% of their normal value." The band hint prints the party's value and the requirement. The pull hint says raids get 2–7 attempts and missions one.
 **Rejected:** putting Consistency on the hero sheet (hidden stats stay hidden, [guild-manager-model.md](guild-manager-model.md) §2.6); explaining the Consistency formula in the tooltip (the player needs the consequence, not the dice).
+
+## Shipping the browser build (2026-11-01)
+
+### L141. A project site is not the local server
+The game ran at `/` locally and at `/world-first/` on GitHub Pages. Vite rewrote the URLs in `index.html`, so the page loaded, but every art path is built at render time from a template string (`/art/roles/${role}`). The bundler cannot see those, so on the site they requested `/art/...` and got 404, and `Art` turned each miss into a grey placeholder instead of an error. Eight screens would have shipped without portraits, place thumbs or item icons, with nothing on the page or in the console saying why.
+**Evidence:** with only the base set, the built bundle still contained `` `/art/roles/${e}` ``; `curl` on `vite preview` returned 200 for `/world-first/art/items/abbey-bell.jpg` and 404 for `/art/items/abbey-bell.jpg`. After the fix, headless Chrome founded a run, opened Roster and reported 3/3 portraits loaded from `/world-first/art/roles/...` with no failed requests; all 98 images under `public/art` return 200 at the based path.
+**Changes:** `BASE` in `vite.config.ts` (`/world-first/` for build and preview, `/` for dev); `assetUrl` in `Art.tsx` prepends `import.meta.env.BASE_URL`; `.github/workflows/deploy.yml` builds and deploys on every push to `main`; §11 of [tech-notes.md](tech-notes.md) records the rules.
+**Rejected:** `base: "./"` and relative art paths (they would work today, with no router, but they make every URL depend on the current document path); a `gh-pages` branch built by a local script (generated files in git, and a step that only happens when someone remembers).
+

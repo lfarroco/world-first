@@ -4,6 +4,8 @@
 
 **Status:** playable end to end in the browser and the terminal — a WoW-style ladder (3 heroes → 3 raids over 84 days), an event layer the AI prices and answers, a promises ledger, four upgradable facilities, level-priced wages, a personality-driven AI, three rival guilds on the same planner with a real leaderboard rank, a daily contract board, and a planner that prices the purse and the next wall's gear gap. The UI is the vertical slice: Guild Hall, Roster + Hero Sheet, War Room with live check projection and kind tabs, Raid hub with the per-boss pull log, Guilds with poachable rival rosters, Report with the wipe analysis and the waiting drops, the attention queue, the market, the tavern, and the Run End verdict. It is a working product surface, not a polished one.
 
+**Play:** <https://lfarroco.github.io/world-first/> — built from `main` by GitHub Actions. The deploy rules are in [tech-notes.md](docs/tech-notes.md) §11.
+
 ```bash
 npm install
 npm run cli -- new --seed 1234

@@ -241,3 +241,21 @@ Why it matters: **balance is the main ongoing work of this game**, and it must b
 - [ ] New state fields are JSON-serialisable (no Map/Set/class instances)
 - [ ] If a new event is emitted, it has a stable id (for the action log and the digest)
 - [ ] Golden run still passes, or the diff is explained in the PR
+
+---
+
+## 11. Deployment (GitHub Pages)
+
+The game is a static bundle. GitHub Pages serves it at <https://lfarroco.github.io/world-first/> for every push to `main`.
+
+| Piece | Where | Rule |
+|---|---|---|
+| Base path | `BASE` in `vite.config.ts` | `/world-first/` for `build` and `preview`, `/` for `dev`. Dev stays at the root so `localhost:5173` keeps working. A custom domain changes this one constant. |
+| Art URLs | `assetUrl` in `src/ui/components/Art.tsx` | Public files are named `/art/...` and resolved against `import.meta.env.BASE_URL`. Vite rewrites the URLs it can see in `index.html`; it cannot rewrite a template string in a component. |
+| Deploy | `.github/workflows/deploy.yml` | Push to `main` → `npm ci`, `npm run build`, upload `dist/`, deploy. The Pages source is **GitHub Actions**, not a branch. |
+| Local check | `npm run build && npm run preview` | Serves the real bundle at <http://localhost:4173/world-first/>. A build checked at `/` proves nothing about the base. |
+
+`npm run build` runs `tsc --noEmit` first, so a type error stops the deploy. The workflow uses Node 22; Vite 8 needs 20.19+ or 22.12+.
+
+**Rejected:** a `gh-pages` branch built by a local script (generated files in git, and a step that only happens when someone remembers to run it); `base: "./"` with relative art paths (it would work today because there is no router, but it makes every URL depend on the current document path instead of naming the site's root); committing `dist/` to `main` (stale builds and noisy diffs).
+
