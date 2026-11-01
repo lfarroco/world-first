@@ -5,6 +5,7 @@ import {
   RUN_DAYS,
   contentById,
   digestForDay,
+  encountersForDay,
   lootUpgrade,
   marketGearIlvl,
   nextCost,
@@ -119,12 +120,7 @@ const Yesterday = () => {
 
   const day = Math.min(RUN_DAYS, Math.max(1, game.day - 1));
   const events = report?.day === day ? report.events : digestForDay(game, day);
-  const encounter =
-    report?.day === day
-      ? report.encounter
-      : game.lastEncounter?.day === day
-        ? game.lastEncounter
-        : null;
+  const encounters = report?.day === day ? report.encounters : encountersForDay(game, day);
   const shown = events.slice(-7);
 
   return (
@@ -139,15 +135,19 @@ const Yesterday = () => {
         </button>
       </div>
       <div className="panel-body" style={{ paddingBottom: 4 }}>
-        {encounter ? (
-          <div className="row-wrap" style={{ marginBottom: 8 }}>
-            <Chip tone={encounter.cleared ? "good" : "bad"}>
-              {encounter.cleared ? "cleared" : "wipe"} · {encounter.contentName}
-            </Chip>
-            <span className="small muted">
-              {encounter.pulls.length} pull{encounter.pulls.length === 1 ? "" : "s"} · best{" "}
-              {Math.round(encounter.bestPull * 100)}%
-            </span>
+        {encounters.length > 0 ? (
+          <div className="stack" style={{ gap: 4, marginBottom: 8 }}>
+            {encounters.map((encounter, index) => (
+              <div className="row-wrap" key={`${encounter.contentId}-${index}`}>
+                <Chip tone={encounter.cleared ? "good" : "bad"}>
+                  {encounter.cleared ? "cleared" : "wipe"} · {encounter.contentName}
+                </Chip>
+                <span className="small muted">
+                  {encounter.pulls.length} pull{encounter.pulls.length === 1 ? "" : "s"} · best{" "}
+                  {Math.round(encounter.bestPull * 100)}%
+                </span>
+              </div>
+            ))}
           </div>
         ) : null}
         {shown.length === 0 ? (

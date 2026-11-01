@@ -82,6 +82,7 @@ import {
   wageBill,
   xpToNext,
   CONTENT,
+  type EncounterLog,
   type GameState,
   type Hero,
   type Personality,
@@ -1037,13 +1038,7 @@ const printRunEnd = (state: GameState): void => {
   console.log();
 };
 
-const cmdReport = (): void => {
-  const state = load();
-  const log = state.lastEncounter;
-  if (!log) {
-    console.log(color("No encounter yet.", "yellow"));
-    return;
-  }
+const printEncounter = (state: GameState, log: EncounterLog): void => {
   console.log();
   console.log(
     `${color(log.contentName, "bold")} ${color(`— ${KIND_LABEL[log.contentKind]} · day ${log.day} · ${log.pulls.length} pull(s)`, "dim")}`,
@@ -1135,6 +1130,18 @@ const cmdReport = (): void => {
     }
   }
   console.log();
+};
+
+const cmdReport = (): void => {
+  const state = load();
+  const logs = state.lastEncounters ?? [];
+  if (logs.length === 0) {
+    console.log(color("No encounter yet.", "yellow"));
+    return;
+  }
+  // A day can field three parties; the terminal prints one block each, in
+  // plan order, the same as the report screen.
+  for (const log of logs) printEncounter(state, log);
 };
 
 const cmdAttention = (): void => {

@@ -1,5 +1,8 @@
 import {
+  CHECK_BANDS,
   KIND_LABEL,
+  MASTERY,
+  OFF_NIGHT_FACTOR,
   RAIDS,
   RUN_DAYS,
   computeScore,
@@ -9,6 +12,7 @@ import {
   nextLevers,
   playerRank,
   pullTraits,
+  type CheckType,
   type EncounterLog,
   type GameEvent,
   type GameState,
@@ -19,7 +23,7 @@ import { useGameStore } from "../../store/gameStore";
 import { guildSummary } from "../../store/selectors";
 import { EventLine } from "../components/EventLine";
 import { DropRow } from "../modals/LootModal";
-import { Chip } from "../components/Primitives";
+import { Chip, Hint } from "../components/Primitives";
 import { Art } from "../components/Art";
 
 const fmt = (value: number): string => Math.round(value).toLocaleString("en-US");
@@ -30,7 +34,29 @@ const signed = (value: number): string => {
   return `${rounded > 0 ? "+" : ""}${rounded.toLocaleString("en-US")}`;
 };
 
-const EncounterReport = ({ game, encounter }: { game: GameState; encounter: EncounterLog }) => {
+const pct = (value: number): string => `${Math.round(value * 100)}%`;
+
+/** What each check is built from. The weights are `CHECK_POWER_WEIGHTS`. */
+const CHECK_HINT: Record<CheckType, string> = {
+  dps: "DPS is built from Focus 45%, Agility 30% and Might 25%, adjusted for class, role, gear and condition.",
+  mitigation:
+    "Mitigation is built from Might 35%, Vitality 35% and Discipline 30%, adjusted for class, role, gear and condition.",
+  mechanics:
+    "Mechanics is built from Awareness 45%, Discipline 30% and Composure 25%, adjusted for class, role, gear and condition.",
+  sustain:
+    "Sustain is built from Focus 40%, Composure 30% and Endurance 30%, adjusted for class, role, gear and condition.",
+};
+
+const EncounterReport = ({
+  game,
+  encounter,
+  position,
+}: {
+  game: GameState;
+  encounter: EncounterLog;
+  /** Party order for a day that fielded more than one. */
+  position: { index: number; total: number };
+}) => {
   const setScreen = useGameStore((s) => s.setScreen);
   const pull = focusPull(encounter);
   const levers = nextLevers(game, encounter);
@@ -38,7 +64,7 @@ const EncounterReport = ({ game, encounter }: { game: GameState; encounter: Enco
   const traits = pullTraits(encounter);
 
   return (
-    <section className="panel" style={{ overflow: "hidden" }}>
+    <section className="panel">
       <Art
         base={`/art/places/${encounter.contentId}`}
         alt=""
@@ -49,18 +75,31 @@ const EncounterReport = ({ game, encounter }: { game: GameState; encounter: Enco
       <div className="panel-head">
         <div>
           <div className="eyebrow">
+            {position.total > 1 ? `Party ${position.index} of ${position.total} · ` : ""}
             {KIND_LABEL[encounter.contentKind]} · day {encounter.day} · {encounter.stance} stance
           </div>
           <div className="section-title">{encounter.contentName}</div>
         </div>
         <div className="row-wrap">
           {encounter.payScale !== undefined && encounter.payScale < 1 ? (
-            <Chip tone="warn">token {Math.round(encounter.payScale * 100)}%</Chip>
+            <Chip
+              tone="warn"
+              title={`This mission was not on today's board, so it paid ${Math.round(encounter.payScale * 100)}% of its gold and XP. A first clear always pays full.`}
+            >
+              token {Math.round(encounter.payScale * 100)}%
+            </Chip>
           ) : null}
           {encounter.featuredBonus !== undefined && encounter.featuredBonus > 1 ? (
             <Chip tone="gold">★ star +{Math.round((encounter.featuredBonus - 1) * 100)}%</Chip>
           ) : null}
-          <Chip tone={encounter.cleared ? "good" : "bad"}>
+          <Chip
+            tone={encounter.cleared ? "good" : "bad"}
+            title={
+              encounter.cleared
+                ? "The party killed it tonight."
+                : "No kill. The percentage is how far the party got across tonight's attempts. A phase that passed adds its full share; a phase that failed adds the fraction it reached."
+            }
+          >
             {encounter.cleared ? "cleared" : `wipe · best ${Math.round(encounter.bestPull * 100)}%`}
           </Chip>
         </div>
@@ -69,35 +108,64 @@ const EncounterReport = ({ game, encounter }: { game: GameState; encounter: Enco
       {pull ? (
         <div className="panel-body">
           <div className="spread" style={{ marginBottom: 6 }}>
-            <span className="small muted">
-              {encounter.cleared ? "Killing" : "Last"} pull {pull.index} of {encounter.pulls.length}
-            </span>
-            <span className="tiny dim">
-              mastery {Math.round(mastery.mastery * 100)}% · {mastery.attempts}{" "}
-              {mastery.attempts === 1 ? "attempt" : "attempts"} logged
-            </span>
+            <Hint
+              label={`One pull is one attempt at the area. Raids get 2–7 attempts a night; missions and dungeons get one. ${encounter.cleared ? "This is the attempt that killed it." : "This is the last attempt that failed."}`}
+            >
+              <span className="small muted">
+                {encounter.cleared ? "Killing" : "Last"} pull {pull.index} of {encounter.pulls.length}
+              </span>
+            </Hint>
+            <Hint
+              align="right"
+              label={`Mastery adds ${pct(MASTERY.perPull)} to every check for each pull already logged on this area, up to ${pct(MASTERY.cap)}. This pull used ${pct(mastery.mastery)}. The area has ${mastery.attempts} pull${mastery.attempts === 1 ? "" : "s"} logged in total.`}
+            >
+              <span className="tiny dim">
+                mastery {pct(mastery.mastery)} · {mastery.attempts}{" "}
+                {mastery.attempts === 1 ? "attempt" : "attempts"} logged
+              </span>
+            </Hint>
           </div>
           {pull.phases.map((phase) => (
             <div className="phase-result" data-outcome={phase.outcome} key={phase.name}>
               <div className="spread">
                 <span style={{ fontWeight: 600 }}>{phase.name}</span>
-                <span className={`small ${phase.outcome === "fail" ? "bad" : phase.outcome === "scrape" ? "warn" : "good"}`}>
-                  {phase.outcome === "fail" ? "FAIL" : phase.outcome}{" "}
-                  <span className="mono dim">
-                    {phase.value}/{phase.requirement} · {phase.ratio.toFixed(2)}
+                <Hint
+                  align="right"
+                  label={`Your party's ${phase.checkLabel} is ${phase.value}. The phase needs ${phase.requirement}, so the ratio is ${phase.ratio.toFixed(2)}. ${CHECK_BANDS.clean.toFixed(2)} or more is clean. ${CHECK_BANDS.pass.toFixed(2)} or more is a pass. ${CHECK_BANDS.scrape.toFixed(2)} or more is a scrape, and a scrape can injure a hero. Below ${CHECK_BANDS.scrape.toFixed(2)} the phase fails.`}
+                >
+                  <span
+                    className={`small ${phase.outcome === "fail" ? "bad" : phase.outcome === "scrape" ? "warn" : "good"}`}
+                  >
+                    {phase.outcome === "fail" ? "FAIL" : phase.outcome}{" "}
+                    <span className="mono dim">
+                      {phase.value}/{phase.requirement} · {phase.ratio.toFixed(2)}
+                    </span>
                   </span>
-                </span>
+                </Hint>
               </div>
               <div className="tiny dim">
-                {phase.checkLabel}
-                {phase.offNights.length > 0 ? ` · off nights: ${phase.offNights.join(", ")}` : ""}
+                <Hint label={CHECK_HINT[phase.check]}>{phase.checkLabel}</Hint>
+                {phase.offNights.length > 0 ? (
+                  <>
+                    {" · "}
+                    <Hint
+                      label={`Each hero can have a bad pull. These did on this check, so they counted for ${pct(OFF_NIGHT_FACTOR)} of their normal value. A hero who appears here often is unreliable.`}
+                    >
+                      off nights: {phase.offNights.join(", ")}
+                    </Hint>
+                  </>
+                ) : null}
                 {phase.ability
                   ? ` · ${phase.ability.name}${phase.ability.countered ? ` countered by ${phase.ability.counterHero ?? "the party"}` : ` uncountered ×${phase.ability.mult.toFixed(2)}`}`
                   : ""}
               </div>
             </div>
           ))}
-          {traits.length > 0 ? <div className="tiny dim" style={{ marginTop: 6 }}>Traits in the pull: {traits.join(", ")}.</div> : null}
+          {traits.length > 0 ? (
+            <div className="tiny dim" style={{ marginTop: 6 }}>
+              Traits in the pull: {traits.join(", ")}.
+            </div>
+          ) : null}
           {encounter.injured.length > 0 ? (
             <div className="small bad" style={{ marginTop: 6 }}>
               Injured: {encounter.injured.join(", ")}.
@@ -349,7 +417,12 @@ export const ReportScreen = () => {
   // During a run the report shows the live breakdown; at the end the run-end
   // card owns the same numbers, so the side card is dropped to avoid a repeat.
   const liveScore = game.finished ? null : computeScore(game);
-  const encounter = report?.encounter ?? (game.lastEncounter?.day === report?.day ? game.lastEncounter : null);
+  // One card per party. A day can field three; each encounter is a separate
+  // fight with its own pulls, mastery and failed check.
+  const encounters =
+    report && report.encounters.length > 0
+      ? report.encounters
+      : (game.lastEncounters ?? []).filter((encounter) => encounter.day === report?.day);
 
   return (
     <div className="stack" style={{ gap: 12 }}>
@@ -361,7 +434,7 @@ export const ReportScreen = () => {
           <p className="screen-sub">
             {game.finished
               ? "The verdict, the components, and the moments that made the run. The next run can use the same seed."
-              : "The drops to assign, the digest, the pull that decided the day, and what would close the gap. A wipe names the failed check."}
+              : "The drops to assign, the digest, one card per party that fought, and what would close the gap. A wipe names the failed check."}
           </p>
         </div>
         <div className="row-wrap small">
@@ -400,7 +473,16 @@ export const ReportScreen = () => {
             </div>
           </section>
 
-          {encounter ? <EncounterReport game={game} encounter={encounter} /> : (
+          {encounters.length > 0 ? (
+            encounters.map((encounter, index) => (
+              <EncounterReport
+                key={`${encounter.contentId}-${index}`}
+                game={game}
+                encounter={encounter}
+                position={{ index: index + 1, total: encounters.length }}
+              />
+            ))
+          ) : (
             <section className="panel">
               <div className="empty">No fight this day. The digest is all there is.</div>
             </section>

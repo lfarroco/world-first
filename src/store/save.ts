@@ -6,8 +6,10 @@ import type { LoggedAction } from "./actions";
  * A save is the state plus the action log. The state is a cache the UI can load
  * instantly; the log is what a future replay will read. The version gate is
  * here from the first save so a shape change never silently loads garbage.
+ *
+ * v2: `lastEncounter` became `lastEncounters`, one log per party that fought.
  */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const SAVE_KEY = "world-first.save";
 
 export type SaveFile = {
@@ -51,17 +53,28 @@ const isGameState = (value: unknown): value is GameState => {
   );
 };
 
-/** One function per version step. Today there is only version 1. */
+/** One function per version step. */
 const migrate = (raw: unknown): SaveFile | null => {
   if (!raw || typeof raw !== "object") return null;
   const file = raw as Partial<SaveFile>;
-  if (file.version !== SAVE_VERSION) return null;
+  if (file.version !== SAVE_VERSION && file.version !== 1) return null;
   if (!isGameState(file.state)) return null;
+  // v1 kept one encounter. It is still a valid report, one party deep; the
+  // other parties that day were already lost to the same overwrite.
+  const state =
+    file.version === 1
+      ? (() => {
+          const { lastEncounter, ...rest } = file.state as GameState & {
+            lastEncounter?: GameState["lastEncounters"][number] | null;
+          };
+          return { ...rest, lastEncounters: lastEncounter ? [lastEncounter] : [] } as GameState;
+        })()
+      : file.state;
   return {
     version: SAVE_VERSION,
-    seed: typeof file.seed === "number" ? file.seed : file.state.seed,
+    seed: typeof file.seed === "number" ? file.seed : state.seed,
     savedAt: typeof file.savedAt === "string" ? file.savedAt : nowIso(),
-    state: file.state,
+    state,
     actionLog: Array.isArray(file.actionLog) ? file.actionLog : [],
   };
 };

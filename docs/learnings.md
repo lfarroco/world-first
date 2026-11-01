@@ -867,3 +867,28 @@ With the API out of credits the last 30 images came from the Gemini web app, by 
 **Evidence:** 98 files arrived correctly named this time, but the set mixes output from three sources (app, API, web) across `.jpeg`, `.jpg` and `.png`.
 **Changes:** `npm run art:check` now fails on two files for one id and on any file whose stem is not a content id, and prints both by name. §12 of [art-prompts.md](art-prompts.md) documents the web workflow and the three traps.
 **Rejected:** assuming a rename happened (it did this time; the check is what makes that verifiable rather than lucky); rejecting any folder that mixes extensions (the lookup handles it, and three sources make it inevitable).
+
+## The multi-party report (2026-11-01)
+
+### L137. A day can field three parties; the report kept one card
+`resolveDay` looped every party and wrote each result into the same `lastEncounter` slot. A three-party day therefore reported the last party only. Nothing on the screen said a party was missing, so the loss read as a rendering bug.
+**Evidence:** day-21 report, three parties sent, one mission card (`The Toll House`); `lastEncounter = …` sits inside the per-party loop, so every party overwrote the one before it.**Changes:** `GameState.lastEncounters: EncounterLog[]` holds every encounter from the most recent day, in plan order. The Report screen maps one card per entry (`Party 1 of 3` in the eyebrow), the Hall's Yesterday panel lists every fight, the CLI prints one block per party, and `SAVE_VERSION` is 2: a v1 save's single encounter is upgraded to a one-element list instead of being rejected. A farm party resolves no pull and so has no card; it now writes one digest line (`Emberwood: 3 heroes farmed — +27g, +30 XP.` on seed 3, day 1) so every party can be accounted for.
+**Rejected:** reconstructing the other parties from `raidLog` (raids only — missions and dungeons were never logged there); keeping `lastEncounter` beside the new array (two sources of truth for the same night).
+
+### L138. Mastery showed the next pull's bonus
+`masteryReport` read `progress.attempts` after the day had already added tonight's pulls. A clear on pull 1 with five attempts total printed `mastery 10%`, but the killing pull ran at +8% (four prior pulls). The label was one pull ahead of the number under it.
+**Evidence:** day-21 Toll House, five attempts logged, one-pull clear; `MASTERY.perPull` is 0.02 and the pull used `priorAttempts + pull.index - 1`.
+**Changes:** `EncounterLog.priorAttempts` carries the count across the write; `masteryReport` computes the bonus at the focus pull's index; a test asserts +8% and explicitly not +10%.
+**Rejected:** printing the total as "next pull's mastery" (true but useless on a kill); dropping mastery from the header (it is the one number that says "come back tomorrow").
+
+### L139. The report's numbers had no explanation on screen
+One line of the report — `Killing pull 1 of 1 · mastery 10% · 5 attempts logged · clean 43/34 · 1.26 · Mechanics · off nights: …` — produced three separate questions from the player. Each part was correct and none of it was explained on screen.
+**Evidence:** screenshot of the day-21 report; the player asked what four of the five clauses meant.
+**Changes:** a `Hint` primitive (dotted rule, hover and focus, bubble opens inward near a panel edge) wraps pull, mastery, the outcome band, the check label and off nights. The copy is built from `MASTERY`, `CHECK_BANDS` and `OFF_NIGHT_FACTOR`, so the tooltip cannot drift from the fight. The encounter panel lost `overflow: hidden` (the banner carries the corner radius now) because the clipping cut the bubbles.
+**Rejected:** native `title` only (slow to appear, and it cannot be styled to match the panel); an expandable legend under the card (the player has to scroll away from the number).
+
+### L140. Write the tooltip as an answer to the player's question
+The first off-nights tooltip said "Consistency is hidden; the report is how the player learns it." The mechanic is right, and the sentence answers a design question ("why is there no Consistency number on the sheet?") when the player asked a different one ("what do these two names mean?"). It also talks about the player in the third person.
+**Evidence:** the player's reaction to that line: "the player will understand nothing."
+**Changes:** every report hint now answers the number it sits on, with that pull's own numbers: "Each hero can have a bad pull. These did on this check, so they counted for 86% of their normal value." The band hint prints the party's value and the requirement. The pull hint says raids get 2–7 attempts and missions one.
+**Rejected:** putting Consistency on the hero sheet (hidden stats stay hidden, [guild-manager-model.md](guild-manager-model.md) §2.6); explaining the Consistency formula in the tooltip (the player needs the consequence, not the dice).

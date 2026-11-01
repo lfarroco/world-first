@@ -1804,6 +1804,55 @@ hr.sep {
   font-size: 11px;
 }
 
+/* A dotted rule is the only thing that says "hover me"; without it the
+   explanation behind a number is invisible. The bubble sits above the text so
+   it never covers the line it explains. */
+.hint {
+  position: relative;
+  border-bottom: 1px dotted var(--color-dim);
+  cursor: help;
+}
+
+.hint::after {
+  content: attr(data-hint);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 60;
+  width: max-content;
+  max-width: min(290px, 74vw);
+  padding: 7px 9px;
+  border: 1px solid var(--color-line);
+  border-radius: 5px;
+  background: var(--color-panel-3);
+  box-shadow: var(--shadow);
+  color: var(--color-ink);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.hint[data-align="right"]::after {
+  left: auto;
+  right: 0;
+}
+
+.hint:hover::after,
+.hint:focus::after,
+.hint:focus-visible::after,
+.hint:active::after {
+  opacity: 1;
+  visibility: visible;
+}
+
 .score-line {
   display: grid;
   grid-template-columns: 92px 62px 1fr;
@@ -2319,7 +2368,7 @@ hr.sep {
 
 .encounter-banner {
   object-position: 50% 45%;
-  border-radius: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   border: 0;
   border-bottom: 1px solid var(--color-line);
 }

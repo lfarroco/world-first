@@ -348,10 +348,14 @@ At 100 fatigue a hero is 1.8× as likely to be hurt as the same hero at 0. Rest 
 ### 3.2 Mastery — the learning curve, bounded
 
 ```
-masteryMod = 1 + min(0.25, 0.015 × pullsOnThisBoss × (0.6 + fieldcraft/25))
+masteryMod = 1 + min(0.30, 0.02 × attemptsLoggedBeforeThisPull)
 ```
 
-~1.5% per pull, capped at +25%, faster for high-**Awareness** parties (they read the mechanics). This makes the first night on a boss genuinely worse than the third, rewards persistence, and creates the "we're close, one more night" feeling.
++2% per pull, capped at +30%, flat for every party. `MASTERY.perPull` and `MASTERY.cap` in `tuning.ts` are the only place those numbers live. Attempts are **pulls**, not nights: a four-pull raid night adds four.
+
+The report prints the mastery the shown pull used, not the counter after the night. A clear on pull 1 with five attempts total ran at +8%, not the +10% the attempts counter now reads, so `EncounterLog.priorAttempts` carries the number across the write.
+
+This makes the first night on a boss genuinely worse than the third, rewards persistence, and creates the "we're close, one more night" feeling. An earlier draft of this document gave a per-Awareness formula at +1.5% per pull; that was never built. `tuning.ts` wins.
 
 ### 3.3 Worked wipe report (the format the UI must produce)
 

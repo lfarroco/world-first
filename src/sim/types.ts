@@ -344,6 +344,12 @@ export type EncounterLog = {
   bestPull: number;
   injured: string[];
   stance: Stance;
+  /**
+   * Pulls on this area before this party's night. Mastery is counted from it,
+   * so the report can print the bonus the shown pull actually used instead of
+   * the total after the night. Optional for saves written before it existed.
+   */
+  priorAttempts?: number;
   xp: number;
   gold: number;
   /** 1 for full pay; the board's token rate when this mission was not posted. */
@@ -388,7 +394,7 @@ export type RaidLogPull = {
 };
 
 /**
- * One raid night in the hub's history. `lastEncounter` answers "what happened
+ * One raid night in the hub's history. `lastEncounters` answers "what happened
  * last night"; the log answers "how long have we been stuck", which is the
  * question the race screen exists for. A night is one party's raid pull, not a
  * whole day: two raid parties in one day write two nights.
@@ -471,7 +477,12 @@ export type GameState = {
   score: number | null;
   scoreLines: ScoreLine[] | null;
   band: Band | null;
-  lastEncounter: EncounterLog | null;
+  /**
+   * Every encounter from the most recent day that had one, in plan order. A
+   * day can field three parties; a single "last encounter" field dropped the
+   * other two from the report.
+   */
+  lastEncounters: EncounterLog[];
   facilities: Record<"infirmary" | "forge" | "tavern" | "hall", number>;
   pendingEvent: PendingEvent | null;
   eventLog: string[];

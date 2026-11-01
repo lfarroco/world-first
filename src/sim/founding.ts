@@ -46,7 +46,7 @@ export const foundGuild = (seed: number, guildName: string): GameState => {
     score: null,
     scoreLines: null,
     band: null,
-    lastEncounter: null,
+    lastEncounters: [],
     facilities: emptyFacilities(),
     pendingEvent: null,
     eventLog: [],

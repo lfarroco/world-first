@@ -79,7 +79,7 @@ The dependency decision is [ADR 0003](adr/0003-ui-shell-dependencies.md). The UI
 | Chrome | `ui/components/` | top bar, tabs, primitives, event line. |
 | Shell | `app/App.tsx`, `app/styles.css`, `app/clock.ts` | keyboard, overlays, design tokens. `clock.ts` is the only place the shell reads `Date` / `Math.random`. |
 
-**Sim helpers added for the UI, shared with the CLI:** `fieldableParty` in `plan.ts` (the best legal party, or null); `focusPull` / `nextLevers` / `pullTraits` / `masteryReport` / `raidNights` in `report.ts`; and `raidRace` in `rivals.ts`, which ranks the four guilds on one boss by kill day, then best pull. The browser and the terminal read the same report logic.
+**Sim helpers added for the UI, shared with the CLI:** `fieldableParty` in `plan.ts` (the best legal party, or null); `focusPull` / `nextLevers` / `pullTraits` / `masteryReport` / `latestEncounter` / `encountersForDay` / `raidNights` in `report.ts`; and `raidRace` in `rivals.ts`, which ranks the four guilds on one boss by kill day, then best pull. The browser and the terminal read the same report logic. `CHECK_BANDS` and `OFF_NIGHT_FACTOR` live in `encounter.ts`; the report's tooltips read those constants.
 
 **The raid log.** `resolveDay` writes one `RaidLogNight` per raid party (day, stance, best pull, and one row per pull with the failed check's name, numbers and shortfall). `RAID_LOG.maxNights = 40` bounds it; `tickRivals` clears a rival's log after its day because the hub only reads the player's history. At day 85 the log is 4 kB for 17 nights, 1.5% of a 255 kB save.
 

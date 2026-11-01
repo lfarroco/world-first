@@ -6,6 +6,7 @@ import { resolveDay } from "./day";
 import { blockingAttention, event, hasBlocking, push } from "./events";
 import { rivalPoachTick } from "./poach";
 import { rivalRaidsCleared } from "./rivals";
+import { latestEncounter } from "./report";
 
 const raidName = (rival: Rival): string => {
   const cleared = rival.guild.progress.filter(
@@ -25,7 +26,7 @@ const activityFor = (rival: Rival): string => {
     const raids = rivalRaidsCleared(rival);
     return raids >= RAIDS.length ? "finished the tier" : `run over — ${raids}/${RAIDS.length} raids`;
   }
-  const last = guild.lastEncounter;
+  const last = latestEncounter(guild);
   if (last && last.day === guild.day - 1) {
     return last.cleared
       ? `cleared ${last.contentName}`

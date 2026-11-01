@@ -8,6 +8,14 @@ export const GEAR_TIER_GAIN = 0.15;
 export const digestForDay = (state: GameState, day: number): GameEvent[] =>
   state.events.filter((e) => e.day === day);
 
+/** The latest encounter, from whichever day it happened. */
+export const latestEncounter = (state: GameState): EncounterLog | null =>
+  state.lastEncounters?.at(-1) ?? null;
+
+/** Every party that fought on one day, in plan order. */
+export const encountersForDay = (state: GameState, day: number): EncounterLog[] =>
+  (state.lastEncounters ?? []).filter((encounter) => encounter.day === day);
+
 /**
  * The raid hub's history for one raid, oldest night first. A save written
  * before the log existed has no rows; the screen then shows progress without a
@@ -88,13 +96,23 @@ export const nextLevers = (state: GameState, log: EncounterLog): NextLever[] => 
   return levers;
 };
 
-/** Attempts and mastery on the content that was fought, for the report header. */
+/**
+ * Attempts and the mastery the *shown pull* used, for the report header.
+ *
+ * `progress.attempts` has already moved by tonight's pulls, so reading it
+ * would print the bonus the next pull gets. A night that clears on pull 1 with
+ * five attempts total ran at +8%, not the +10% the counter now reads.
+ */
 export const masteryReport = (
   state: GameState,
   log: EncounterLog,
 ): { attempts: number; mastery: number } => {
-  const attempts = state.progress.find((p) => p.contentId === log.contentId)?.attempts ?? 0;
-  return { attempts, mastery: masteryFor(attempts) };
+  const attempts = state.progress.find((p) => p.contentId === log.contentId)?.attempts ?? log.pulls.length;
+  const pull = focusPull(log);
+  const prior =
+    log.priorAttempts ?? Math.max(0, attempts - log.pulls.length);
+  const usedOn = prior + Math.max(0, (pull?.index ?? 1) - 1);
+  return { attempts, mastery: masteryFor(usedOn) };
 };
 
 /** Traits that moved any phase of the focus pull, as names, deduplicated. */

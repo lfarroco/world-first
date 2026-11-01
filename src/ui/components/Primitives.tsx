@@ -60,3 +60,22 @@ export const ClassIcon = ({ klass, label }: { klass: string; label: string }) =>
     {label.slice(0, 1)}
   </span>
 );
+
+/**
+ * Inline text with the number behind it on hover or focus. The dotted rule is
+ * the affordance; without it a hover-only explanation is invisible.
+ */
+export const Hint = ({
+  label,
+  align = "left",
+  children,
+}: {
+  label: string;
+  /** Use "right" near a panel edge so the bubble opens inward. */
+  align?: "left" | "right";
+  children: ReactNode;
+}) => (
+  <span className="hint" data-hint={label} data-align={align} tabIndex={0}>
+    {children}
+  </span>
+);

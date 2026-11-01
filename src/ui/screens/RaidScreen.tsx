@@ -171,7 +171,9 @@ const PullLog = ({ game, raid }: { game: GameState; raid: ContentDef }) => {
   const rows = nights
     .flatMap((night) => night.pulls.map((pull) => ({ night, pull })))
     .reverse();
-  const last = game.lastEncounter;
+  const foughtHere = (game.lastEncounters ?? []).some(
+    (encounter) => encounter.contentId === raid.id && encounter.contentKind === "raid",
+  );
 
   return (
     <section className="panel">
@@ -266,7 +268,7 @@ const PullLog = ({ game, raid }: { game: GameState; raid: ContentDef }) => {
         </div>
       )}
 
-      {last?.contentId === raid.id && last.contentKind === "raid" ? (
+      {foughtHere ? (
         <div className="panel-body" style={{ borderTop: "1px solid var(--color-line-soft)" }}>
           <div className="spread">
             <span className="tiny dim">

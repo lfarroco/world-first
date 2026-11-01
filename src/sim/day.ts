@@ -97,6 +97,9 @@ export const resolveDay = (input: GameState): GameState => {
   }
 
   // ── 1. PARTIES ─────────────────────────────────────────────────────────────
+  // The report keeps every party that fought today, in plan order. It used to
+  // be one slot, so a three-party day reported only the last one.
+  state.lastEncounters = [];
   for (const assignment of state.plan.parties.filter((p) => p.heroes.length > 0)) {
     const content = contentById(assignment.contentId);
     if (!content) continue;
@@ -115,8 +118,10 @@ export const resolveDay = (input: GameState): GameState => {
     const featuredXp = featuredXpBonusFor(state, content);
     const rewardScale = pay * featured;
     const xpScale = pay * featuredXp;
-    state.gold += Math.round(result.gold * (1 + economy.goldPct) * rewardScale);
+    const paidGold = Math.round(result.gold * (1 + economy.goldPct) * rewardScale);
+    state.gold += paidGold;
     const lowestId = [...party].sort((a, b) => a.level - b.level)[0]?.id;
+    let paidXp = 0;
 
     for (const hero of party) {
       const xpRng = rngStream(state.seed, "xp", today, hero.id);
@@ -126,6 +131,7 @@ export const resolveDay = (input: GameState): GameState => {
           (state.rewardScale ?? 1) *
           xpScale,
       );
+      paidXp += xp;
       const grown = gainXp(hero, xp, xpRng);
       hero.level = grown.hero.level;
       hero.xp = grown.hero.xp;
@@ -133,6 +139,21 @@ export const resolveDay = (input: GameState): GameState => {
       if (grown.levels > 0) {
         push(state, event(today, "level", "good", `${hero.name} reached level ${hero.level}.`, hero.id));
       }
+    }
+
+    // A farm resolves no pull, so without a line it is the only party that
+    // leaves no trace in the report. The player who sent three parties can
+    // then account for all three.
+    if (content.kind === "farm") {
+      push(
+        state,
+        event(
+          today,
+          "run",
+          "info",
+          `${content.name}: ${party.length} hero${party.length === 1 ? "" : "es"} farmed — +${paidGold}g, +${paidXp} XP.`,
+        ),
+      );
     }
 
     if (featured > 1) {
@@ -193,8 +214,12 @@ export const resolveDay = (input: GameState): GameState => {
     }
 
     const progress = state.progress.find((p) => p.contentId === content.id);
+    // Mastery is counted from the pulls already logged before tonight. The
+    // report needs this number after `attempts` moves, or it prints the bonus
+    // the next pull would use instead of the one this pull used.
+    const priorAttempts = progress?.attempts ?? 0;
     if (progress) {
-      const firstAttempt = progress.attempts === 0;
+      const firstAttempt = priorAttempts === 0;
       progress.attempts += result.pulls.length > 0 ? result.pulls.length : 1;
       progress.bestPull = Math.max(progress.bestPull, result.bestPull);
 
@@ -272,7 +297,7 @@ export const resolveDay = (input: GameState): GameState => {
     // Every non-farm encounter leaves a report, not just raids. A dungeon wipe
     // that only says "best 50%" is the slot machine the design forbids.
     if (content.kind !== "farm" && result.pulls.length > 0) {
-      state.lastEncounter = {
+      state.lastEncounters.push({
         day: today,
         contentId: content.id,
         contentName: content.name,
@@ -282,15 +307,16 @@ export const resolveDay = (input: GameState): GameState => {
         bestPull: result.bestPull,
         injured: result.injured.map((i) => i.name),
         stance,
+        priorAttempts,
         xp: Math.round(result.xp * xpScale),
         gold: Math.round(result.gold * rewardScale),
         payScale: pay,
         featuredBonus: featured,
         loot: result.loot as LootItem[],
-      };
+      });
     }
 
-    // `lastEncounter` answers "what happened last night"; the hub's log answers
+    // `lastEncounters` answers "what happened last night"; the hub's log answers
     // "how long have we been stuck". A report is overwritten every night, so a
     // six-night stall reads as the same 41% six times with nothing to compare
     // it to. Raids only: the report screen carries the other kinds.

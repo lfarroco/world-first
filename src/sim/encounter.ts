@@ -42,13 +42,29 @@ export type EncounterOutcome = {
   readonly economy: TraitEconomy;
 };
 
+/**
+ * The ratio bands every check resolves against. Exported so the report's
+ * tooltip and the projection cannot describe a different ladder from the one
+ * the fight used.
+ */
+export const CHECK_BANDS = { clean: 1.15, pass: 1, scrape: 0.92 } as const;
+
+/** What an off night costs that hero on the check, as a multiplier. */
+export const OFF_NIGHT_FACTOR = 0.86;
+
 const outcomeFor = (ratio: number): RaidPhaseLog["outcome"] =>
-  ratio >= 1.15 ? "clean" : ratio >= 1 ? "pass" : ratio >= 0.92 ? "scrape" : "fail";
+  ratio >= CHECK_BANDS.clean
+    ? "clean"
+    : ratio >= CHECK_BANDS.pass
+      ? "pass"
+      : ratio >= CHECK_BANDS.scrape
+        ? "scrape"
+        : "fail";
 
 /** Deterministic consistency check, per hero per pull. */
 const consistencyRoll = (state: GameState, hero: Hero, pull: number): number => {
   const rng = rngStream(state.seed, "consistency", state.day, pull, hero.id);
-  return rng() < clamp(hero.hidden.consistency, 1, 20) / 20 ? 1 : 0.86;
+  return rng() < clamp(hero.hidden.consistency, 1, 20) / 20 ? 1 : OFF_NIGHT_FACTOR;
 };
 
 const stanceMod = (stance: Stance): number => 1 + STANCE[stance].check;
@@ -365,7 +381,7 @@ export const projectAssignment = (
       sum(
         party.map((hero) => {
           const p = clamp(hero.hidden.consistency, 1, 20) / 20;
-          const expected = p + (1 - p) * 0.86;
+          const expected = p + (1 - p) * OFF_NIGHT_FACTOR;
           return checkContribution(hero, phase.check, expected, { ...ctx, hero });
         }),
       ) *
@@ -381,10 +397,11 @@ export const projectAssignment = (
       value: Math.round(value),
       requirement: phase.requirement,
       ratio,
-      verdict: (ratio >= 1.15 ? "pass" : ratio >= 0.92 ? "marginal" : "fail") as
-        | "pass"
-        | "marginal"
-        | "fail",
+      verdict: (ratio >= CHECK_BANDS.clean
+        ? "pass"
+        : ratio >= CHECK_BANDS.scrape
+          ? "marginal"
+          : "fail") as "pass" | "marginal" | "fail",
     };
   });
 

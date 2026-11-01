@@ -299,6 +299,7 @@ describe("the day report", () => {
     expect(after.game!.pendingLoot?.length).toBe(vault.loot.count);
     expect(after.screen).toBe("report");
     expect(after.report?.day).toBe(start.day);
+    expect(after.report?.encounters).toHaveLength(1);
     expect(after.modal).toBeNull();
   });
 });
@@ -323,6 +324,40 @@ describe("the save file", () => {
     expect(loadSave(storage)).toBeNull();
     storage.setItem(SAVE_KEY, "{not json");
     expect(loadSave(storage)).toBeNull();
+  });
+
+  it("upgrades a v1 save's single encounter into a list", () => {
+    const start = newGame(1234);
+    const warrens = contentById("warrens")!;
+    const party = fieldableParty(start, warrens)!;
+    const advanced = run(start, [
+      {
+        type: "assign-party",
+        assignment: { contentId: warrens.id, heroes: party.map((hero) => hero.id), stance: "steady" },
+      },
+      { type: "advance" },
+    ]);
+    const victim = advanced.lastEncounters.at(-1)!;
+    const { lastEncounters, ...legacy } = advanced;
+    expect(lastEncounters).toHaveLength(1);
+
+    const storage = memoryStorage();
+    storage.setItem(
+      SAVE_KEY,
+      JSON.stringify({
+        version: 1,
+        seed: advanced.seed,
+        savedAt: "2026-01-01T00:00:00.000Z",
+        state: { ...legacy, lastEncounter: victim },
+        actionLog: [],
+      }),
+    );
+
+    const loaded = loadSave(storage);
+    expect(loaded?.version).toBe(2);
+    expect(loaded?.state.lastEncounters).toHaveLength(1);
+    expect(loaded?.state.lastEncounters[0]?.contentId).toBe(victim.contentId);
+    expect(Object.keys(loaded!.state)).not.toContain("lastEncounter");
   });
 
   it("is a cache: the state alone is enough for the screens", () => {
@@ -359,7 +394,7 @@ describe("the report helpers used by the UI and the CLI", () => {
       },
       { type: "advance" },
     ]);
-    const clearLog = cleared.lastEncounter;
+    const clearLog = cleared.lastEncounters.at(-1);
     expect(clearLog?.cleared).toBe(true);
     expect(focusPull(clearLog!)?.killed).toBe(true);
 
@@ -372,7 +407,7 @@ describe("the report helpers used by the UI and the CLI", () => {
       },
       { type: "advance" },
     ]);
-    const wipeLog = wiped.lastEncounter;
+    const wipeLog = wiped.lastEncounters.at(-1);
     expect(wipeLog?.cleared).toBe(false);
     expect(focusPull(wipeLog!)?.killed).toBe(false);
     const levers = nextLevers(wiped, wipeLog!);

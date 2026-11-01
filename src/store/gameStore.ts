@@ -11,7 +11,7 @@ import {
   type GameState,
   type Stance,
 } from "../sim";
-import { digestForDay } from "../sim/report";
+import { encountersForDay, digestForDay, latestEncounter } from "../sim/report";
 import { applyAction, logAction, type GameAction, type LoggedAction } from "./actions";
 import { clearSave, loadSave, writeSave } from "./save";
 
@@ -36,7 +36,8 @@ export type Toast = {
 export type DayReport = {
   day: number;
   events: GameEvent[];
-  encounter: EncounterLog | null;
+  /** One per party that fought. A quiet day leaves this empty. */
+  encounters: EncounterLog[];
 };
 
 export type GameStore = {
@@ -77,11 +78,11 @@ const toast = (text: string, severity: Toast["severity"] = "info"): Toast => {
 export const reportFor = (state: GameState, day: number): DayReport => ({
   day,
   events: digestForDay(state, day),
-  encounter: state.lastEncounter && state.lastEncounter.day === day ? state.lastEncounter : null,
+  encounters: encountersForDay(state, day),
 });
 
 const initialReport = (state: GameState): DayReport => {
-  const day = state.lastEncounter?.day ?? Math.max(1, state.day - 1);
+  const day = latestEncounter(state)?.day ?? Math.max(1, state.day - 1);
   return reportFor(state, day);
 };
 

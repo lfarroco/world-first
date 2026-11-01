@@ -110,6 +110,8 @@ import {
   raidNights,
   raidRace,
   RAID_LOG,
+  masteryFor,
+  masteryReport,
   type ClassId,
   type Hero,
   type TraitId,
@@ -331,12 +333,12 @@ describe("contract board", () => {
 
     const full = resolveDay(stateAt(postedDay));
     const token = resolveDay(stateAt(tokenDay));
-    expect(full.lastEncounter?.xp).toBe(mill.xp);
-    expect(full.lastEncounter?.gold).toBe(mill.gold);
-    expect(full.lastEncounter?.payScale).toBe(1);
-    expect(token.lastEncounter?.xp).toBe(Math.round(mill.xp * CONTRACT_BOARD.tokenPay));
-    expect(token.lastEncounter?.gold).toBe(Math.round(mill.gold * CONTRACT_BOARD.tokenPay));
-    expect(token.lastEncounter?.payScale).toBe(CONTRACT_BOARD.tokenPay);
+    expect(full.lastEncounters.at(-1)?.xp).toBe(mill.xp);
+    expect(full.lastEncounters.at(-1)?.gold).toBe(mill.gold);
+    expect(full.lastEncounters.at(-1)?.payScale).toBe(1);
+    expect(token.lastEncounters.at(-1)?.xp).toBe(Math.round(mill.xp * CONTRACT_BOARD.tokenPay));
+    expect(token.lastEncounters.at(-1)?.gold).toBe(Math.round(mill.gold * CONTRACT_BOARD.tokenPay));
+    expect(token.lastEncounters.at(-1)?.payScale).toBe(CONTRACT_BOARD.tokenPay);
 
     // The first clear is never taxed, even on a day the contract is not posted.
     const first = stateAt(tokenDay);
@@ -393,9 +395,9 @@ describe("contract board", () => {
       .find((d) => payScaleFor(stateAt(d), mill) < 1)!;
     const next = resolveDay(stateAt(tokenDay));
     expect(next.progress.find((p) => p.contentId === "drowned-mill")?.clears).toBe(1);
-    expect(next.lastEncounter?.xp).toBe(mill.xp);
-    expect(next.lastEncounter?.gold).toBe(mill.gold);
-    expect(next.lastEncounter?.payScale).toBe(1);
+    expect(next.lastEncounters.at(-1)?.xp).toBe(mill.xp);
+    expect(next.lastEncounters.at(-1)?.gold).toBe(mill.gold);
+    expect(next.lastEncounters.at(-1)?.payScale).toBe(1);
   });
 
   it("the planner prefers a posted contract over an unposted repeat", () => {
@@ -1659,6 +1661,93 @@ describe("raid hub history", () => {
   });
 });
 
+describe("the day report", () => {
+  const maxed = (hero: Hero): Hero => ({
+    ...hero,
+    level: 60,
+    attrs: {
+      might: 20, agility: 20, vitality: 20, endurance: 20,
+      focus: 20, discipline: 20, awareness: 20, composure: 20,
+    },
+    gear: { weapon: 10, chest: 10, helm: 10, trinket: 10 },
+    traits: [],
+    fatigue: 0,
+    sharpness: 60,
+    morale: 60,
+    health: 100,
+    injuryDays: 0,
+  });
+
+  it("keeps one encounter per party that fought", () => {
+    const base = newGame(7, "Three");
+    const roster = [
+      ...base.roster.map(maxed),
+      ...Array.from({ length: 6 }, (_, index) => ({
+        ...maxed(base.tavern[index % base.tavern.length]!.hero),
+        id: `spare-${index}`,
+      })),
+    ];
+    const ids = roster.map((hero) => hero.id);
+    const state: GameState = {
+      ...base,
+      roster,
+      plan: {
+        parties: [
+          { contentId: "drowned-mill", heroes: ids.slice(0, 3), stance: "steady" },
+          { contentId: "toll-house", heroes: ids.slice(3, 6), stance: "steady" },
+          { contentId: "plundered-vault", heroes: ids.slice(6, 9), stance: "steady" },
+        ],
+      },
+    };
+    const next = resolveDay(state);
+    // One slot used to be overwritten per party, so only the vault survived.
+    expect(next.lastEncounters.map((encounter) => encounter.contentId)).toEqual([
+      "drowned-mill",
+      "toll-house",
+      "plundered-vault",
+    ]);
+    expect(next.lastEncounters.every((encounter) => encounter.cleared)).toBe(true);
+  });
+
+  it("accounts for a farm party in the digest", () => {
+    const state = newGame(3, "Farm");
+    const next = resolveDay(state);
+    const line = next.events.find((item) => item.day === 1 && item.text.includes("farmed"));
+    // A farm resolves no pull, so this line is the only trace of the party.
+    expect(line?.text).toContain("Emberwood");
+    expect(line?.text).toContain("3 heroes");
+    expect(line?.text).toContain("XP");
+  });
+
+  it("prints the mastery the shown pull used, not the total after it", () => {
+    const base = newGame(11, "Mastery");
+    const roster = base.roster.map(maxed);
+    const prior = 4;
+    const state: GameState = {
+      ...base,
+      roster,
+      progress: base.progress.map((row) =>
+        row.contentId === "plundered-vault" ? { ...row, attempts: prior } : row,
+      ),
+      plan: {
+        parties: [
+          { contentId: "plundered-vault", heroes: roster.map((hero) => hero.id), stance: "steady" },
+        ],
+      },
+    };
+    const next = resolveDay(state);
+    const log = next.lastEncounters[0]!;
+    expect(log.cleared).toBe(true);
+    expect(log.priorAttempts).toBe(prior);
+    const report = masteryReport(next, log);
+    // Five attempts are logged, but the killing pull was the fifth and used
+    // the four before it: +8%, not the +10% the counter now reads.
+    expect(report.attempts).toBe(prior + 1);
+    expect(report.mastery).toBe(masteryFor(prior));
+    expect(report.mastery).not.toBe(masteryFor(prior + 1));
+  });
+});
+
 describe("legibility", () => {
   it("a dungeon wipe leaves a report that names the failed check", () => {
     const base = newGame(3, "Report");
@@ -1681,9 +1770,9 @@ describe("legibility", () => {
       },
     };
     const next = resolveDay(s);
-    expect(next.lastEncounter?.contentId).toBe("hollow-crypt");
-    expect(next.lastEncounter?.contentKind).toBe("dungeon");
-    expect(next.lastEncounter?.cleared).toBe(false);
+    expect(next.lastEncounters.at(-1)?.contentId).toBe("hollow-crypt");
+    expect(next.lastEncounters.at(-1)?.contentKind).toBe("dungeon");
+    expect(next.lastEncounters.at(-1)?.cleared).toBe(false);
     const wipe = next.events.find((e) => e.kind === "wipe");
     expect(wipe?.text).toMatch(/DPS|Mitigation/);
   });
