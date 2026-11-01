@@ -18,14 +18,12 @@ export const TitleScreen = () => {
       <div className="title-card">
         <div className="title-kicker">World First · a guild management game</div>
         <h1 className="title-name">
-          Three heroes.
+          Lead your guild
           <br />
-          One wood.
-          <br />
-          Eighty-four days.
+          to World First.
         </h1>
         <p className="title-lead">
-          You never fight. You choose who raids, who sits, who gets a drop, and whether tonight is progress or farm. The fight tests those choices. Three rival guilds run the same ladder at the same pace.
+          Kill the Tyrant before three rival guilds do. You have eighty-four days and three heroes: hire and pay them, keep an eye on fatigue and item level, and decide who raids, who sits and who gets the drop.
         </p>
         <div className="title-form">
           <div className="field">

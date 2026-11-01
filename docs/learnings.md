@@ -901,3 +901,11 @@ The game ran at `/` locally and at `/world-first/` on GitHub Pages. Vite rewrote
 **Changes:** `BASE` in `vite.config.ts` (`/world-first/` for build and preview, `/` for dev); `assetUrl` in `Art.tsx` prepends `import.meta.env.BASE_URL`; `.github/workflows/deploy.yml` builds and deploys on every push to `main`; §11 of [tech-notes.md](tech-notes.md) records the rules.
 **Rejected:** `base: "./"` and relative art paths (they would work today, with no router, but they make every URL depend on the current document path); a `gh-pages` branch built by a local script (generated files in git, and a step that only happens when someone remembers).
 
+
+## The title-screen rewrite (2026-11-01)
+
+### L142. The title sold the design thesis, not the game
+The first title screen opened with a three-fragment slab (`Three heroes. / One wood. / Eighty-four days.`) and then the thesis: "You never fight… The fight tests those choices." It named the philosophy and never named the boss, the objective or the resources the player would spend. A reader could not say what game they were about to start, and the fragment rhythm read as ad copy.
+**Evidence:** the shipped block on `TitleScreen.tsx`; the player's reaction was that the copy was "full of AI mannerisms" and named the missing parts: the race, the Tyrant, wages, fatigue, item level, loot.
+**Changes:** the headline is now `Lead your guild / to World First.` and the lead is two sentences: the goal (`Kill the Tyrant before three rival guilds do.`), then the clock and the ledger (eighty-four days, three heroes, wages, fatigue, item level, the drop). `index.html`'s meta description mirrors it. Rendered at 1440 px and 500 px: two headline lines at both, no overflow.
+**Rejected:** keeping "You never fight" (true, but it states a design constraint where the player needs an objective); the fragment stack (a list of nouns with full stops is what the design doc is for — [vision.md](vision.md) keeps the thesis). Rule for player-facing copy: name the goal and the resources it costs, in full sentences.
